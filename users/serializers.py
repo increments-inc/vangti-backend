@@ -102,7 +102,7 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
-    otp = serializers.IntegerField(allow_null=True)
+    otp = serializers.CharField(allow_null=True)
 
     class Meta:
         model = models.User
@@ -117,7 +117,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
                 phone_number=phone_number,
                 expires_at__gte=time_now
             )
-            if str(reg.key) != str(otp):
+            if str(reg.key) != otp:
                 return -1
             user = models.User.objects.create(
                 phone_number=phone_number,
