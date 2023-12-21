@@ -14,7 +14,12 @@ from rest_framework_simplejwt import tokens
 from rest_framework_simplejwt.exceptions import TokenError
 # from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .app_rest import TokenObtainPairSerializer
-from users import models
+from . import models
+from django.core.mail import send_mail
+from django.conf import settings
+from datetime import datetime, timedelta
+from .pin_validator import PINValidator
+from django.contrib.auth.hashers import PBKDF2PasswordHasher
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -63,12 +68,91 @@ class NumberObtainPairSerializer(serializers.Serializer):
     #     fields = ("phone_number",)
 
 
+class RegistrationOTPSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.RegistrationOTPModel
+        fields = ("phone_number",)
+
+    def create(self, validated_data):
+        print("here")
+        phone_number = validated_data.pop("phone_number", None)
+        if models.User.objects.filter(
+            phone_number=phone_number
+        ).exists():
+            return -1
+        time_now = datetime.now()
+        expires = time_now + timedelta(seconds=310)
+        base_otp = pyotp.TOTP('base32secret3232').now()
+
+        reg_phone = models.RegistrationOTPModel.objects.create(
+            phone_number=phone_number,
+            key=base_otp,
+            expires_at=expires
+        )
+        host_user = settings.EMAIL_HOST_USER
+        # insert sms service here
+        send_mail(
+            "Vangti OTP",
+            f"Dear Customer,\nYour One-Time-Password for Vangti app is {base_otp}\nRegards,\nVangti Team",
+            host_user,
+            [host_user],
+            fail_silently=False,
+        )
+        return reg_phone
+
+
+class RegistrationSerializer(serializers.ModelSerializer):
+    otp = serializers.IntegerField(allow_null=True)
+
+    class Meta:
+        model = models.User
+        fields = ("phone_number", "otp",)
+
+    def create(self, validated_data):
+        phone_number = validated_data.pop("phone_number", None)
+        otp = validated_data.pop("otp", None)
+        time_now = datetime.now()
+        try:
+            reg = models.RegistrationOTPModel.objects.get(
+                phone_number=phone_number,
+                expires_at__gte=time_now
+            )
+            if str(reg.key) != str(otp):
+                return -1
+            user = models.User.objects.create(
+                phone_number=phone_number,
+                pin=None
+            )
+        except models.RegistrationOTPModel.DoesNotExist:
+            return -1
+        return user
+
+
+class PINSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.User
+        fields = ("pin",)
+
+    def update(self, instance, validated_data):
+        pin = validated_data.pop("pin", None)
+        try:
+            PINValidator.validate(pin)
+            hasher = PBKDF2PasswordHasher()
+            hashed_pin = hasher.encode(pin, "random")
+            instance.pin = hashed_pin
+            instance.save()
+        except:
+            return -1
+        return instance
+
+
+
 class LoginSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
     otp = serializers.IntegerField()
 
 
-class LoginSerializer0(serializers.Serializer):
+class Login0(serializers.Serializer):
     username = serializers.CharField(required=False, allow_blank=True)
     email = serializers.EmailField()
     password = serializers.CharField(style={"input_type": "password"})

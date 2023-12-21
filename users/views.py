@@ -10,7 +10,7 @@ from utils import helper
 from .models import *
 from .serializers import *
 from .app_utils import EmailPhoneUsernameAuthentication as EPUA
-from .app_utils import get_tokens_for_user
+from .app_utils import get_reg_token
 
 from django.conf import settings
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -89,38 +89,103 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             return response.Response(resp, status=status.HTTP_200_OK)
 
 
-class GetNumberViewSet(viewsets.ModelViewSet):
-    serializer_class = NumberObtainPairSerializer
+class RegistrationViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
+    serializer_class = RegistrationSerializer
+
+    def get_serializer_class(self):
+        if self.action == "set_pin":
+            return PINSerializer
+        return self.serializer_class
+
+    @staticmethod
+    def _otp_reg(request, user, serializer):
+        resp = response.Response()
+        reg_token = str(get_reg_token(user))
+        resp.set_cookie('reg_token',
+                        reg_token,
+                        httponly=True)
+
+        resp.status_code = status.HTTP_200_OK
+        resp.data = {
+            "detail": "Registration successful",
+            "reg_access_token": reg_token,
+        }
+        return resp
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(
+            data=request.data,
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        if user == -1:
+            return response.Response({
+                "message": "OTP doesnt match",
+                "data": serializer.validated_data,
+            },
+                status=status.HTTP_404_NOT_FOUND
+            )
+        resp = response.Response()
+        try:
+            try:
+                return self._otp_reg(
+                    request=request,
+                    user=user,
+                    serializer=serializer
+                )
+
+            except Exception as e:
+                # raise InvalidToken(e.args[0]) from e
+                return response.Response(e.args[0], status=status.HTTP_400_BAD_REQUEST)
+
+        except Exception:
+            resp.data = {
+                "message": "Registration Error",
+                "data": serializer.validated_data,
+            }
+            return response.Response(resp, status=status.HTTP_404_NOT_FOUND)
+
+    def set_pin(self, request, *args, **kwargs):
+        user = request.user
+        serializer = self.serializer_class(
+            instance=user,
+            data=request.data,
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        if user == -1:
+            return response.Response({
+                "message": "Invalid PIN",
+                "data": serializer.validated_data,
+            },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return response.Response(
+            "PIN Set Successfully",
+            status=status.HTTP_200_OK
+        )
+
+
+class GetNumberViewSet(viewsets.ModelViewSet):
+    serializer_class = RegistrationOTPSerializer
+    queryset = RegistrationOTPModel.objects.all()
     http_method_names = ["post"]
 
     def post(self, request, *args, **kwargs):
         # serializer = self.serializer_class(data=request.data)
         data = request.data
-        if "phone" in data:
-            phone = data["phone"]
-            get_user = self.queryset.filter(phone_number=phone)
-            if not get_user:
+        print(data)
+        serializer = self.serializer_class(data=data)
+        if serializer.is_valid():
+            user = serializer.save()
+            if user == -1:
                 return response.Response(
-                    "No User Found",
-                    status=status.HTTP_404_NOT_FOUND
+                    "User exists!",
+                    status=status.HTTP_302_FOUND
                 )
-
-            expires = datetime.now() + timedelta(seconds=310)
-            base_otp = pyotp.TOTP('base32secret3232').now()
-            user = get_user.first()
-            OTPModel.objects.create(
-                user=user,
-                key=base_otp,
-                expires_at=expires
-            )
-            send_mail(
-                "Vangti OTP",
-                f"Dear Customer,\nYour One-Time-Password for Vangti app is {base_otp}\nRegards,\nVangti Team",
-                settings.EMAIL_HOST_USER,
-                [user.email],
-                fail_silently=False,
-            )
             return response.Response(
                 "OTP sent in mail/sms",
                 status=status.HTTP_200_OK

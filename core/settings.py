@@ -12,7 +12,6 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
 INSTALLED_APPS = [
     # async
     'daphne',
@@ -36,6 +35,9 @@ INSTALLED_APPS = [
 
     # apps
     'users',
+    'analytics',
+    'transaction',
+    'web_socket',
 
 ]
 
