@@ -1,3 +1,5 @@
 from django.shortcuts import render
 
-# Create your views here.
+
+def transaction_request_method():
+    return

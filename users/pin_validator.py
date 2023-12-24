@@ -7,7 +7,7 @@ class PINValidator:
     def __init__(self, min_length=5):
         self.min_length = min_length
 
-    def validate(self, password, user=None):
+    def validate(self, password):
         if len(password) < self.min_length:
             raise ValidationError(
                 _("This password must contain at least %(min_length)d characters."),

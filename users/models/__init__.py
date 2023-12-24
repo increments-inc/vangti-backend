@@ -1,2 +1,2 @@
-from .user_login import *
+from .user_basic import *
 from .kyc import *

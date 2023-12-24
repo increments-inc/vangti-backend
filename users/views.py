@@ -6,25 +6,14 @@ from rest_framework import (
     viewsets,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
-from utils import helper
 from .models import *
 from .serializers import *
-from .app_utils import EmailPhoneUsernameAuthentication as EPUA
 from .app_utils import get_reg_token
-
-from django.conf import settings
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.urls import reverse
-from django.utils.encoding import force_bytes
-from django.utils.http import urlsafe_base64_encode
-from datetime import datetime, timedelta
-from django.core.mail import send_mail
 from django.conf import settings
 
-
-# from core import settings
 
 class CustomTokenObtainPairView(TokenObtainPairView):
+    permission_classes = []
     serializer_class = CustomTokenObtainPairSerializer
 
     @staticmethod
@@ -92,6 +81,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 class RegistrationViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = RegistrationSerializer
+    permission_classes = []
+
 
     def get_serializer_class(self):
         if self.action == "set_pin":
@@ -147,6 +138,13 @@ class RegistrationViewSet(viewsets.ModelViewSet):
             }
             return response.Response(resp, status=status.HTTP_404_NOT_FOUND)
 
+
+
+class UserPinViewSet(viewsets.ViewSet):
+    queryset = User.objects.all()
+    serializer_class = PINSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
     def set_pin(self, request, *args, **kwargs):
         user = request.user
         serializer = self.serializer_class(
@@ -170,6 +168,7 @@ class RegistrationViewSet(viewsets.ModelViewSet):
 
 
 class GetNumberViewSet(viewsets.ModelViewSet):
+    permission_classes = []
     serializer_class = RegistrationOTPSerializer
     queryset = RegistrationOTPModel.objects.all()
     http_method_names = ["post"]
@@ -193,6 +192,6 @@ class GetNumberViewSet(viewsets.ModelViewSet):
 
         # serializer.is_valid(raise_exception=True)
         return response.Response(
-            "please Input proper data",
-            status=status.HTTP_200_OK
+            "Input proper data",
+            status=status.HTTP_400_BAD_REQUEST
         )

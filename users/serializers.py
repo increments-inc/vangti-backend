@@ -135,14 +135,14 @@ class PINSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         pin = validated_data.pop("pin", None)
-        try:
-            PINValidator.validate(pin)
-            hasher = PBKDF2PasswordHasher()
-            hashed_pin = hasher.encode(pin, "random")
-            instance.pin = hashed_pin
-            instance.save()
-        except:
-            return -1
+        # try:
+        PINValidator().validate(password=pin)
+        hasher = PBKDF2PasswordHasher()
+        hashed_pin = hasher.encode(pin, settings.SALT)
+        instance.pin = hashed_pin
+        instance.save()
+        # except:
+        #     return -1
         return instance
 
 

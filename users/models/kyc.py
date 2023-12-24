@@ -1,7 +1,7 @@
 from django.contrib.gis.db import models
 from django.contrib.auth.models import BaseUserManager
 from utils.helper import content_file_path, ImageCompress
-from .user_login import User
+from .user_basic import User
 
 GENDER = [
     ("MALE", "Male"),
