@@ -68,6 +68,7 @@ class NumberObtainPairSerializer(serializers.Serializer):
     #     fields = ("phone_number",)
 
 
+
 class RegistrationOTPSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.RegistrationOTPModel
@@ -150,6 +151,7 @@ class PINSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
     otp = serializers.IntegerField()
+
 
 
 class Login0(serializers.Serializer):
