@@ -1,7 +1,7 @@
 from django.contrib.gis.db import models
 from django.contrib.auth.models import BaseUserManager
 from utils.helper import content_file_path, ImageCompress
-from .user_basic import User
+from .basic_info import User
 
 GENDER = [
     ("MALE", "Male"),
@@ -29,9 +29,9 @@ class UserInformation(models.Model):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="user_info"
     )
-    # address = models.CharField(max_length=254, blank=True)
-    person_name = models.CharField(max_length=255)
-    acc_type = models.CharField(max_length=25, choices=ACCOUNT_TYPE, null=True, blank=True)
+    device_id = models.CharField(max_length=512, null=True, blank=True)
+    person_name = models.CharField(max_length=255, null=True, blank=True)
+    acc_type = models.CharField(max_length=25, choices=ACCOUNT_TYPE, default="PERSONAL")
     profile_pic = models.ImageField(upload_to=content_file_path, blank=True, null=True)
     __original_image = None
 

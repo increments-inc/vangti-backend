@@ -83,10 +83,9 @@ class RegistrationViewSet(viewsets.ModelViewSet):
     serializer_class = RegistrationSerializer
     permission_classes = []
 
-
     def get_serializer_class(self):
         if self.action == "set_pin":
-            return PINSerializer
+            return UserPINSerializer
         return self.serializer_class
 
     @staticmethod
@@ -100,7 +99,7 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         resp.status_code = status.HTTP_200_OK
         resp.data = {
             "detail": "Registration successful",
-            "reg_access_token": reg_token,
+            # "reg_access_token": reg_token,
         }
         return resp
 
@@ -138,6 +137,24 @@ class RegistrationViewSet(viewsets.ModelViewSet):
             }
             return response.Response(resp, status=status.HTTP_404_NOT_FOUND)
 
+    def set_pin(self, request, *args, **kwargs):
+        serializer = self.get_serializer_class()(
+            data=request.data,
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        if user == -1:
+            return response.Response({
+                "message": "Invalid PIN or invalid device",
+                "data": serializer.validated_data,
+            },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return response.Response(
+            "PIN Set Successfully",
+            status=status.HTTP_200_OK
+        )
 
 
 class UserPinViewSet(viewsets.ViewSet):
@@ -146,6 +163,8 @@ class UserPinViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def set_pin(self, request, *args, **kwargs):
+        token = request.headers.get('Authorization').split()[1]  # Extract token
+        token.blacklist()  # Blacklist after use
         user = request.user
         serializer = self.serializer_class(
             instance=user,
@@ -156,7 +175,7 @@ class UserPinViewSet(viewsets.ViewSet):
         user = serializer.save()
         if user == -1:
             return response.Response({
-                "message": "Invalid PIN",
+                "message": "Invalid PIN or invalid device",
                 "data": serializer.validated_data,
             },
                 status=status.HTTP_400_BAD_REQUEST
@@ -195,4 +214,41 @@ class GetNumberViewSet(viewsets.ModelViewSet):
 
             "Input proper data",
             status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserDeactivateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == "deactivate_user":
+            return UserDeactivateSerializer
+        return self.serializer_class
+
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    def deactivate_user(self, request, *args, **kwargs):
+        instance = request.user
+        data = request.data
+        serializer = self.get_serializer_class()(instance, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return response.Response(
+                "User Deactivated",
+                status=status.HTTP_200_OK
+            )
+        return response.Response(
+            "",
+            status=status.HTTP_200_OK
+        )
+
+    def delete_user(self, request, *args, **kwargs):
+        # cretae db and run crontab
+        return response.Response(
+            "",
+            status=status.HTTP_200_OK
         )

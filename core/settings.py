@@ -40,7 +40,7 @@ INSTALLED_APPS = [
 
     # apps
     'users',
-
+    'subscription',
     'analytics',
     'transaction',
     'web_socket',

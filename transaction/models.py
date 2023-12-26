@@ -3,7 +3,15 @@ from django.contrib.auth import get_user_model
 from core.abstract_models import BaseModel
 from django.contrib.postgres.fields import ArrayField
 import uuid
+
 User = get_user_model()
+
+
+class UserServiceMode(BaseModel):
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="user_mode"
+    )
+    is_provider = models.BooleanField(default=False)
 
 
 class Transaction(BaseModel):
@@ -67,3 +75,17 @@ class TransactionReview(BaseModel):
     class Meta:
         ordering = ("-created_at",)
 
+
+class DigitalWallet(BaseModel):
+    transaction = models.ForeignKey(
+        Transaction, on_delete=models.CASCADE, related_name="digitalwallet_transaction"
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="digitalwallet_user"
+    )
+    charge = models.FloatField(default=0.0)
+    amount = models.FloatField(default=0.0)
+    system_fee = models.FloatField(default=0.0)
+
+    def __str__(self):
+        return self.user.phone_number

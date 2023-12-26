@@ -112,51 +112,29 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.phone_number
 
 
-# class UserLocation(models.Model):
+
+# class OTPModel(models.Model):
 #     """
-#     Model to store user location information
+#     Model to handle user OTP
 #     """
 #
-#     user = models.OneToOneField(
-#         User, on_delete=models.CASCADE, related_name="user_location"
+#     user = models.ForeignKey(
+#         User,
+#         on_delete=models.CASCADE,
+#         related_name="user_otp",
 #     )
-#     latitude = models.CharField(max_length=254, blank=True)
-#     longitude = models.CharField(max_length=254, blank=True)
-#     location = models.PointField()
+#     key = models.TextField(
+#         unique=True,
+#         blank=True,
+#         null=True,
+#     )
+#     is_active = models.BooleanField(
+#         default=False,
+#     )
+#     expires_at = models.DateTimeField(null=True)
 #
 #     def __str__(self):
-#         return f"{self.user}'s location"
-
-    # def save(self, force_insert=False, force_update=False, *args, **kwargs):
-    #     if self.profile_pic != self.__original_image:
-    #         self.profile_pic = ImageCompress(self.profile_pic)
-    #
-    #     super().save(force_insert, force_update, *args, **kwargs)
-    #     self.__original_image = self.profile_pic
-
-
-class OTPModel(models.Model):
-    """
-    Model to handle user OTP
-    """
-
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="user_otp",
-    )
-    key = models.TextField(
-        unique=True,
-        blank=True,
-        null=True,
-    )
-    is_active = models.BooleanField(
-        default=False,
-    )
-    expires_at = models.DateTimeField(null=True)
-
-    def __str__(self):
-        return f"OTP - {self.user.phone_number}"
+#         return f"OTP - {self.user.phone_number}"
 
 
 class RegistrationOTPModel(models.Model):
@@ -167,6 +145,7 @@ class RegistrationOTPModel(models.Model):
                                  message="Phone number must be entered in the format: '+880XXXX-XXXXXX'. Up to 13 "
                                          "digits allowed.")
     phone_number = models.CharField(validators=[phone_regex], max_length=15)
+    device_id = models.CharField(max_length=512, null=True, blank=True)
     key = models.TextField(
         blank=True,
         null=True,

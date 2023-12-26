@@ -36,7 +36,6 @@ pyasn1==0.5.0
 pyasn1-modules==0.3.0
 pycparser==2.21
 PyJWT==2.8.0
-pyOpenSSL==23.3.0
 pyotp==2.9.0
 python-decouple==3.8
 pytz==2023.3.post1
@@ -51,6 +50,6 @@ sqlparse==0.4.4
 Twisted==23.10.0
 txaio==23.1.1
 typing_extensions==4.8.0
-uritemplate==4.1.1
-urllib3==2.1.0
+urllib3==1.26.15
 zope.interface==6.1
+drf-extra-fields==3.7.0
