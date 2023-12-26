@@ -20,6 +20,7 @@ urlpatterns = [
     # apps
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
-
     path('api/sockets/', include('web_socket.urls')),
+    path('api/transaction/', include('transaction.urls')),
+
 ]

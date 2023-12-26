@@ -12,9 +12,7 @@ def create_instance(sender, instance, created, **kwargs):
             UserInformation.objects.create(
                 user=instance
             )
-        except:
-            pass
-        try:
+
             UserServiceMode.objects.create(
                 user=instance
             )
