@@ -24,12 +24,12 @@ class TokenObtainSerializer(serializers.Serializer):
         super().__init__(*args, **kwargs)
 
         self.fields[self.username_field] = serializers.CharField(write_only=True)
-        self.fields["otp"] = serializers.IntegerField(write_only=True)
+        self.fields["pin"] = serializers.CharField(write_only=True)
 
     def validate(self, attrs: Dict[str, Any]) -> Dict[Any, Any]:
         authenticate_kwargs = {
             self.username_field: attrs[self.username_field],
-            "otp": attrs["otp"]
+            "pin": attrs["pin"]
         }
         try:
             authenticate_kwargs["request"] = self.context["request"]
@@ -39,11 +39,10 @@ class TokenObtainSerializer(serializers.Serializer):
         self.user = EPUA.authenticate(
             request=self.context.get("request"),
             username=authenticate_kwargs["phone_number"],
-            otp=authenticate_kwargs["otp"],
+            pin=authenticate_kwargs["pin"],
         )
 
         if not api_settings.USER_AUTHENTICATION_RULE(self.user):
-            print("hello world")
             raise exceptions.AuthenticationFailed(
                 self.error_messages["no_active_account"],
                 "no_active_account",

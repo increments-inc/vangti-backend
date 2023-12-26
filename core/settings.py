@@ -10,8 +10,10 @@ SECRET_KEY = 'django-insecure-az+a*smk6&1sm68!hly(zcq@vp)gd6e!*e*e=%gf5!=eb7qpj#
 
 DEBUG = True
 
-ALLOWED_HOSTS = []
 
+SALT = "random"
+
+ALLOWED_HOSTS = ['127.0.0.1', '192.168.27.141']
 
 INSTALLED_APPS = [
     # async
@@ -25,6 +27,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'django.contrib.gis',
+
     # packages
     'rest_framework',
     'rest_framework.authtoken',
@@ -36,6 +40,10 @@ INSTALLED_APPS = [
 
     # apps
     'users',
+
+    'analytics',
+    'transaction',
+    'web_socket',
 
 ]
 
