@@ -22,8 +22,12 @@ urlpatterns = [
     # path('set-pin-token/', UserPinViewSet.as_view({"post": "set_pin"}), name='user_set_pin_token'),
     path('enter-phone-number/', GetNumberViewSet.as_view({"post": "post"}), name='user_number_enter'),
 
-    # user
+    # user account deletion
     path('deactivate/', UserViewSet.as_view({"patch": "deactivate_user"}), name='user_deactivate'),
     path('delete/', UserViewSet.as_view({"patch": "delete_user"}), name='user_delete'),
+
+    # user profile
+    path('change-pin/', UserViewSet.as_view({"patch": "change_pin"}), name='user_change_pin'),
+    path('change-profile/', UserViewSet.as_view({"patch": "change_profile"}), name='user_change_profile'),
 
 ]

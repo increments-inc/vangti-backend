@@ -225,8 +225,11 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == "deactivate_user":
             return UserDeactivateSerializer
+        if self.action == "change_pin":
+            return PINSerializer
+        if self.action == "change_profile":
+            return UserInformationSerializer
         return self.serializer_class
-
 
     def perform_update(self, serializer):
         serializer.save()
@@ -250,5 +253,48 @@ class UserViewSet(viewsets.ModelViewSet):
         # cretae db and run crontab
         return response.Response(
             "",
+            status=status.HTTP_200_OK
+        )
+
+    def change_pin(self, request, *args, **kwargs):
+        # Blacklist after use
+        user = request.user
+        serializer = self.get_serializer_class()(
+            instance=user,
+            data=request.data,
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        if user == -1:
+            return response.Response({
+                "message": "Invalid PIN or invalid device",
+                "data": serializer.validated_data,
+            },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return response.Response(
+            "PIN Set Successfully",
+            status=status.HTTP_200_OK
+        )
+
+    def change_profile(self, request, *args, **kwargs):
+        user = request.user
+        serializer = self.get_serializer_class()(
+            instance=user.user_info,
+            data=request.data,
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        if user == -1:
+            return response.Response({
+                "message": "Invalid User",
+                "data": serializer.validated_data,
+            },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return response.Response(
+            "Profile changed Successfully",
             status=status.HTTP_200_OK
         )

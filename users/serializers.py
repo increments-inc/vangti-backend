@@ -107,19 +107,25 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
 
 class PINSerializer(serializers.ModelSerializer):
+    new_pin = serializers.CharField()
+
     class Meta:
         model = models.User
-        fields = ("pin",)
+        fields = ("pin", "new_pin")
 
     def update(self, instance, validated_data):
-        device_id = validated_data.pop("device_id", None)
-        if device_id != instance.user_info.device_id:
-            return -1
+        new_pin = validated_data.pop("new_pin", None)
         pin = validated_data.pop("pin", None)
+
+        hasher = PBKDF2PasswordHasher()
+        hashed_pin = hasher.encode(pin, settings.SALT)
+
+        if hashed_pin != instance.pin:
+            return -1
         try:
-            PINValidator().validate(password=pin)
+            PINValidator().validate(password=new_pin)
             hasher = PBKDF2PasswordHasher()
-            hashed_pin = hasher.encode(pin, settings.SALT)
+            hashed_pin = hasher.encode(new_pin, settings.SALT)
             instance.pin = hashed_pin
             instance.save()
         except:
@@ -156,9 +162,12 @@ class UserDeactivateSerializer(serializers.ModelSerializer):
         fields = ("is_active",)
 
 
+class UserInformationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.UserInformation
+        fields = ("person_name", "profile_pic", )
 
 
 class LoginSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
     otp = serializers.IntegerField()
-
