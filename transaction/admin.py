@@ -1,3 +1,3 @@
-from django.contrib import admin
+from utils.admin_listing import register_models
 
-# Register your models here.
+register_models(app_name="transaction")

@@ -8,7 +8,19 @@ class TransactionSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class TransactionReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TransactionReview
+        fields = "__all__"
+
+
+class TransactionHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TransactionHistory
+        fields = "__all__"
+
+
 class UserServiceModeSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserServiceMode
-        fields = ("is_provider", )
+        fields = ("is_provider",)

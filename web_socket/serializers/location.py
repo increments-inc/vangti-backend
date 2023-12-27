@@ -31,7 +31,7 @@ class LocationSerializer(serializers.ModelSerializer):
             loc__distance_lte=(center, Distance(km=radius))
         ).values_list("user__phone_number", flat=True))
         LocationRadius.objects.create(
-            user_location=obj,
+            user=obj.user,
             user_list={"users": users}
         )
         return
@@ -50,7 +50,7 @@ class LocationSerializer(serializers.ModelSerializer):
             longitude=longitude,
             loc=loc_point
         )
-        self.user_list(user)
+        self.user_list(user_location_point)
         return user_location_point
 
     def update(self, instance, validated_data):
@@ -62,5 +62,5 @@ class LocationSerializer(serializers.ModelSerializer):
         instance.longitude = longitude
         instance.loc = loc
         instance.save()
-        self.user_list(user)
+        self.user_list(instance)
         return instance

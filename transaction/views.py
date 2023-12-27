@@ -40,16 +40,59 @@ class TransactionViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
+class TransactionReviewViewSet(viewsets.ModelViewSet):
+    queryset = TransactionReview.objects.all()
+    serializer_class = TransactionReviewSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+
+# history and insights
+class TransactionHistoryViewSet(viewsets.ModelViewSet):
+    queryset = TransactionHistory.objects.all()
+    serializer_class = TransactionHistorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["get"]
+
+    def provider_history(self, *args, **kwargs):
+        user = self.request.user
+        queryset = self.queryset.filter(provider=user)
+        if queryset:
+            serializer = self.serializer_class(queryset)
+            return response.Response(
+                serializer.data,
+                status=status.HTTP_200_OK
+            )
+        return response.Response(
+            "No Data found",
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    def seeker_history(self, *args, **kwargs):
+        user = self.request.user
+        queryset = self.queryset.filter(seeker=user)
+        if queryset:
+            serializer = self.serializer_class(queryset)
+            return response.Response(
+                serializer.data,
+                status=status.HTTP_200_OK
+            )
+        return response.Response(
+            "No Data found",
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
 class UserServiceModeViewSet(viewsets.ModelViewSet):
     queryset = UserServiceMode.objects.all()
     serializer_class = UserServiceModeSerializer
     permission_classes = [permissions.IsAuthenticated]
+
     # http_method_names = ["patch"]
 
     def mode_change(self, *args, **kwargs):
         instance = self.queryset.get(user=self.request.user)
         data = self.request.data
-        serializer = self.serializer_class(instance, data = data)
+        serializer = self.serializer_class(instance, data=data)
         if serializer.is_valid():
             # serializer.save()
             self.perform_update(serializer)
@@ -59,5 +102,3 @@ class UserServiceModeViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_200_OK
             )
         return response.Response("", status=status.HTTP_200_OK)
-
-

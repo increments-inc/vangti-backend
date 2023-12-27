@@ -224,3 +224,14 @@ JWT_AUTH_REFRESH_COOKIE = "refresh"
 # ACCOUNT_EMAIL_VERIFICATION = "none"
 # REST_SESSION_LOGIN = False  # Set Session ID and CSRF Token to Cookie
 # LOGOUT_ON_PASSWORD_CHANGE = True  # For Cookie Based Login
+
+
+
+# redis
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379",
+    }
+}
+
