@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework import (
     permissions,
     response,
@@ -16,10 +15,10 @@ from django.utils.decorators import method_decorator
 
 # CACHE_TTL = getattr(settings, 'CACHE_TTL', DEFAULT_TIMEOUT)
 
-CACHE_TTL = 60 * 15
+# CACHE_TTL = 60 * 15
 
 
-@method_decorator(cache_page(60), name='dispatch')
+@method_decorator(cache_page(60*1), name='dispatch')
 class LocationViewSet(viewsets.ModelViewSet):
     queryset = UserLocation.objects.all()
     serializer_class = LocationSerializer

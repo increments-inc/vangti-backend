@@ -30,10 +30,17 @@ class LocationSerializer(serializers.ModelSerializer):
         users = list(UserLocation.objects.exclude(user__id=obj.user.id).filter(
             loc__distance_lte=(center, Distance(km=radius))
         ).values_list("user__phone_number", flat=True))
-        LocationRadius.objects.create(
-            user=obj.user,
-            user_list={"users": users}
-        )
+        try:
+            user_loc = LocationRadius.objects.get(
+                user=obj.user
+            )
+            user_loc.user_list={"users": users}
+            user_loc.save()
+        except LocationRadius.DoesNotExist:
+            LocationRadius.objects.create(
+                user=obj.user,
+                user_list={"users": users}
+            )
         return
 
     def create(self, validated_data):
