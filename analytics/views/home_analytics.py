@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 from ..models import *
 from ..serializers import *
 from django.db.models import Avg, Sum, Count
-from transaction.models import TransactionHistory
+from transactions.models import TransactionHistory
 from web_socket.models import LocationRadius
 from datetime import datetime, timedelta
 from django.core.cache import cache

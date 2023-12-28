@@ -2,7 +2,7 @@ from django.dispatch import receiver
 from .models import *
 from django.db.models.signals import post_save, pre_save
 # from web_socket.models import *
-from transaction.models import UserServiceMode
+from transactions.models import UserServiceMode
 
 
 @receiver(post_save, sender=User)

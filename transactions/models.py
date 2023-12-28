@@ -15,13 +15,10 @@ class UserServiceMode(BaseModel):
 
 
 class Transaction(BaseModel):
-
-    transaction_no = models.UUIDField(
-        # primary_key=False,
-        default=uuid.uuid4,
-        null=True,
-        blank=True
-    )
+    # transaction_no = models.UUIDField(
+    #     default=uuid.uuid4
+    # )
+    transaction_no = models.CharField(max_length=255, null=True, blank=True)
     total_amount = models.FloatField()
     preferred_notes = ArrayField(ArrayField(models.CharField(max_length=10)))
     provider = models.ForeignKey(

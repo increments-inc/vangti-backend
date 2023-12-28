@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'users',
     'subscription',
     'analytics',
-    'transaction',
+    'transactions',
     'web_socket',
 
 ]

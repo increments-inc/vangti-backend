@@ -1,3 +1,3 @@
 from utils.admin_listing import register_models
 
-register_models(app_name="transaction")
+register_models(app_name="transactions")

@@ -44,7 +44,16 @@ class TransactionRatingViewSet(viewsets.ModelViewSet):
     queryset = TransactionReview.objects.all()
     serializer_class = TransactionReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ["post", "get"]
+    http_method_names = ["get", "post",]
+
+    def create(self, request, *args, **kwargs):
+        user = self.request.user
+        data = self.request.data
+        serializer = self.serializer_class(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return response.Response(serializer.data, status=status.HTTP_201_CREATED)
+        return response.Response("", status=status.HTTP_204_NO_CONTENT)
 
 
 # history and insights
