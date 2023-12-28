@@ -15,10 +15,12 @@ class UserServiceMode(BaseModel):
 
 
 class Transaction(BaseModel):
+
     transaction_no = models.UUIDField(
-        primary_key=True,
+        # primary_key=False,
         default=uuid.uuid4,
-        verbose_name="ID"
+        null=True,
+        blank=True
     )
     total_amount = models.FloatField()
     preferred_notes = ArrayField(ArrayField(models.CharField(max_length=10)))
@@ -54,13 +56,6 @@ class TransactionHistory(BaseModel):
 
 
 class TransactionReview(BaseModel):
-    REVIEW_STAR = [
-        ("1", "1"),
-        ("2", "2"),
-        ("3", "3"),
-        ("4", "4"),
-        ("5", "5"),
-    ]
     transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE,
                                     related_name="review_transaction")
     provider = models.ForeignKey(
@@ -69,7 +64,7 @@ class TransactionReview(BaseModel):
     seeker = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="review_seeker"
     )
-    rating = models.CharField(max_length=10, choices=REVIEW_STAR, null=True, blank=True)
+    rating = models.FloatField(default=0.0)
     message = models.TextField(null=True, blank=True)
 
     class Meta:

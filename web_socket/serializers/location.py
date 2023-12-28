@@ -17,6 +17,38 @@ from django.core.cache import cache
 from django.db.models import Q
 
 
+class LocationCacheSerializer(serializers.Serializer):
+    latitude = serializers.CharField()
+    longitude = serializers.CharField()
+
+    def to_representation(self, instance):
+        user = self.context.get("request").user
+        latitude = float(instance.get("latitude", None))
+        longitude = float(instance.get("longitude", None))
+
+        loc_point = Point(float(longitude), float(latitude))
+        cache.set(f"{user.id}", loc_point, 3600)
+        self.user_location()
+        return instance
+
+    def user_location(self):
+        user = self.context.get("request").user
+        user_center = cache.get(f"{user.id}")
+        user_id_list = User.objects.filter(~Q(id=user.id)).values_list("id", flat=True)
+        empty_dict_user_loc = {}
+        for userid in user_id_list:
+            user_loc = cache.get(f"{userid}")
+            if user_loc is not None:
+                empty_dict_user_loc[userid] = user_loc
+        empty_users_list_for_cache = []
+        for user_no in empty_dict_user_loc:
+            user_location = empty_dict_user_loc[user_no]
+            dist = user_center.distance(user_location)
+            if dist <= settings.LOCATION_RADIUS:
+                empty_users_list_for_cache.append(User.objects.get(id=user_no).phone_number)
+        cache.set(f"{user.phone_number}", empty_users_list_for_cache, 3600)
+        return
+
 # class LocationSerializer(serializers.ModelSerializer):
 #     # location_point = PointField(source="loc")
 #
@@ -73,38 +105,3 @@ from django.db.models import Q
 #         instance.save()
 #         self.user_list(instance)
 #         return instance
-
-
-class LocationCacheSerializer(serializers.Serializer):
-    latitude = serializers.CharField()
-    longitude = serializers.CharField()
-
-    def to_representation(self, instance):
-        user = self.context.get("request").user
-        latitude = float(instance.get("latitude", None))
-        longitude = float(instance.get("longitude", None))
-
-        loc_point = Point(float(longitude), float(latitude))
-        cache.set(f"{user.id}", loc_point, 3600)
-        self.user_location()
-        return instance
-
-    def user_location(self):
-        user = self.context.get("request").user
-        user_center = cache.get(f"{user.id}")
-        user_id_list = User.objects.filter(~Q(id=user.id)).values_list("id", flat=True)
-        empty_dict_user_loc = {}
-        for userid in user_id_list:
-            user_loc = cache.get(f"{userid}")
-            if user_loc is not None:
-                empty_dict_user_loc[userid] = user_loc
-        empty_users_list_for_cache = []
-        for user_no in empty_dict_user_loc:
-            user_location = empty_dict_user_loc[user_no]
-            dist = user_center.distance(user_location)
-            if dist <= settings.LOCATION_RADIUS:
-                empty_users_list_for_cache.append(User.objects.get(id=user_no).phone_number)
-        cache.set(f"{user.phone_number}", empty_users_list_for_cache, 3600)
-        return
-
-

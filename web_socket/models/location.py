@@ -19,7 +19,6 @@ class UserLocation(models.Model):
 
 
 class LocationRadius(models.Model):
-    # user_location = models.ForeignKey(UserLocation, on_delete=models.CASCADE, related_name="user_location_radius")
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="user_location_radius")
 
     user_list = models.JSONField()

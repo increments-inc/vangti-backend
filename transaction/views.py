@@ -40,10 +40,11 @@ class TransactionViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
-class TransactionReviewViewSet(viewsets.ModelViewSet):
+class TransactionRatingViewSet(viewsets.ModelViewSet):
     queryset = TransactionReview.objects.all()
     serializer_class = TransactionReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["post", "get"]
 
 
 # history and insights
