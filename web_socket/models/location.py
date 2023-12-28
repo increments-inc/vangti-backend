@@ -14,6 +14,9 @@ class UserLocation(models.Model):
     def __str__(self):
         return f"{self.latitude}, {self.longitude}"
 
+    class Meta:
+        abstract = True
+
 
 class LocationRadius(models.Model):
     # user_location = models.ForeignKey(UserLocation, on_delete=models.CASCADE, related_name="user_location_radius")
@@ -24,4 +27,5 @@ class LocationRadius(models.Model):
     def __str__(self):
         return self.user
 
-
+    class Meta:
+        abstract = True

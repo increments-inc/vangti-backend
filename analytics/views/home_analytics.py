@@ -8,6 +8,8 @@ from django.db.models import Avg, Sum, Count
 from transaction.models import TransactionHistory
 from web_socket.models import LocationRadius
 from datetime import datetime, timedelta
+from django.core.cache import cache
+from django.db.models import Q
 
 
 class HomeAnalyticsViewSet(viewsets.ModelViewSet):
@@ -16,7 +18,8 @@ class HomeAnalyticsViewSet(viewsets.ModelViewSet):
 
     def seeker_analytics(self, *args, **kwargs):
         user = self.request.user
-        user_list = user.user_location_radius.user_list["users"]
+        # user_list = user.user_location_radius.user_list["users"]
+        user_list = cache.get(f"{user.phone_number}")
         count_user = len(user_list)
         ratings = UserRating.objects.filter(user__phone_number__in=user_list, user__user_mode__is_provider=True)
         user_ratings = ratings.aggregate(
@@ -42,11 +45,10 @@ class HomeAnalyticsViewSet(viewsets.ModelViewSet):
 
     def provider_analytics(self, *args, **kwargs):
         user = self.request.user
-        user_list = user.user_location_radius.user_list["users"]
+        user_list = cache.get(f"{user.phone_number}")
         nearby_users = User.objects.filter(
             phone_number__in=user_list,
         )
-        print(user_list, nearby_users)
         total_seekers = nearby_users.filter(
             user_mode__is_provider=False
         ).count()
@@ -65,8 +67,6 @@ class HomeAnalyticsViewSet(viewsets.ModelViewSet):
         # check
         elif total_providers > 0 and total_seekers > 0:
             avg_deal_possibility = 1 / total_providers * 100
-
-        print(user_list, total_providers, total_seekers)
 
         data = {
             "avg_demanded_vangti": avg_demanded,
