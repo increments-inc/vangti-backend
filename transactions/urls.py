@@ -11,14 +11,17 @@ urlpatterns = [
                   path('change-user-mode/', UserServiceModeViewSet.as_view({"patch": "mode_change"}),
                        name='user_mode_change'),
 
-
                   path('history/provider/', TransactionHistoryViewSet.as_view({"get": "provider_history"}),
                        name='provider_history'),
                   path('history/seeker/', TransactionHistoryViewSet.as_view({"get": "seeker_history"}),
                        name='seeker_history'),
 
                   # rating
-                  path('get-review/', TransactionRatingViewSet.as_view({"post": "get_review"}),
+                  path('rate-deal/', TransactionRatingViewSet.as_view({"post": "rate_transaction"}),
                        name='transaction_get_review'),
 
+                  # transaction requests
+
+                  path('request-accept/', TransactionRequests.as_view(),
+                       name='transaction_request_accept'),
               ] + router.urls

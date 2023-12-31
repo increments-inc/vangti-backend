@@ -1,15 +1,16 @@
 from pathlib import Path
-import os, sys
+import os
+import sys
 from decouple import config
 from datetime import timedelta
-
+import firebase_admin
+from firebase_admin import firestore
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-az+a*smk6&1sm68!hly(zcq@vp)gd6e!*e*e=%gf5!=eb7qpj#'
 
 DEBUG = True
-
 
 SALT = "random"
 
@@ -36,7 +37,6 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'corsheaders',
     'rest_framework_simplejwt',
-
 
     # apps
     'users',
@@ -95,8 +95,6 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
-
-
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Vangti API',
@@ -157,15 +155,24 @@ WSGI_APPLICATION = 'core.wsgi.application'
 ASGI_APPLICATION = "core.asgi.application"
 
 DATABASES = {
-   'default': {
-       'ENGINE': config("DB_ENGINE", default="django.db.backends.sqlite3"),
-       'NAME': config("DB_NAME", default=BASE_DIR / "db.sqlite3"),
-       'USER': config("DB_USER", default=""),
-       'PASSWORD': config("DB_PASSWORD", default=""),
-       'HOST': config("DB_HOST", default=""),
-       'PORT': config("DB_PORT", default=""),
-   }
+    'default': {
+        'ENGINE': config("DB_ENGINE", default="django.db.backends.sqlite3"),
+        'NAME': config("DB_NAME", default=BASE_DIR / "db.sqlite3"),
+        'USER': config("DB_USER", default=""),
+        'PASSWORD': config("DB_PASSWORD", default=""),
+        'HOST': config("DB_HOST", default=""),
+        'PORT': config("DB_PORT", default=""),
+    }
 }
+
+# firebase
+FIREBASE_API_KEY = config("FIREBASE_API_KEY")
+FIREBASE_PROJECT_ID = config("FIREBASE_PROJECT_ID")
+
+app = firebase_admin.initialize_app()
+db = firestore.client()
+
+# password validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -182,7 +189,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -191,15 +197,12 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
 GDAL_LIBRARY_PATH = config("GDAL_LIBRARY_PATH")
 GEOS_LIBRARY_PATH = config("GEOS_LIBRARY_PATH")
-
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = config("EMAIL_HOST")
@@ -210,9 +213,8 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 # EMAIL_USE_SSL = config('EMAIL_USE_SSL') == 'True'
 DEFAULT_FROM_EMAIL = "Organization Name <demo@domain.com>"
 
-
 # authentication parameters
-REST_SESSION_LOGIN=False
+REST_SESSION_LOGIN = False
 # REST_USE_JWT = True
 JWT_AUTH_COOKIE = "access"
 JWT_AUTH_REFRESH_COOKIE = "refresh"
@@ -224,7 +226,6 @@ JWT_AUTH_REFRESH_COOKIE = "refresh"
 # ACCOUNT_EMAIL_VERIFICATION = "none"
 # REST_SESSION_LOGIN = False  # Set Session ID and CSRF Token to Cookie
 # LOGOUT_ON_PASSWORD_CHANGE = True  # For Cookie Based Login
-
 
 
 # redis

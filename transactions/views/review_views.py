@@ -20,7 +20,7 @@ class TransactionRatingViewSet(viewsets.ModelViewSet):
     http_method_names = ["get", "post", ]
 
     def get_serializer_class(self):
-        if self.action == "get_review":
+        if self.action == "rate_transaction":
             return TransactionReviewRetrieveSerializer
         return self.serializer_class
 
@@ -33,11 +33,11 @@ class TransactionRatingViewSet(viewsets.ModelViewSet):
             return response.Response(serializer.data, status=status.HTTP_201_CREATED)
         return response.Response("", status=status.HTTP_204_NO_CONTENT)
 
-    def get_review(self, request, *args, **kwargs):
+    def rate_transaction(self, request, *args, **kwargs):
         transaction = request.data.get("transaction", None)
         queryset = self.queryset.filter(transaction=transaction)
         serializer = self.serializer_class(queryset, many=True)
-        return response.Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
+        return response.Response(serializer.data, status=status.HTTP_200_OK)
 
 
 # history and insights
