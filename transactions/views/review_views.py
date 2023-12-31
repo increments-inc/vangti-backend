@@ -9,42 +9,15 @@ from rest_framework import (
     viewsets,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .models import *
-from .serilaizers import *
-
-
-def send_email(user):
-    host_user = settings.EMAIL_HOST_USER
-
-    send_mail(
-        "Vangti OTP",
-        f"dummy mail {user}",
-        host_user,
-        [host_user],
-        fail_silently=False,
-    )
-    input_letter = input("enter a number")
-    return
-
-
-def transaction_request_method(user_list):
-    for user in user_list:
-        send_email(user)
-
-    return
-
-
-class TransactionViewSet(viewsets.ModelViewSet):
-    queryset = Transaction.objects.all()
-    serializer_class = TransactionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+from ..models import *
+from ..serializers import *
 
 
 class TransactionRatingViewSet(viewsets.ModelViewSet):
     queryset = TransactionReview.objects.all()
     serializer_class = TransactionReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ["get", "post",]
+    http_method_names = ["get", "post", ]
 
     def get_serializer_class(self):
         if self.action == "get_review":
@@ -101,25 +74,3 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
             "No Data found",
             status=status.HTTP_404_NOT_FOUND
         )
-
-
-class UserServiceModeViewSet(viewsets.ModelViewSet):
-    queryset = UserServiceMode.objects.all()
-    serializer_class = UserServiceModeSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    # http_method_names = ["patch"]
-
-    def mode_change(self, *args, **kwargs):
-        instance = self.queryset.get(user=self.request.user)
-        data = self.request.data
-        serializer = self.serializer_class(instance, data=data)
-        if serializer.is_valid():
-            # serializer.save()
-            self.perform_update(serializer)
-
-            return response.Response(
-                "patch success",
-                status=status.HTTP_200_OK
-            )
-        return response.Response("", status=status.HTTP_200_OK)
