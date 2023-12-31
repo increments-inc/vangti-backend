@@ -4,7 +4,7 @@ import sys
 from decouple import config
 from datetime import timedelta
 import firebase_admin
-from firebase_admin import firestore
+from firebase_admin import firestore, credentials
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -168,9 +168,8 @@ DATABASES = {
 # firebase
 FIREBASE_API_KEY = config("FIREBASE_API_KEY")
 FIREBASE_PROJECT_ID = config("FIREBASE_PROJECT_ID")
-
-app = firebase_admin.initialize_app()
-db = firestore.client()
+cred = credentials.Certificate(os.path.join(BASE_DIR, "credentials.json"))
+firebase_admin.initialize_app(cred)
 
 # password validators
 

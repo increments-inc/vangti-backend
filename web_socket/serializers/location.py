@@ -27,7 +27,7 @@ class LocationCacheSerializer(serializers.Serializer):
         longitude = float(instance.get("longitude", None))
 
         loc_point = Point(float(longitude), float(latitude))
-        cache.set(f"{user.id}", loc_point, 3600)
+        cache.set(f"{user.id}", loc_point, timeout=None)
         self.user_location()
         return instance
 
@@ -46,7 +46,7 @@ class LocationCacheSerializer(serializers.Serializer):
             dist = user_center.distance(user_location)
             if dist <= settings.LOCATION_RADIUS:
                 empty_users_list_for_cache.append(User.objects.get(id=user_no).phone_number)
-        cache.set(f"{user.phone_number}", empty_users_list_for_cache, 3600)
+        cache.set(f"{user.phone_number}", empty_users_list_for_cache, timeout=None)
         return
 
 # class LocationSerializer(serializers.ModelSerializer):
