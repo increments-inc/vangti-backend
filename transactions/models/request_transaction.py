@@ -13,3 +13,7 @@ class VangtiRequest(BaseModel):
     )
     amount = models.FloatField(default=0.0)
     user_list = ArrayField(models.CharField(max_length=50))
+
+    class Meta:
+        abstract=True
+
