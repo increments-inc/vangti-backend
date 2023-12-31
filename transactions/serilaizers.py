@@ -21,18 +21,17 @@ class TransactionSerializer(serializers.ModelSerializer):
 
 
 class TransactionReviewSerializer(serializers.ModelSerializer):
-    transaction_id = serializers.IntegerField(source="transaction.id")
     class Meta:
         model = TransactionReview
-        fields = ("transaction_id", "rating", "message",)
+        fields = ("id", "transaction", "rating", "message",)
 
     def create(self, validated_data):
-        transaction_id_no = validated_data.pop("transaction_id")
+        transaction_id_no = validated_data.pop("transaction")
 
         rating = validated_data.pop("rating")
         message = validated_data.pop("message")
 
-        transaction = Transaction.objects.get(id=transaction_id_no)
+        transaction = Transaction.objects.get(id=transaction_id_no.id)
         review = TransactionReview.objects.create(
             transaction_id=transaction.id,
             provider=transaction.provider,
@@ -41,3 +40,10 @@ class TransactionReviewSerializer(serializers.ModelSerializer):
             message=message
         )
         return review
+
+
+class TransactionReviewRetrieveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TransactionReview
+        fields = ("transaction",)
+

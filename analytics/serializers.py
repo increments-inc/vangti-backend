@@ -12,3 +12,10 @@ class UserRatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRating
         fields = "__all__"
+
+
+class AppFeedbackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AppFeedback
+        # fields = "__all__"
+        exclude = ["user",]
