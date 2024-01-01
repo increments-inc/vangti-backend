@@ -35,29 +35,3 @@ class CallHistoryViewSet(viewsets.ModelViewSet):
     http_method_names = ["get"]
 
 
-# @method_decorator(cache_page(60*1), name='dispatch')
-# class LocationViewSet(viewsets.ModelViewSet):
-#     queryset = User.objects.all()
-#     serializer_class = LocationSerializer
-#     permission_classes = [permissions.IsAuthenticated]
-#     http_method_names = ["get", "patch", "post"]
-#
-#     def get_serializer_class(self):
-#         if self.action == "set_location":
-#             return LocationCacheSerializer
-#         return self.serializer_class
-#
-#     def perform_create(self, serializer):
-#         return serializer.save(user=self.request.user)
-
-class SetUserLocation(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-    serializer_class = LocationCacheSerializer
-
-    def post(self, *args, **kwargs):
-        serializer = self.serializer_class(data=self.request.data, context={"request": self.request})
-        if serializer.is_valid():
-            return response.Response(
-                serializer.data,
-                status=status.HTTP_200_OK
-            )

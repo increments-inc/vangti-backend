@@ -5,7 +5,6 @@ from rest_framework import exceptions, serializers, validators
 from rest_framework_simplejwt import settings as jwt_settings
 from rest_framework_simplejwt import tokens
 from rest_framework_simplejwt.exceptions import TokenError
-from . import models
 from django.core.mail import send_mail
 from django.conf import settings
 from datetime import datetime, timedelta

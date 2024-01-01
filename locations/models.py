@@ -1,31 +1,38 @@
 from django.contrib.gis.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import ArrayField
-
+import uuid
 User = get_user_model()
 
 
-class LocationUser(models.Model):
-    user = models.CharField(max_length=256, null=True, blank=True)
-    latitude = models.CharField(max_length=10, null=True, blank=True)
-    longitude = models.CharField(max_length=10, null=True, blank=True)
-    centre = models.PointField(null=True, blank=True)
+class UserLocation(models.Model):
+    # user = models.CharField(max_length=256, null=True, blank=True)
+    user = models.UUIDField()
+
+    latitude = models.CharField(max_length=10)
+    longitude = models.CharField(max_length=10)
+    centre = models.PointField()
 
     def __str__(self):
-        return f"{self.latitude}, {self.longitude}"
-
+        try:
+            return f"{self.latitude}, {self.longitude}"
+        except:
+            return "None"
     class Meta:
-        ordering = ("centre",)
+        ordering = ("centre", "user",)
 
 
 class LocationRadius(models.Model):
     location = models.OneToOneField(
-        LocationUser, on_delete=models.CASCADE, related_name="location_radius_userlocation"
+        UserLocation, on_delete=models.CASCADE, related_name="location_radius_userlocation"
     )
     user_id_list = ArrayField(models.CharField(max_length=256))
 
     def __str__(self):
-        return self.location.user
+        try:
+            return f"{self.location.user}"
+        except:
+            return "None"
 
     class Meta:
         ordering = ("location",)
