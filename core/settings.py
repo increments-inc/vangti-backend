@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'analytics',
     'transactions',
     'web_socket',
-
+    'locations',
 ]
 
 REST_FRAMEWORK = {
@@ -162,8 +162,18 @@ DATABASES = {
         'PASSWORD': config("DB_PASSWORD", default=""),
         'HOST': config("DB_HOST", default=""),
         'PORT': config("DB_PORT", default=""),
+    },
+    'location': {
+        'ENGINE': config("DB_ENGINE_LOC", default="django.db.backends.sqlite3"),
+        'NAME': config("DB_NAME_LOC", default=BASE_DIR / "db1.sqlite3"),
+        'USER': config("DB_USER_LOC", default=""),
+        'PASSWORD': config("DB_PASSWORD_LOC", default=""),
+        'HOST': config("DB_HOST_LOC", default=""),
+        'PORT': config("DB_PORT_LOC", default=""),
     }
 }
+
+DATABASE_ROUTERS = ['core.db_router.LocationRouter']
 
 # firebase
 FIREBASE_API_KEY = config("FIREBASE_API_KEY")

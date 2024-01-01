@@ -2,8 +2,7 @@ import uuid
 import pyotp
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Permission
 from django.core.validators import MinValueValidator, MaxValueValidator, RegexValidator, FileExtensionValidator
-from django.db import models
-from django.contrib.gis.db import models
+from core.abstract_models import models, BaseModel
 from django.contrib.auth.models import BaseUserManager
 from utils.helper import content_file_path, ImageCompress
 
@@ -137,7 +136,7 @@ class User(AbstractBaseUser, PermissionsMixin):
 #         return f"OTP - {self.user.phone_number}"
 
 
-class RegistrationOTPModel(models.Model):
+class RegistrationOTPModel(BaseModel):
     """
     Model to handle user OTP during registration
     """

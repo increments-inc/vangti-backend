@@ -1,4 +1,4 @@
-from django.contrib.gis.db import models
+from core.abstract_models import models, BaseModel
 from django.contrib.auth.models import BaseUserManager
 from utils.helper import content_file_path, ImageCompress
 from .basic_info import User
@@ -21,7 +21,7 @@ ACCOUNT_TYPE = [
 ]
 
 
-class UserInformation(models.Model):
+class UserInformation(BaseModel):
     """
     Model to store user basic information
     """
@@ -50,7 +50,7 @@ class UserInformation(models.Model):
         self.__original_image = self.profile_pic
 
 
-class UserNidInformation(models.Model):
+class UserNidInformation(BaseModel):
     """
     Model to store user nid information
     """
@@ -70,7 +70,7 @@ class UserNidInformation(models.Model):
         return f"{self.user}'s nid information"
 
 
-class UserKYCInformation(models.Model):
+class UserKYCInformation(BaseModel):
     """
     Model to store user kyc information
     """
@@ -94,7 +94,7 @@ class UserKYCInformation(models.Model):
         return f"{self.user}'s KYC information"
 
 
-class UserKYCDocument(models.Model):
+class UserKYCDocument(BaseModel):
     """
     Model to store user documents
     """
@@ -108,7 +108,7 @@ class UserKYCDocument(models.Model):
         return f"{self.user}'s file"
 
 
-class VerifiedUsers(models.Model):
+class VerifiedUsers(BaseModel):
     """
     Model to store verified users
     """
