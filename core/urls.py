@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+
 urlpatterns = [
     # swagger
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
@@ -19,9 +20,11 @@ urlpatterns = [
 
     # apps
     path('admin/', admin.site.urls),
+
     path('api/users/', include('users.urls')),
     path('api/sockets/', include('web_socket.urls')),
     path('api/transaction/', include('transactions.urls')),
     path('api/analytics/', include('analytics.urls')),
+    path('api/location/', include('locations.urls')),
 
 ]

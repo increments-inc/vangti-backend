@@ -1,6 +1,6 @@
-from django.contrib.gis.db import models
+# from django.contrib.gis.db import models
 from django.contrib.auth import get_user_model
-from core.abstract_models import BaseModel
+from core.abstract_models import models, BaseModel
 from django.contrib.postgres.fields import ArrayField
 import uuid
 

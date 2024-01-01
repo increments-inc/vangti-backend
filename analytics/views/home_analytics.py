@@ -6,7 +6,7 @@ from ..models import *
 from ..serializers import *
 from django.db.models import Avg, Sum, Count
 from transactions.models import TransactionHistory
-from web_socket.models import LocationRadius
+# from .models import LocationRadius
 from datetime import datetime, timedelta
 from django.core.cache import cache
 from django.db.models import Q
