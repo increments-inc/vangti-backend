@@ -14,14 +14,14 @@ from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import Distance
 
 
-class ChatHistorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ChatHistory
-        fields = "__all__"
-
-
-class CallHistorySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CallHistory
-        fields = "__all__"
+# class ChatHistorySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = ChatHistory
+#         fields = "__all__"
+#
+#
+# class CallHistorySerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = CallHistory
+#         fields = "__all__"
 
