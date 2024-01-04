@@ -2,6 +2,7 @@ from django.contrib.gis.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import ArrayField
 import uuid
+
 User = get_user_model()
 
 
@@ -18,6 +19,7 @@ class UserLocation(models.Model):
             return f"{self.latitude}, {self.longitude}"
         except:
             return "None"
+
     class Meta:
         ordering = ("centre", "user",)
 
@@ -36,7 +38,6 @@ class LocationRadius(models.Model):
 
     class Meta:
         ordering = ("location",)
-
 
 # abstract models
 # class UserLocation(models.Model):

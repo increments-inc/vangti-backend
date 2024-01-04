@@ -21,17 +21,17 @@ from rest_framework.views import APIView
 # CACHE_TTL = 60 * 15
 
 
-class ChatHistoryViewSet(viewsets.ModelViewSet):
-    queryset = ChatHistory.objects.all()
-    serializer_class = ChatHistorySerializer
-    permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ["get"]
-
-
-class CallHistoryViewSet(viewsets.ModelViewSet):
-    queryset = CallHistory.objects.all()
-    serializer_class = CallHistorySerializer
-    permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ["get"]
+# class ChatHistoryViewSet(viewsets.ModelViewSet):
+#     queryset = ChatHistory.objects.all()
+#     serializer_class = ChatHistorySerializer
+#     permission_classes = [permissions.IsAuthenticated]
+#     http_method_names = ["get"]
+#
+#
+# class CallHistoryViewSet(viewsets.ModelViewSet):
+#     queryset = CallHistory.objects.all()
+#     serializer_class = CallHistorySerializer
+#     permission_classes = [permissions.IsAuthenticated]
+#     http_method_names = ["get"]
 
 

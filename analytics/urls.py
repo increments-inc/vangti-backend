@@ -12,5 +12,7 @@ urlpatterns = [
                   path('home-analytics/', HomeAnalyticsViewSet.as_view({"get": "home_analytics"}),
                        name='user_mode_change'),
 
+                  path('profit/', InsightsViewSet.as_view({"get": "profit_by_time"}),
+                       name='user_profit_by_time'),
 
               ] + router.urls
