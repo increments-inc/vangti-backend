@@ -29,9 +29,3 @@ class VangtiSearch(APIView):
             # create room, send room id
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-    # def initiate_request_users(self, *args, **kwargs):
-    #     user = self.request.user
-    #     user_list = cache.get(user.phone_number)
-    #     print(user, user_list)
-    #
-    #     return

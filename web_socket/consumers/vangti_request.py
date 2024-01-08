@@ -82,7 +82,7 @@ class VangtiConsumer(AsyncWebsocketConsumer):
             token = ""
             send_push("", "helo", token, {"user": user})
             # confirm the waiting time
-            time.sleep(30)
+            time.sleep(60)
             is_affirmed = await self.get_user_affirmation("room_name")
             if is_affirmed:
                 break
