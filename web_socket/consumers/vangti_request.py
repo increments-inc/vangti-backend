@@ -1,9 +1,12 @@
 import json
+import time
+
 from channels.db import database_sync_to_async
 from django.db import transaction
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 from locations.models import UserLocation, LocationRadius
+from ..fcm import send_push
 
 
 class VangtiConsumer(AsyncWebsocketConsumer):
@@ -30,11 +33,34 @@ class VangtiConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         print(text_data)
+        try:
+            text_data = json.loads(text_data)
+            print(text_data, type(text_data))
+        except:
+            pass
+        receive_dict = text_data
 
-        if text_data:
+        if "send_requests" in text_data:
             user_list = await self.get_user_list(text_data)
             print(user_list)
-        receive_dict = text_data
+            is_affirmed = await self.send_user_push(user_list)
+            if is_affirmed:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'send.sdpt',
+                        'receive_dict': "ok to quit",
+                    }
+                )
+            else:
+                await self.channel_layer.group_send(
+                    self.room_group_name,
+                    {
+                        'type': 'send.sdpt',
+                        'receive_dict': "no response",
+                    }
+                )
+
         await self.channel_layer.group_send(
             self.room_group_name,
             {
@@ -50,8 +76,31 @@ class VangtiConsumer(AsyncWebsocketConsumer):
             'message': receive_dict,
         }))
 
+    async def send_user_push(self, user_list):
+        is_affirmed = False
+        for user in user_list:
+            token = ""
+            send_push("", "helo", token, {"user": user})
+            # confirm the waiting time
+            time.sleep(30)
+            is_affirmed = await self.get_user_affirmation("room_name")
+            if is_affirmed:
+                break
+
+        return is_affirmed
+
+
     @database_sync_to_async
     def get_user_list(self, room_name):
+        user = self.user
+        print(user)
+        try:
+            return UserLocation.objects.using('location').get(user=user.id).location_radius_userlocation.user_id_list
+        except:
+            return
+
+    @database_sync_to_async
+    def get_user_affirmation(self, room_name):
         user = self.user
         print(user)
         try:

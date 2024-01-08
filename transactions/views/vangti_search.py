@@ -26,12 +26,12 @@ class VangtiSearch(APIView):
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
-            self.initiate_request_users()
+            # create room, send room id
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def initiate_request_users(self, *args, **kwargs):
-        user = self.request.user
-        user_list = cache.get(user.phone_number)
-        print(user, user_list)
-
-        return
+    # def initiate_request_users(self, *args, **kwargs):
+    #     user = self.request.user
+    #     user_list = cache.get(user.phone_number)
+    #     print(user, user_list)
+    #
+    #     return
