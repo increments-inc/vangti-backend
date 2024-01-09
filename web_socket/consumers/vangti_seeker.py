@@ -7,6 +7,18 @@ from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 from locations.models import UserLocation, LocationRadius
 from ..fcm import send_push
 
+# reference json data to be sent
+"""
+{
+    "seeker": "user_phone",
+    "amount": 1000,
+    "preferred": "100,20",
+    "is_accepted": false,
+    "provider": "user_phone",
+    "request":None,
+}
+"""
+
 
 class VangtiSeekerConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -33,34 +45,56 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
 
         try:
             receive_dict = json.loads(text_data)
-            print(receive_dict, type(receive_dict))
             receive_dict["user"] = self.user.phone_number
-            print(receive_dict)
         except:
-            receive_dict = receive_dict + f"{self.user.phone_number}"
+            # not recommended
+            receive_dict = receive_dict + f"""{self.user.phone_number}"""
+        # send out request
+        if (
+                receive_dict["seeker"] == self.user.phone_number and
+                receive_dict["request"] is None
+        ):
+            user_list = await self.get_user_list(receive_dict)
+            print(user_list)
+            for user in user_list:
+                room = user.split("+")[1]
+                await self.channel_layer.group_send(
+                    f"{room}-room",
+                    {
+                        'type': 'send_to_receiver_data',
+                        'receive_dict': receive_dict,
+                    }
+                )
+                # time.sleep(60)
+        # reject request
+        if (
+                receive_dict["request"] == "reject" and
+                receive_dict["provider"] == self.user.phone_number
+        ):
+            room = receive_dict["seeker"].split("+")[1]
+            # do something
 
-        if "vs" in text_data:
+        # accept request
+        if (
+                # receive_dict["seeker"] == self.user.phone_number and
+                receive_dict["request"] == "accept" and
+                receive_dict["provider"] == self.user.phone_number
+        ):
+            room = receive_dict["seeker"].split("+")[1]
+            await self.update_request_instance(room)
+            print("accepted")
             await self.channel_layer.group_send(
-                "8801234567891-room",
+                f"{room}-room",
                 {
-                    'type': 'send.sdpt',
+                    'type': 'send_to_receiver_data',
                     'receive_dict': receive_dict,
                 }
             )
-        if "vp" in text_data:
-            await self.channel_layer.group_send(
-                "8801234567892-room",
-                {
-                    'type': 'send.sdpt',
-                    'receive_dict': receive_dict,
-                }
-            )
+            # await self.disconnect(1000)
 
-    async def send_sdpt(self, event):
-        print(event)
+    async def send_to_receiver_data(self, event):
         receive_dict = event['receive_dict']
         if type(receive_dict) == str:
-            print("yes")
             receive_dict = json.loads(receive_dict)
 
         await self.send(text_data=json.dumps({
@@ -68,23 +102,21 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
             "user": self.user.phone_number
         }))
 
-    async def send_user_push(self, user_list):
-        is_affirmed = False
-        for user in user_list:
-            token = ""
-            send_push("", "helo", token, {"user": user})
-            # confirm the waiting time
-            time.sleep(60)
-            is_affirmed = await self.get_user_affirmation("room_name")
-            if is_affirmed:
-                break
-
-        return is_affirmed
+    # async def send_user_push(self, user_list):
+    #     is_affirmed = False
+    #     for user in user_list:
+    #         token = ""
+    #         send_push("", "helo", token, {"user": user})
+    #         # confirm the waiting time
+    #         time.sleep(60)
+    #         is_affirmed = await self.get_user_affirmation("room_name")
+    #         if is_affirmed:
+    #             break
+    #     return is_affirmed
 
     @database_sync_to_async
     def get_user_list(self, room_name):
         user = self.user
-        print(user)
         try:
             return UserLocation.objects.using('location').get(user=user.id).location_radius_userlocation.user_id_list
         except:
@@ -93,7 +125,14 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_user_affirmation(self, room_name):
         user = self.user
-        print(user)
+        try:
+            return UserLocation.objects.using('location').get(user=user.id).location_radius_userlocation.user_id_list
+        except:
+            return
+
+    @database_sync_to_async
+    def update_request_instance(self, room_name):
+        user = self.user
         try:
             return UserLocation.objects.using('location').get(user=user.id).location_radius_userlocation.user_id_list
         except:
