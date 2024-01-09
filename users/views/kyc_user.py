@@ -36,6 +36,7 @@ class UserKYCInformationViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         if self.action == 'update_kyc_information':
+            print("here")
             return UpdateKycSerializer
         return self.serializer_class
 
@@ -50,9 +51,10 @@ class UserKYCInformationViewSet(viewsets.ModelViewSet):
         return response.Response("not valid data", status=status.HTTP_400_BAD_REQUEST)
 
     def update_kyc_information(self, request, *args, **kwargs):
-        instance = self.request.user.user_kyc
+        instance = self.queryset.get(user=request.user)
         print(instance)
-        serializer = self.get_serializer_class()(instance, data=self.request.data, context={'request': self.request})
+        serializer = self.get_serializer_class()(
+            instance, data=request.data)
         if serializer.is_valid():
             serializer.save()
             return response.Response(serializer.data, status=status.HTTP_200_OK)
