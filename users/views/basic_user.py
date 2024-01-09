@@ -6,9 +6,9 @@ from rest_framework import (
     viewsets,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .models import *
-from .serializers import *
-from .app_utils import get_reg_token
+from ..models import *
+from ..serializers import *
+from ..app_utils import get_reg_token
 from django.conf import settings
 
 

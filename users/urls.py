@@ -30,4 +30,11 @@ urlpatterns = [
     path('change-pin/', UserViewSet.as_view({"patch": "change_pin"}), name='user_change_pin'),
     path('change-profile/', UserViewSet.as_view({"patch": "change_profile"}), name='user_change_profile'),
 
+
+
+    # kyc
+    path('add-nid/', UserNidInformationViewSet.as_view({"post": "add_nid"}), name='user_add_nid'),
+    path('add-kyc-info/', UserKYCInformationViewSet.as_view({"post": "add_kyc_info"}), name='user_add_kyc_info'),
+    path('update-kyc-info/', UserKYCInformationViewSet.as_view({"patch": "update_kyc_information"}), name='user_update_kyc_information'),
+
 ]

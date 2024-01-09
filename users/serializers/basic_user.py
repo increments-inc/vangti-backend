@@ -13,12 +13,12 @@ from rest_framework_simplejwt import settings as jwt_settings
 from rest_framework_simplejwt import tokens
 from rest_framework_simplejwt.exceptions import TokenError
 # from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .app_rest import TokenObtainPairSerializer
-from . import models
+from ..app_rest import TokenObtainPairSerializer
+from .. import models
 from django.core.mail import send_mail
 from django.conf import settings
 from datetime import datetime, timedelta
-from .pin_validator import PINValidator
+from ..pin_validator import PINValidator
 from django.contrib.auth.hashers import PBKDF2PasswordHasher
 
 
