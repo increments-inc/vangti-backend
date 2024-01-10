@@ -31,7 +31,7 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         kwargs = self.scope.get("url_route")["kwargs"]
         self.user = self.scope["user"]
-        room_name = self.user.phone_number.split("+")[1]
+        room_name = self.user.phone_number.split("+")[-1]
         self.room_group_name = f"{room_name}-room"
         print("all items", self.scope, self.scope["user"], kwargs, self.channel_layer, self.room_group_name)
 
@@ -64,11 +64,10 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
                 receive_dict["request"] is None
         ):
             user_list = await self.get_user_list(receive_dict)
-            cache.set(f"{user.phone_number}", user_list, timeout=None)
-            print(cache.get(f"{user.phone_number}"))
-            send_user = user_list[0].split("+")[1]
-            # for user in user_list:
-            #     room = user.split("+")[1]
+            cache.set(receive_dict["seeker"], user_list, timeout=None)
+            # print(cache.get(f"{user.phone_number}"))
+            send_user = user_list[0].split("+")[-1]
+            receive_dict["provider"]= user_list[0]
             await self.channel_layer.group_send(
                 f"{send_user}-room",
                 {
@@ -82,13 +81,17 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
                 receive_dict["request"] == "reject" and
                 receive_dict["provider"] == self.user.phone_number
         ):
-            room = receive_dict["seeker"].split("+")[1]
+            room = receive_dict["seeker"].split("+")[-1]
             seeker = receive_dict["seeker"]
             user_list = cache.get(receive_dict["seeker"])
             if user_list[0] == receive_dict["provider"]:
                 user_list.pop(0)
+                print(user_list)
+                cache.set(receive_dict["seeker"], user_list)
             if len(user_list)!=0:
-                send_user = user_list[0].split("+")[1]
+                send_user = user_list[0].split("+")[-1]
+                receive_dict["provider"] = user_list[0]
+
                 await self.channel_layer.group_send(
                     f"{send_user}-room",
                     {
@@ -96,14 +99,15 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
                         'receive_dict': receive_dict,
                     }
                 )
-            room_seeker = receive_dict["seeker"].split("+")[1]
-            await self.channel_layer.group_send(
-                f"{room_seeker}-room",
-                {
-                    'type': 'send_to_receiver_data',
-                    'receive_dict': {"message": "no user left"},
-                }
-            )
+            else:
+                room_seeker = receive_dict["seeker"].split("+")[-1]
+                await self.channel_layer.group_send(
+                    f"{room_seeker}-room",
+                    {
+                        'type': 'send_to_receiver_data',
+                        'receive_dict': {"message": "no user left"},
+                    }
+                )
 
 
         # accept request
@@ -112,8 +116,8 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
                 receive_dict["request"] == "accept" and
                 receive_dict["provider"] == self.user.phone_number
         ):
-            room_seeker = receive_dict["seeker"].split("+")[1]
-            room_provider = receive_dict["provider"].split("+")[1]
+            room_seeker = receive_dict["seeker"].split("+")[-1]
+            room_provider = receive_dict["provider"].split("+")[-1]
 
             provider = await self.update_request_instance(receive_dict["seeker"], receive_dict["provider"])
             if provider.provider.phone_number == receive_dict["provider"]:
