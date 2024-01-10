@@ -5,36 +5,45 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
 )
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+
+router.register('document', UserKYCDocumentViewSet, basename='user_documents')
+router.register('submit-kyc-info', VerifiedUsersViewSet, basename='user_submit_kyc')
 
 urlpatterns = [
-    # simple jwt
-    # path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
+                  # simple jwt
+                  # path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+                  path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 
-    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+                  path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
+                  # registration
+                  path('login/', CustomTokenObtainPairView.as_view(), name='user_login'),
+                  path('register/', RegistrationViewSet.as_view({"post": "post"}), name='user_registration'),
+                  path('set-pin/', RegistrationViewSet.as_view({"post": "set_pin"}), name='user_set_pin'),
+                  # path('set-pin-token/', UserPinViewSet.as_view({"post": "set_pin"}), name='user_set_pin_token'),
+                  path('enter-phone-number/', GetNumberViewSet.as_view({"post": "post"}), name='user_number_enter'),
 
+                  # user account deletion
+                  path('deactivate/', UserViewSet.as_view({"patch": "deactivate_user"}), name='user_deactivate'),
+                  path('delete/', UserViewSet.as_view({"patch": "delete_user"}), name='user_delete'),
 
-    # registration
-    path('login/', CustomTokenObtainPairView.as_view(), name='user_login'),
-    path('register/', RegistrationViewSet.as_view({"post": "post"}), name='user_registration'),
-    path('set-pin/', RegistrationViewSet.as_view({"post": "set_pin"}), name='user_set_pin'),
-    # path('set-pin-token/', UserPinViewSet.as_view({"post": "set_pin"}), name='user_set_pin_token'),
-    path('enter-phone-number/', GetNumberViewSet.as_view({"post": "post"}), name='user_number_enter'),
+                  # user profile
+                  path('change-pin/', UserViewSet.as_view({"patch": "change_pin"}), name='user_change_pin'),
+                  path('change-profile/', UserViewSet.as_view({"patch": "change_profile"}), name='user_change_profile'),
 
-    # user account deletion
-    path('deactivate/', UserViewSet.as_view({"patch": "deactivate_user"}), name='user_deactivate'),
-    path('delete/', UserViewSet.as_view({"patch": "delete_user"}), name='user_delete'),
+                  # kyc/nid
+                  path('add-nid/', UserNidInformationViewSet.as_view({"post": "add_nid"}), name='user_add_nid'),
+                  path('update-nid/', UserNidInformationViewSet.as_view({"patch": "update_nid"}),
+                       name='user_update_nid'),
+                  path('get-nid/', UserNidInformationViewSet.as_view({"get": "retrieve"}),
+                       name='user_retrieve_nid'),
 
-    # user profile
-    path('change-pin/', UserViewSet.as_view({"patch": "change_pin"}), name='user_change_pin'),
-    path('change-profile/', UserViewSet.as_view({"patch": "change_profile"}), name='user_change_profile'),
+                  path('add-kyc-info/', UserKYCInformationViewSet.as_view({"post": "add_kyc_info"}),
+                       name='user_add_kyc_info'),
+                  path('update-kyc-info/', UserKYCInformationViewSet.as_view({"patch": "update_kyc_information"}),
+                       name='user_update_kyc_information'),
 
-
-
-    # kyc
-    path('add-nid/', UserNidInformationViewSet.as_view({"post": "add_nid"}), name='user_add_nid'),
-    path('add-kyc-info/', UserKYCInformationViewSet.as_view({"post": "add_kyc_info"}), name='user_add_kyc_info'),
-    path('update-kyc-info/', UserKYCInformationViewSet.as_view({"patch": "update_kyc_information"}), name='user_update_kyc_information'),
-
-]
+              ] + router.urls

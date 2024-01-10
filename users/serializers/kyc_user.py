@@ -1,21 +1,5 @@
-import contextlib, json, random, pyotp, re
-from django.conf import settings
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.password_validation import validate_password
-from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.contrib.auth.validators import UnicodeUsernameValidator
-from django.db.models import Q
-from django.urls import exceptions as url_exceptions
-from django.utils.http import urlsafe_base64_decode
-from django.utils.translation import gettext_lazy as _
 from rest_framework import exceptions, serializers, validators
-from ..app_rest import TokenObtainPairSerializer
 from .. import models
-from django.core.mail import send_mail
-from django.conf import settings
-from datetime import datetime, timedelta
-from ..pin_validator import PINValidator
-from django.contrib.auth.hashers import PBKDF2PasswordHasher
 
 
 class AddNidSerializer(serializers.ModelSerializer):
@@ -42,6 +26,18 @@ class AddNidSerializer(serializers.ModelSerializer):
                 nid_back=nid_back
             )
         return user_nid
+
+
+class UpdateNidSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.UserNidInformation
+        fields = "__all__"
+
+
+class UserKYCDocumentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.UserKYCDocument
+        fields = ("file",)
 
 
 class AddKycSerializer(serializers.ModelSerializer):
@@ -90,3 +86,36 @@ class UpdateKycSerializer(serializers.ModelSerializer):
         model = models.UserKYCInformation
         fields = "__all__"
         read_only_fields = ["user"]
+
+
+class VerifiedUsersSerializer(serializers.ModelSerializer):
+    is_submitted = serializers.BooleanField(default=False)
+
+    class Meta:
+        model = models.VerifiedUsers
+        fields = ("is_submitted",)
+
+    def create(self, validated_data):
+        user = self.context.get("request").user
+        is_submitted = validated_data.pop("is_submitted", False)
+        nid_user = user.user_nid
+        kyc_user = user.user_kyc
+        if is_submitted:
+            verified_user = models.VerifiedUsers.objects.create(
+                user=user,
+                nid_no=kyc_user.nid_no,
+                name=kyc_user.name,
+                father_or_husband=kyc_user.father_or_husband,
+                mother=kyc_user.mother,
+                dob=kyc_user.dob,
+                present_address=kyc_user.present_address,
+                permanent_address=kyc_user.permanent_address,
+                phone_number=user.phone_number,
+                user_photo=nid_user.user_photo,
+                signature=nid_user.signature,
+                gender=kyc_user.gender,
+                occupation=kyc_user.occupation
+            )
+            # specify service mode enabling
+            return verified_user
+        return -1
