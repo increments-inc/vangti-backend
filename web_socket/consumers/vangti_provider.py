@@ -9,13 +9,13 @@ from locations.models import UserLocation, LocationRadius
 from ..fcm import send_push
 
 
-class VangtiConsumer(AsyncWebsocketConsumer):
+class VangtiProviderConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         kwargs = self.scope.get("url_route")["kwargs"]
         # room = kwargs["user_room_name"]
         self.user = self.scope["user"]
-        # self.room = await self.create_instance(room)
-        self.room_group_name = f"{self.user.id}-room"
+        room_name = self.user.phone_number.split("+")[1]
+        self.room_group_name = f"{room_name}-room"
         print(self.room_group_name)
         print("all items", self.scope, self.scope["user"], kwargs, self.channel_layer)
 

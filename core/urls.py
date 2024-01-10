@@ -1,7 +1,8 @@
 from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-
+from django.conf.urls.static import static
+from django.conf import settings
 
 urlpatterns = [
     # swagger
@@ -27,4 +28,6 @@ urlpatterns = [
     path('api/analytics/', include('analytics.urls')),
     path('api/location/', include('locations.urls')),
 
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns = urlpatterns + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+

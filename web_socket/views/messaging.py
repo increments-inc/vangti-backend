@@ -6,8 +6,8 @@ from rest_framework import (
     viewsets,
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .models import *
-from .serializers import *
+from ..models import *
+from ..serializers import *
 from django.conf import settings
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
 from django.views.decorators.cache import cache_page

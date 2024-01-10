@@ -17,3 +17,17 @@ class VangtiRequest(BaseModel):
     class Meta:
         abstract=True
 
+
+class TransactionRequest(BaseModel):
+    seeker = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_transaction_seeker"
+    )
+    amount = models.FloatField(default=0.0)
+    preferred_notes = ArrayField(models.CharField(max_length=50))
+    is_affirmed = models.BooleanField(default=False)
+    provider = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="user_transaction_provider"
+    )
+
+    class Meta:
+        abstract=True

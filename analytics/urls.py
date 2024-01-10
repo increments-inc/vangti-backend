@@ -15,4 +15,10 @@ urlpatterns = [
                   path('profit/', InsightsViewSet.as_view({"get": "profit_by_time"}),
                        name='user_profit_by_time'),
 
+                  path('transaction-avg/', InsightsViewSet.as_view({"get": "transaction_by_week"}),
+                       name='user_transaction_by_week'),
+
+                  path('demanded-vangti/', InsightsViewSet.as_view({"get": "most_vangti"}),
+                       name='user_most_vangti'),
+
               ] + router.urls
