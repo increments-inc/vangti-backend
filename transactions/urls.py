@@ -3,7 +3,7 @@ from .views import *
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
-# router.register("rating", TransactionRatingViewSet, basename="transaction_rating")
+router.register("search-vangti", TransactionRequestViewSet, basename="transaction_request")
 router.register("", TransactionViewSet, basename="transaction")
 # router.register("user-mode", UserServiceModeViewSet, basename="user_service_mode")
 
@@ -22,6 +22,6 @@ urlpatterns = [
 
                   # transaction requests
 
-                  path('search-vangti/', VangtiSearch.as_view(),
-                       name='transaction_search_vangti'),
+                  # path('search-vangti/', VangtiSearch.as_view(),
+                  #      name='transaction_search_vangti'),
               ] + router.urls

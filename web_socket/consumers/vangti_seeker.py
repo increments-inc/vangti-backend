@@ -5,7 +5,10 @@ from django.db import transaction
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 from locations.models import UserLocation, LocationRadius
+from transactions.models import TransactionRequest
+from users.models import User
 from ..fcm import send_push
+from django.core.cache import cache
 
 # reference json data to be sent
 """
@@ -13,10 +16,14 @@ from ..fcm import send_push
     "seeker": "user_phone",
     "amount": 1000,
     "preferred": "100,20",
-    "is_accepted": false,
-    "provider": "user_phone",
-    "request":None,
+    "request_status":"PENDING",
+    "provider": null
 }
+
+# cache
+user
+provider_list
+
 """
 
 
@@ -41,6 +48,7 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive(self, text_data):
+        user = self.scope["user"]
         receive_dict = text_data
 
         try:
@@ -49,30 +57,54 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
         except:
             # not recommended
             receive_dict = receive_dict + f"""{self.user.phone_number}"""
+
         # send out request
         if (
                 receive_dict["seeker"] == self.user.phone_number and
                 receive_dict["request"] is None
         ):
             user_list = await self.get_user_list(receive_dict)
-            print(user_list)
-            for user in user_list:
-                room = user.split("+")[1]
-                await self.channel_layer.group_send(
-                    f"{room}-room",
-                    {
-                        'type': 'send_to_receiver_data',
-                        'receive_dict': receive_dict,
-                    }
-                )
-                # time.sleep(60)
+            cache.set(f"{user.phone_number}", user_list, timeout=None)
+            print(cache.get(f"{user.phone_number}"))
+            send_user = user_list[0].split("+")[1]
+            # for user in user_list:
+            #     room = user.split("+")[1]
+            await self.channel_layer.group_send(
+                f"{send_user}-room",
+                {
+                    'type': 'send_to_receiver_data',
+                    'receive_dict': receive_dict,
+                }
+            )
+
         # reject request
         if (
                 receive_dict["request"] == "reject" and
                 receive_dict["provider"] == self.user.phone_number
         ):
             room = receive_dict["seeker"].split("+")[1]
-            # do something
+            seeker = receive_dict["seeker"]
+            user_list = cache.get(receive_dict["seeker"])
+            if user_list[0] == receive_dict["provider"]:
+                user_list.pop(0)
+            if len(user_list)!=0:
+                send_user = user_list[0].split("+")[1]
+                await self.channel_layer.group_send(
+                    f"{send_user}-room",
+                    {
+                        'type': 'send_to_receiver_data',
+                        'receive_dict': receive_dict,
+                    }
+                )
+            room_seeker = receive_dict["seeker"].split("+")[1]
+            await self.channel_layer.group_send(
+                f"{room_seeker}-room",
+                {
+                    'type': 'send_to_receiver_data',
+                    'receive_dict': {"message": "no user left"},
+                }
+            )
+
 
         # accept request
         if (
@@ -80,16 +112,26 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
                 receive_dict["request"] == "accept" and
                 receive_dict["provider"] == self.user.phone_number
         ):
-            room = receive_dict["seeker"].split("+")[1]
-            await self.update_request_instance(room)
-            print("accepted")
-            await self.channel_layer.group_send(
-                f"{room}-room",
-                {
-                    'type': 'send_to_receiver_data',
-                    'receive_dict': receive_dict,
-                }
-            )
+            room_seeker = receive_dict["seeker"].split("+")[1]
+            room_provider = receive_dict["provider"].split("+")[1]
+
+            provider = await self.update_request_instance(receive_dict["seeker"], receive_dict["provider"])
+            if provider.provider.phone_number == receive_dict["provider"]:
+                await self.channel_layer.group_send(
+                    f"{room_seeker}-room",
+                    {
+                        'type': 'send_to_receiver_data',
+                        'receive_dict': receive_dict,
+                    }
+                )
+                await self.channel_layer.group_send(
+                    f"{room_provider}-room",
+                    {
+                        'type': 'send_to_receiver_data',
+                        'receive_dict': {"message": "accepted ok"},
+                    }
+                )
+                # cache.delete(receive_dict["seeker"])
             # await self.disconnect(1000)
 
     async def send_to_receiver_data(self, event):
@@ -102,6 +144,7 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
             "user": self.user.phone_number
         }))
 
+    # send fcm
     # async def send_user_push(self, user_list):
     #     is_affirmed = False
     #     for user in user_list:
@@ -123,17 +166,20 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
             return
 
     @database_sync_to_async
-    def get_user_affirmation(self, room_name):
-        user = self.user
+    def update_request_instance(self, seeker, provider):
+        provider = User.objects.get(phone_number=provider)
         try:
-            return UserLocation.objects.using('location').get(user=user.id).location_radius_userlocation.user_id_list
+            t_req = TransactionRequest.objects.get(seeker__phone_number=seeker)
+            t_req.provider = provider
+            t_req.save()
+            return t_req
         except:
             return
 
-    @database_sync_to_async
-    def update_request_instance(self, room_name):
-        user = self.user
-        try:
-            return UserLocation.objects.using('location').get(user=user.id).location_radius_userlocation.user_id_list
-        except:
-            return
+    # @database_sync_to_async
+    # def update_request_instance(self, seeker, provider):
+    #     provider = User.objects.get(phone_number=provider)
+    #     try:
+    #         return TransactionRequest.objects.get(seeker__phone_number=seeker)
+    #     except:
+    #         return
