@@ -29,3 +29,11 @@ class VangtiSearch(APIView):
             # create room, send room id
             return Response(serializer.data, status=status.HTTP_200_OK)
 
+class TransactionRequestViewSet(viewsets.ModelViewSet):
+    queryset = TransactionRequest.objects.all()
+    serializer_class = TransactionRequestSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    http_method_names = ["post"]
+
+    def perform_create(self, serializer):
+        serializer.save(seeker=self.request.user)

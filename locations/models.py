@@ -21,7 +21,7 @@ class UserLocation(models.Model):
             return "None"
 
     class Meta:
-        ordering = ("centre", "user",)
+        ordering = ("user",)
 
 
 class LocationRadius(models.Model):

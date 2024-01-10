@@ -19,17 +19,17 @@ class Transaction(BaseModel):
     #     default=uuid.uuid4
     # )
     transaction_no = models.CharField(max_length=255, null=True, blank=True)
-    total_amount = models.FloatField()
-    preferred_notes = ArrayField(ArrayField(models.CharField(max_length=10)))
+    total_amount = models.FloatField(default=0, null=True)
+    preferred_notes = ArrayField(ArrayField(models.CharField(max_length=10,null=True, blank=True)))
     provider = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="transaction_provider"
+        User, on_delete=models.CASCADE, related_name="transaction_provider", null=True
     )
     seeker = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="transaction_seeker"
+        User, on_delete=models.CASCADE, related_name="transaction_seeker", null=True
     )
     charge = models.FloatField(default=0.0)
     is_completed = models.BooleanField(default=False)
-    qr_image = models.ImageField()
+    qr_image = models.ImageField(null=True, blank=True)
 
     class Meta:
         ordering = ("-created_at",)
