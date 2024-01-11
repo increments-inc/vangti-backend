@@ -39,38 +39,3 @@ class TransactionRatingViewSet(viewsets.ModelViewSet):
         serializer = self.serializer_class(queryset, many=True)
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
-
-# history and insights
-class TransactionHistoryViewSet(viewsets.ModelViewSet):
-    queryset = TransactionHistory.objects.all()
-    serializer_class = TransactionHistorySerializer
-    permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ["get"]
-
-    def provider_history(self, *args, **kwargs):
-        user = self.request.user
-        queryset = self.queryset.filter(provider=user)
-        if queryset:
-            serializer = self.serializer_class(queryset)
-            return response.Response(
-                serializer.data,
-                status=status.HTTP_200_OK
-            )
-        return response.Response(
-            "No Data found",
-            status=status.HTTP_404_NOT_FOUND
-        )
-
-    def seeker_history(self, *args, **kwargs):
-        user = self.request.user
-        queryset = self.queryset.filter(seeker=user)
-        if queryset:
-            serializer = self.serializer_class(queryset)
-            return response.Response(
-                serializer.data,
-                status=status.HTTP_200_OK
-            )
-        return response.Response(
-            "No Data found",
-            status=status.HTTP_404_NOT_FOUND
-        )

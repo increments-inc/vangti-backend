@@ -7,17 +7,6 @@ import uuid
 User = get_user_model()
 
 
-class VangtiRequest(BaseModel):
-    seeker = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="vangti_seeker"
-    )
-    amount = models.FloatField(default=0.0)
-    user_list = ArrayField(models.CharField(max_length=50))
-
-    class Meta:
-        abstract=True
-
-
 class TransactionRequest(BaseModel):
     REQUEST_STATUS = [
         ("PENDING", "Pending"),
@@ -36,4 +25,4 @@ class TransactionRequest(BaseModel):
     )
 
     class Meta:
-        ordering = ("seeker", )
+        ordering = ("seeker",)

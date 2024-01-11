@@ -1,4 +1,4 @@
-from django.urls import path, include
+from django.urls import path
 from .views import *
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -11,6 +11,7 @@ router = DefaultRouter()
 
 router.register('document', UserKYCDocumentViewSet, basename='user_documents')
 router.register('submit-kyc-info', VerifiedUsersViewSet, basename='user_submit_kyc')
+router.register('firebase-token', UserFirebaseTokenViewSet, basename='user_firebase_token')
 
 urlpatterns = [
                   # simple jwt
@@ -35,15 +36,15 @@ urlpatterns = [
                   path('change-profile/', UserViewSet.as_view({"patch": "change_profile"}), name='user_change_profile'),
 
                   # kyc/nid
-                  path('add-nid/', UserNidInformationViewSet.as_view({"post": "add_nid"}), name='user_add_nid'),
-                  path('update-nid/', UserNidInformationViewSet.as_view({"patch": "update_nid"}),
+                  path('nid-add/', UserNidInformationViewSet.as_view({"post": "add_nid"}), name='user_add_nid'),
+                  path('nid-update/', UserNidInformationViewSet.as_view({"patch": "update_nid"}),
                        name='user_update_nid'),
-                  path('get-nid/', UserNidInformationViewSet.as_view({"get": "retrieve"}),
+                  path('nid-get/', UserNidInformationViewSet.as_view({"get": "retrieve"}),
                        name='user_retrieve_nid'),
 
-                  path('add-kyc-info/', UserKYCInformationViewSet.as_view({"post": "add_kyc_info"}),
+                  path('kyc-add/', UserKYCInformationViewSet.as_view({"post": "add_kyc_info"}),
                        name='user_add_kyc_info'),
-                  path('update-kyc-info/', UserKYCInformationViewSet.as_view({"patch": "update_kyc_information"}),
+                  path('kyc-update/', UserKYCInformationViewSet.as_view({"patch": "update_kyc_information"}),
                        name='user_update_kyc_information'),
 
               ] + router.urls

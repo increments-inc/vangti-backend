@@ -31,21 +31,27 @@ class UserNidInformationViewSet(viewsets.ModelViewSet):
         serializer = self.serializer_class(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save()
+            # validate from service api here and send to response
             return response.Response(serializer.data, status=status.HTTP_201_CREATED)
         return response.Response("not valid data", status=status.HTTP_400_BAD_REQUEST)
 
     def update_nid(self, request, *args, **kwargs):
         instance = self.queryset.get(user=self.request.user)
-        serializer = self.get_serializer_class()(instance, data=request.data, context={'request': request},
-                                                 partial=True)
+        serializer = self.get_serializer_class()(
+            instance,
+            data=request.data,
+            context={'request': request},
+            partial=True
+        )
         if serializer.is_valid():
             serializer.save()
+            # after validating photo and signature, send to response
             return response.Response(serializer.data, status=status.HTTP_201_CREATED)
         return response.Response("not valid data", status=status.HTTP_400_BAD_REQUEST)
 
     # send to porichoy/something
     def validate_information(self, *args, **kwargs):
-        return response.Response("", status=status.HTTP_200_OK)
+        return
 
 
 class UserKYCDocumentViewSet(viewsets.ModelViewSet):
@@ -105,4 +111,3 @@ class VerifiedUsersViewSet(viewsets.ModelViewSet):
             if v_user != -1:
                 return response.Response(serializer.data, status=status.HTTP_201_CREATED)
         return response.Response("data not valid", status=status.HTTP_400_BAD_REQUEST)
-

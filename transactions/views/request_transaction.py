@@ -46,15 +46,18 @@ class TransactionRequestViewSet(viewsets.ModelViewSet):
         serializer = self.serializer_class(data=request.data, context={"request": request})
         if serializer.is_valid():
             serializer.save()
-            message = {"text": "Hello, world!"}
-
-
-
-            async_to_sync(channel_layer.group_send)(
-                "8801234567891-room", {
-                        'type': 'send_to_receiver_data',
-                        'receive_dict': message,
-                }
-            )
+            # message = {
+            #     "seeker": request.user.phone_number,
+            #     "amount": 1000,
+            #     "preferred": "100,20",
+            #     "request_status":"PENDING",
+            #     "provider": ""
+            # }
+            # async_to_sync(channel_layer.group_send)(
+            #     "8801234567891-room", {
+            #             'type': 'send_to_receiver_data',
+            #             'receive_dict': message,
+            #     }
+            # )
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
