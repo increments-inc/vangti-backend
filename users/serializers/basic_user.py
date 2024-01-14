@@ -171,3 +171,6 @@ class UserInformationSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     phone_number = serializers.CharField()
     otp = serializers.IntegerField()
+
+
+

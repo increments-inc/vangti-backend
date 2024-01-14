@@ -12,6 +12,18 @@ from ..app_utils import get_reg_token
 from django.conf import settings
 
 
+class UserInformationViewSet(viewsets.ModelViewSet):
+    queryset = UserInformation.objects.all()
+    serializer_class = UserInformationRetrieveSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    # http_method_names = ["get"]
+
+    def user_info(self, *args, **kwargs):
+        user = self.request.user
+        instance = self.queryset.filter(user=user).first()
+        serializer = self.serializer_class(instance, context={''})
+        return response.Response(serializer.data, status=status.HTTP_200_OK)
+
 class UserNidInformationViewSet(viewsets.ModelViewSet):
     queryset = UserNidInformation.objects.all()
     serializer_class = AddNidSerializer

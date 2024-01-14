@@ -12,6 +12,8 @@ router = DefaultRouter()
 router.register('document', UserKYCDocumentViewSet, basename='user_documents')
 router.register('submit-kyc-info', VerifiedUsersViewSet, basename='user_submit_kyc')
 router.register('firebase-token', UserFirebaseTokenViewSet, basename='user_firebase_token')
+# router.register('info', UserInformationViewSet, basename='user_information')
+
 
 urlpatterns = [
                   # simple jwt
@@ -34,6 +36,7 @@ urlpatterns = [
                   # user profile
                   path('change-pin/', UserViewSet.as_view({"patch": "change_pin"}), name='user_change_pin'),
                   path('change-profile/', UserViewSet.as_view({"patch": "change_profile"}), name='user_change_profile'),
+                  path('get-profile/', UserInformationViewSet.as_view({"get": "user_info"}), name='user_user_info'),
 
                   # kyc/nid
                   path('nid-add/', UserNidInformationViewSet.as_view({"post": "add_nid"}), name='user_add_nid'),

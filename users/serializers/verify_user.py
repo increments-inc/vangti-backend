@@ -119,3 +119,18 @@ class VerifiedUsersSerializer(serializers.ModelSerializer):
             # specify service mode enabling
             return verified_user
         return -1
+
+
+class UserInformationRetrieveSerializer(serializers.ModelSerializer):
+    phone_number = serializers.CharField(source="user.phone_number")
+    # rating = serializers.FloatField(source="user.rating")
+    class Meta:
+        model = models.UserInformation
+        fields = (
+            "phone_number",
+            "person_name",
+            "acc_type",
+            "profile_pic",
+            # "rating"
+        )
+        # exclude = ("user","device_id")
