@@ -35,7 +35,7 @@ urlpatterns = [
 
                   # user profile
                   path('change-pin/', UserViewSet.as_view({"patch": "change_pin"}), name='user_change_pin'),
-                  path('change-profile/', UserViewSet.as_view({"patch": "change_profile"}), name='user_change_profile'),
+                  path('change-profile/', UserInformationViewSet.as_view({"patch": "change_profile"}), name='user_change_profile'),
                   path('get-profile/', UserInformationViewSet.as_view({"get": "user_info"}), name='user_user_info'),
 
                   # kyc/nid

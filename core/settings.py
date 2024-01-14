@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'transactions',
     'web_socket',
     'locations',
+    'user_setting',
 ]
 
 REST_FRAMEWORK = {

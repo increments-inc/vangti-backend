@@ -162,10 +162,10 @@ class UserDeactivateSerializer(serializers.ModelSerializer):
         fields = ("is_active",)
 
 
-class UserInformationSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = models.UserInformation
-        fields = ("person_name", "profile_pic", )
+# class UserInformationSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = models.UserInformation
+#         fields = ("person_name", "profile_pic", )
 
 
 class LoginSerializer(serializers.Serializer):

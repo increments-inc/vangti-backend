@@ -122,15 +122,17 @@ class VerifiedUsersSerializer(serializers.ModelSerializer):
 
 
 class UserInformationRetrieveSerializer(serializers.ModelSerializer):
-    phone_number = serializers.CharField(source="user.phone_number")
+    phone_number = serializers.CharField(source="user.phone_number", read_only=True)
     # rating = serializers.FloatField(source="user.rating")
     class Meta:
         model = models.UserInformation
         fields = (
-            "phone_number",
             "person_name",
             "acc_type",
             "profile_pic",
+            "phone_number",
             # "rating"
         )
         # exclude = ("user","device_id")
+        read_only_fields = ("acc_type",)
+

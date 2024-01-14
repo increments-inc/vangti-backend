@@ -227,8 +227,8 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserDeactivateSerializer
         if self.action == "change_pin":
             return PINSerializer
-        if self.action == "change_profile":
-            return UserInformationSerializer
+        # if self.action == "change_profile":
+        #     return UserInformationSerializer
         return self.serializer_class
 
     def perform_update(self, serializer):
@@ -278,23 +278,4 @@ class UserViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK
         )
 
-    def change_profile(self, request, *args, **kwargs):
-        user = request.user
-        serializer = self.get_serializer_class()(
-            instance=user.user_info,
-            data=request.data,
-            context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        if user == -1:
-            return response.Response({
-                "message": "Invalid User",
-                "data": serializer.validated_data,
-            },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        return response.Response(
-            "Profile changed Successfully",
-            status=status.HTTP_200_OK
-        )
+

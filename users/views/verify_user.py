@@ -16,6 +16,7 @@ class UserInformationViewSet(viewsets.ModelViewSet):
     queryset = UserInformation.objects.all()
     serializer_class = UserInformationRetrieveSerializer
     permission_classes = [permissions.IsAuthenticated]
+
     # http_method_names = ["get"]
 
     def user_info(self, *args, **kwargs):
@@ -23,6 +24,28 @@ class UserInformationViewSet(viewsets.ModelViewSet):
         instance = self.queryset.filter(user=user).first()
         serializer = self.serializer_class(instance, context={''})
         return response.Response(serializer.data, status=status.HTTP_200_OK)
+
+    def change_profile(self, request, *args, **kwargs):
+        user = request.user
+        serializer = self.serializer_class(
+            instance=user.user_info,
+            data=request.data,
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        if user == -1:
+            return response.Response({
+                "message": "Invalid User",
+                "data": serializer.validated_data,
+            },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return response.Response(
+            "Profile changed Successfully",
+            status=status.HTTP_200_OK
+        )
+
 
 class UserNidInformationViewSet(viewsets.ModelViewSet):
     queryset = UserNidInformation.objects.all()

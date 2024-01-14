@@ -8,7 +8,7 @@ from django.db.models import Avg, Sum, Count
 from transactions.models import TransactionHistory
 import calendar
 from datetime import datetime, timedelta
-
+from transactions.models import TransactionHistory
 
 class InsightsViewSet(viewsets.ModelViewSet):
     queryset = Analytics.objects.all()
@@ -133,4 +133,11 @@ class InsightsViewSet(viewsets.ModelViewSet):
     def most_vangti(self, *args, **kwargs):
         today = datetime.now()
         data = {}
-        return Response(data, status=status.HTTP_200_OK)
+        note_list = list(TransactionHistory.objects.filter(
+            created_at__lte=today,
+            created_at__gte=today-timedelta(days=15), # check the options
+            provider=self.request.user
+        ).values_list("total_amount", flat=True))
+        if len(note_list)==0:
+            return Response("No data", status=status.HTTP_404_NOT_FOUND)
+        return Response(max(note_list), status=status.HTTP_200_OK)

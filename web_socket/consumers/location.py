@@ -9,15 +9,14 @@ from locations.models import UserLocation, LocationRadius
 from ..fcm import send_push
 
 
-class TransactionMessageConsumer(AsyncWebsocketConsumer):
+class UserLocationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        kwargs = self.scope.get("url_route")["kwargs"]
-        # room = kwargs["user_room_name"]
+        # kwargs = self.scope.get("url_route")["kwargs"]
+        # # room = kwargs["user_room_name"]
         self.user = self.scope["user"]
         room_name = self.user.phone_number.split("+")[1]
-        self.room_group_name = f"{room_name}-room"
-        print(self.room_group_name)
-        print("all items", self.scope, self.scope["user"], kwargs, self.channel_layer)
+        self.room_group_name = f"{room_name}-location-room"
+
 
         await self.channel_layer.group_add(
             self.room_group_name,
