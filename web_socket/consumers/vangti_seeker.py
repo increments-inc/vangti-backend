@@ -11,6 +11,9 @@ from ..fcm import send_push
 from django.core.cache import cache
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import Distance
+from ..tasks import *
+
+from asgiref.sync import sync_to_async
 
 # reference json data to be sent
 """
@@ -18,14 +21,9 @@ from django.contrib.gis.measure import Distance
     "seeker": "user_phone",
     "amount": 1000,
     "preferred": "100,20",
-    "request_status":"PENDING",
+    "request":"PENDING",
     "provider": null
 }
-
-# cache
-user
-provider_list
-
 """
 
 
@@ -138,7 +136,6 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
                     }
                 )
                 # cache.delete(receive_dict["seeker"])
-            # await self.disconnect(1000)
 
     async def send_to_receiver_data(self, event):
         receive_dict = event['receive_dict']
@@ -148,6 +145,28 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'message': receive_dict,
             "user": self.user.phone_number
+        }))
+
+    async def monitor0(self):
+        print("here in monitor0")
+        sleep(10)
+        await self.channel_layer.group_send(
+            "8801234567891-room",
+            {
+                'type': 'send_data',
+                'receive_dict': {"message": "accepted ok"},
+            }
+        )
+
+    async def send_data(self, event):
+        print("dfsdf")
+        receive_dict = event['receive_dict']
+        if type(receive_dict) == str:
+            receive_dict = json.loads(receive_dict)
+
+        await self.send(text_data=json.dumps({
+            'message': receive_dict,
+            # "user": self.user.phone_number
         }))
 
     # send fcm

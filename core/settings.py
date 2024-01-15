@@ -257,7 +257,14 @@ CHANNEL_LAYERS = {
     },
 }
 
-
 MEDIA_URL = "/media/"
 MEDIA_ROOT = "media"
 
+# Celery Configuration Options
+# CELERY_TIMEZONE = "Asia/Dhaka"
+# CELERY_TASK_TRACK_STARTED = True
+# CELERY_TASK_TIME_LIMIT = 30 * 60
+
+# Celery settings
+CELERY_BROKER_URL = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
