@@ -1,25 +1,16 @@
-import time
-from time import sleep
-from django.core.mail import send_mail
 from django.conf import settings
 from celery import shared_task
-from django.core.cache import cache
 from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 from core.celery import app
-from channels.layers import get_channel_layer
 # from celery.decorators import task
-
+from django.contrib.auth import authenticate, login
 
 @shared_task()
-def send_auto_reject():
-    # sleep(3)
+def send_celery(scope):
+    print("helo dummy")
     message = {
-        "seeker": "+8801234567891",
-        "amount": 900,
-        "preferred": "100,20",
-        "request": "ol",
-        "provider": ""
+        "seeker": "ajk",
     }
     # async_to_sync(channel_layer.group_send)(
     #     "8801234567891-room", {
@@ -27,17 +18,23 @@ def send_auto_reject():
     #             'receive_dict': message,
     #     }, immediately=True
     # )
+    user = sync_to_async(authenticate)(username="admin", password="admin")
+    print(user)
     channel_layer = get_channel_layer()
+
     channel_layer.group_send(
-        "8801234567891-room", {
+        "dummy", {
             'type': 'send.data',
             'receive_dict': message,
         },
         # immediately=True
     )
 
-    # Group("test").send({
-    #     "text": json.dumps({
-    #         'type': 'test',
-    #     })
-    # }, immediately=True)
+
+@shared_task(bind=True, name='queue_ws_event', ignore_result=True, queue='wsQ')
+def queue_ws_event( ws_channel, ws_event:dict, group=True):
+    channel_layer = get_channel_layer()
+    if group:
+        async_to_sync(channel_layer.group_send)(ws_channel,ws_event)
+    else:
+        async_to_sync(channel_layer.send)(ws_channel,ws_event)

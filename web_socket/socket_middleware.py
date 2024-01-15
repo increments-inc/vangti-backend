@@ -24,6 +24,7 @@ class QueryAuthMiddleware:
         self.app = app
 
     async def __call__(self, scope, receive, send):
+        print()
         token = scope["query_string"].decode("utf-8").split("=")[1]
         decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
         user_id = decoded_token['user_id']
