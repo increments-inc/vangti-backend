@@ -76,6 +76,16 @@ class VangtiProviderConsumer(AsyncWebsocketConsumer):
             'message': receive_dict,
         }))
 
+    # async def send_to_receiver_data(self, event):
+    #     receive_dict = event['receive_dict']
+    #     if type(receive_dict) == str:
+    #         receive_dict = json.loads(receive_dict)
+    #
+    #     await self.send(text_data=json.dumps({
+    #         'message': receive_dict,
+    #         "user": self.user.phone_number
+    #     }))
+
     async def send_user_push(self, user_list):
         is_affirmed = False
         for user in user_list:

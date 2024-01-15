@@ -8,8 +8,11 @@ router.register("", TransactionViewSet, basename="transaction")
 # router.register("user-mode", UserServiceModeViewSet, basename="user_service_mode")
 
 urlpatterns = [
+                  path('get-user-mode/', UserServiceModeViewSet.as_view({"get": "get_mode"}),
+                       name='user_get_mode'),
                   path('change-user-mode/', UserServiceModeViewSet.as_view({"patch": "mode_change"}),
                        name='user_mode_change'),
+
 
                   path('history/provider/', TransactionHistoryViewSet.as_view({"get": "provider_history"}),
                        name='provider_history'),

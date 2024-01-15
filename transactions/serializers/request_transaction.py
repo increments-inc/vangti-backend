@@ -3,18 +3,17 @@ from ..models import *
 from django.core.cache import cache
 from locations.models import UserLocation
 
+
 class VangtiSearchSerializer(serializers.Serializer):
     note = serializers.IntegerField(max_value=1000, min_value=100)
     preferred_notes = serializers.ListField(child=serializers.CharField())
-    
 
 
 class TransactionRequestSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = TransactionRequest
         # fields = "__all__"
-        exclude = ["seeker",]
+        exclude = ["seeker", ]
         read_only_fields = ["id", "provider", "is_affirmed", "seeker"]
 
     def create(self, validated_data):

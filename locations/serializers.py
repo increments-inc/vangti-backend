@@ -50,11 +50,12 @@ class LocationSerializer(serializers.ModelSerializer):
 
         user_location_point = UserLocation.objects.create(
             user=user.id,
+            user_phone_number=user.phone_number,
             latitude=latitude,
             longitude=longitude,
             centre=loc_point
         )
-        self.user_list(user_location_point)
+        # self.user_list(user_location_point)
         return user_location_point
 
     def update(self, instance, validated_data):
@@ -66,7 +67,7 @@ class LocationSerializer(serializers.ModelSerializer):
         instance.longitude = longitude
         instance.loc = loc
         instance.save()
-        self.user_list(instance)
+        # self.user_list(instance)
         return instance
 
 # class LocationCacheSerializer(serializers.Serializer):

@@ -9,7 +9,7 @@ User = get_user_model()
 class UserLocation(models.Model):
     # user = models.CharField(max_length=256, null=True, blank=True)
     user = models.UUIDField(unique=True)
-
+    user_phone_number = models.CharField(max_length=15, blank=True, null=True)
     latitude = models.CharField(max_length=10)
     longitude = models.CharField(max_length=10)
     centre = models.PointField()

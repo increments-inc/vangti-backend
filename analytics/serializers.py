@@ -2,9 +2,6 @@ from rest_framework import exceptions, serializers, validators
 from .models import *
 
 
-
-
-
 class UserRatingSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserRating
@@ -15,7 +12,7 @@ class AppFeedbackSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppFeedback
         # fields = "__all__"
-        exclude = ["user",]
+        exclude = ["user", ]
 
 
 class InsightsSerializer(serializers.ModelSerializer):
@@ -31,4 +28,3 @@ class InsightsSerializer(serializers.ModelSerializer):
     #     #     print(value.created_at)
     #     return value.profit
     #     # raise Exception('Unexpected type of tagged object')
-
