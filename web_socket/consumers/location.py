@@ -4,7 +4,7 @@ from django.db import transaction
 from channels.generic.websocket import AsyncWebsocketConsumer
 from locations.models import UserLocation, LocationRadius
 from transactions.models import Transaction
-
+"""transaction_id-location-room"""
 """
 {
 "seeker":"phone",
