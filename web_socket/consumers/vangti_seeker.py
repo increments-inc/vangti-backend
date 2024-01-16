@@ -2,7 +2,7 @@ import json
 import time
 from channels.db import database_sync_to_async
 from django.db import transaction
-from asgiref.sync import async_to_sync
+from asgiref.sync import async_to_sync, sync_to_async
 from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 from locations.models import UserLocation, LocationRadius
 from transactions.models import TransactionRequest
@@ -12,8 +12,7 @@ from django.core.cache import cache
 from django.contrib.gis.geos import Point
 from django.contrib.gis.measure import Distance
 from ..tasks import *
-
-from asgiref.sync import sync_to_async
+from datetime import datetime, timedelta
 
 # reference json data to be sent
 """
@@ -25,6 +24,10 @@ from asgiref.sync import sync_to_async
     "provider": null
 }
 """
+class InterruptExecution(Exception):
+    def __init__(self, message="Interrupt Execution"):
+        self.message = message
+        super().__init__(self.message)
 
 
 class VangtiSeekerConsumer(AsyncWebsocketConsumer):
@@ -147,9 +150,8 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
             "user": self.user.phone_number
         }))
 
-    async def monitor0(self):
-        print("here in monitor0")
-        sleep(10)
+    async def auto_reject(self):
+        time.sleep(10)
         await self.channel_layer.group_send(
             "8801234567891-room",
             {
@@ -246,3 +248,20 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
     #         'message': receive_dict,
     #         "user": self.user.phone_number
     #     }))
+
+    async def some_long_running_task(self, start_time):
+        try:
+            while datetime.now()< start_time + timedelta(seconds=30):
+                pass
+        except InterruptExecution:
+            await self.channel_layer.group_send(
+                "8801234567891-room",
+                {
+                    'type': 'send_data',
+                    'receive_dict': {"message": "accepted no ok"},
+                }
+            )
+
+    async def interrupt_task(self):
+        # When you want to interrupt the task
+        raise InterruptExecution("Stop the task")
