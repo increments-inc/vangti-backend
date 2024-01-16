@@ -14,8 +14,8 @@ class UserLocationConsumer(AsyncWebsocketConsumer):
         # kwargs = self.scope.get("url_route")["kwargs"]
         # # room = kwargs["user_room_name"]
         self.user = self.scope["user"]
-        room_name = self.user.phone_number.split("+")[1]
-        self.room_group_name = f"{room_name}-location-room"
+        # room_name = self.user.phone_number.split("+")[1]
+        self.room_group_name = f"14-location-room"
 
 
         await self.channel_layer.group_add(
@@ -38,9 +38,9 @@ class UserLocationConsumer(AsyncWebsocketConsumer):
         except:
             pass
 
-        receive_dict["user"] =self.scope["user"].phone_number
+        # receive_dict["user"] =self.scope["user"].phone_number
         await self.channel_layer.group_send(
-            "14-location-room",
+            self.room_group_name,
             {
                 'type': 'send.sdpt',
                 'receive_dict': receive_dict,
