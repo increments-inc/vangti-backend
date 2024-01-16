@@ -1,12 +1,8 @@
 import json
-import time
-
 from channels.db import database_sync_to_async
 from django.db import transaction
-from asgiref.sync import async_to_sync
-from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
+from channels.generic.websocket import AsyncWebsocketConsumer
 from locations.models import UserLocation, LocationRadius
-from ..fcm import send_push
 from transactions.models import Transaction
 
 """
@@ -35,10 +31,7 @@ from transactions.models import Transaction
 
 class UserLocationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        # kwargs = self.scope.get("url_route")["kwargs"]
-        # # room = kwargs["user_room_name"]
         self.user = self.scope["user"]
-        # room_name = self.user.phone_number.split("+")[1]
         self.room_group_name = self.scope.get("url_route")["kwargs"]["room_name"]
 
         await self.channel_layer.group_add(
@@ -89,9 +82,10 @@ class UserLocationConsumer(AsyncWebsocketConsumer):
         if receive_dict["request"]=="post":
             user = self.user.phone_number
             data = receive_dict["data"]
-
-            seeker_location = await self.get_user_location(tr_data["seeker"])
-            provider_location = await self.get_user_location(tr_data["provider"])
+            if user.phone_number==tr_data["seeker"]:
+                seeker_location = await self.patch_user_location(tr_data["seeker"])
+            if user.phone_number==tr_data["provider"]:
+                provider_location = await self.patch_user_location(tr_data["provider"])
             receive_dict = {
                 "request":"response",
                 "transaction_id": self.room_group_name.split("-")[0],
@@ -107,8 +101,6 @@ class UserLocationConsumer(AsyncWebsocketConsumer):
                     'receive_dict': receive_dict,
                 }
             )
-
-
 
         # receive_dict["user"] = self.scope["user"].phone_number
         # await self.channel_layer.group_send(
@@ -149,6 +141,7 @@ class UserLocationConsumer(AsyncWebsocketConsumer):
             return data
         except:
             return
+
     @database_sync_to_async
     def patch_user_location(self, user, data):
         try:
