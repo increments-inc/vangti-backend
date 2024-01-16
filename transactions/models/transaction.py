@@ -3,6 +3,12 @@ from django.contrib.auth import get_user_model
 from core.abstract_models import models, BaseModel
 from django.contrib.postgres.fields import ArrayField
 import uuid
+from utils import qr
+from django.contrib.sites.models import Site
+from django.core.files import File
+from django.db import models
+
+from core.abstract_models import BaseModel
 
 User = get_user_model()
 
@@ -26,6 +32,13 @@ class Transaction(BaseModel):
 
     class Meta:
         ordering = ("-created_at",)
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            url = "google.com"
+            image_stream = qr.generate(url)
+            self.qr_image = File(image_stream, name=f"qr.png")
+        super().save(*args, **kwargs)
 
 
 class TransactionHistory(BaseModel):
