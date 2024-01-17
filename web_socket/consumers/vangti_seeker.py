@@ -1,21 +1,22 @@
 import json
 import time
+from django.contrib.gis.measure import Distance
+from django.contrib.gis.geos import Point
+from django.core.cache import cache
 from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db import transaction
 from asgiref.sync import async_to_sync, sync_to_async
-from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
+from datetime import datetime, timedelta
 from locations.models import UserLocation, LocationRadius
 from transactions.models import TransactionRequest
 from users.models import User
 from ..fcm import send_push
-from django.core.cache import cache
-from django.contrib.gis.geos import Point
-from django.contrib.gis.measure import Distance
 from ..tasks import *
-from datetime import datetime, timedelta
 
 # reference json data to be sent
 """
+# old
 {
     "seeker": "user_phone",
     "amount": 1000,
@@ -23,7 +24,56 @@ from datetime import datetime, timedelta
     "request":"PENDING",
     "provider": null
 }
+# new
+# request -send- pending
+{
+    "request":"POST",
+    "amount": 1000,
+    "preferred": ["100","20"],
+    "seeker": "user_phone_number",
+    "provider": null,
+    "status": "PENDING"
+}
+# !!!!!!!!request - to user
+{
+    "request":"POST",
+    "amount": 1000,
+    "preferred": ["100","20"],
+    "seeker": "seeker_user_phone_number",
+    "provider": "possible_provider_user_phone_number",
+    "status": "PENDING"
+}
+# response - reject
+{
+    "request":"RESPONSE",
+    "amount": 1000,
+    "preferred": ["100","20"],
+    "seeker": "seeker_user_phone_number",
+    "provider": "possible_provider_user_phone_number",
+    "status": "REJECTED"
+}
+# response - accept
+{
+    "request":"RESPONSE",
+    "amount": 1000,
+    "preferred": ["100","20"],
+    "seeker": "seeker_user_phone_number",
+    "provider": "possible_provider_user_phone_number",
+    "status": "ACCEPTED"
+}
+# transaction instance
+{
+    "request":"RESPONSE",
+    "amount": 1000,
+    "preferred": ["100","20"],
+    "seeker": "seeker_user_phone_number",
+    "provider": "provider_user_phone_number",
+    "status": "IN_TRANSACTION",
+    "transaction_id": "id"
+}
 """
+
+
 class InterruptExecution(Exception):
     def __init__(self, message="Interrupt Execution"):
         self.message = message
@@ -53,19 +103,19 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         user = self.scope["user"]
         receive_dict = text_data
-
         try:
             receive_dict = json.loads(text_data)
             receive_dict["user"] = self.user.phone_number
         except:
-            # not recommended
-            receive_dict = receive_dict + f"""{self.user.phone_number}"""
-
-        # send out request
+            return
+        # send out request (seeker end)
         if (
                 receive_dict["seeker"] == self.user.phone_number and
-                receive_dict["request"] == "PENDING"
+                receive_dict["request"] == "POST" and
+                receive_dict["status"] == "PENDING" and
+                receive_dict["provider"] is None
         ):
+            print("post pending none")
             user_list = await self.get_user_list(receive_dict)
             print(user_list)
             cache.set(receive_dict["seeker"], user_list, timeout=None)
@@ -75,15 +125,18 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_send(
                 f"{send_user}-room",
                 {
-                    'type': 'send_to_receiver_data',
+                    'type': 'send_pending_data',
                     'receive_dict': receive_dict,
                 }
             )
 
+
+
         # reject request
         if (
-                receive_dict["request"] == "reject" and
-                receive_dict["provider"] == self.user.phone_number
+                receive_dict["provider"] == self.user.phone_number and
+                receive_dict["request"] == "RESPONSE" and
+                receive_dict["status"] == "REJECTED"
         ):
             room = receive_dict["seeker"].split("+")[-1]
             seeker = receive_dict["seeker"]
@@ -95,7 +148,8 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
             if len(user_list) != 0:
                 send_user = user_list[0].split("+")[-1]
                 receive_dict["provider"] = user_list[0]
-
+                receive_dict["request"] = "POST"
+                receive_dict["status"] = "PENDING"
                 await self.channel_layer.group_send(
                     f"{send_user}-room",
                     {
@@ -109,7 +163,7 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
                     f"{room_seeker}-room",
                     {
                         'type': 'send_to_receiver_data',
-                        'receive_dict': {"message": "no user left"},
+                        'receive_dict': {"error": "no user left"},
                     }
                 )
 
@@ -141,6 +195,16 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
                 # cache.delete(receive_dict["seeker"])
 
     async def send_to_receiver_data(self, event):
+        receive_dict = event['receive_dict']
+        if type(receive_dict) == str:
+            receive_dict = json.loads(receive_dict)
+
+        await self.send(text_data=json.dumps({
+            'message': receive_dict,
+            "user": self.user.phone_number
+        }))
+
+    async def send_pending_data(self, event):
         receive_dict = event['receive_dict']
         if type(receive_dict) == str:
             receive_dict = json.loads(receive_dict)
@@ -190,15 +254,24 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
         try:
             center = UserLocation.objects.using('location').get(user=user.id).centre
             radius = 10000
-            user_provider_list = list(User.objects.filter(user_mode__is_provider=True).values_list('id', flat=True))
-            # user_list = UserLocation.objects.using('location').get(user=user.id).location_radius_userlocation.user_id_list
-            # user_list = UserLocation.objects.using('location').get(user=user.id)
-            user_list = list(UserLocation.objects.using('location').filter(
-                user__in=user_provider_list,
-                centre__distance_lte=(center, Distance(km=radius))
-            ).values_list("user_phone_number", flat=True))
-
-            return user_list
+            user_location_list = list(
+                UserLocation.objects.using('location').filter(
+                    centre__distance_lte=(center, Distance(km=radius))
+                ).values_list(
+                    "user", flat=True
+                )
+            )
+            user_provider_list = list(
+                User.objects.filter(
+                    id__in=user_location_list,
+                    user_mode__is_provider=True
+                ).order_by(
+                    "-userrating_user__rating"
+                ).values_list(
+                    'phone_number', flat=True
+                )
+            )
+            return user_provider_list
         except:
             return
 
@@ -251,7 +324,7 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
 
     async def some_long_running_task(self, start_time):
         try:
-            while datetime.now()< start_time + timedelta(seconds=30):
+            while datetime.now() < start_time + timedelta(seconds=30):
                 pass
         except InterruptExecution:
             await self.channel_layer.group_send(

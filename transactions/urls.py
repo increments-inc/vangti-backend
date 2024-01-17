@@ -3,7 +3,7 @@ from .views import *
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
-router.register("search-vangti", TransactionRequestViewSet, basename="transaction_request")
+# router.register("search-vangti", TransactionRequestViewSet, basename="transaction_request")
 router.register("", TransactionViewSet, basename="transaction")
 # router.register("user-mode", UserServiceModeViewSet, basename="user_service_mode")
 
