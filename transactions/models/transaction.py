@@ -6,9 +6,7 @@ import uuid
 from utils import qr
 from django.contrib.sites.models import Site
 from django.core.files import File
-from django.db import models
 
-from core.abstract_models import BaseModel
 
 User = get_user_model()
 

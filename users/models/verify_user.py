@@ -1,7 +1,7 @@
 from core.abstract_models import models, BaseModel
 from django.contrib.auth.models import BaseUserManager
 from utils.helper import content_file_path, ImageCompress
-from .basic_info import User
+from .basic_user import User
 
 GENDER = [
     ("MALE", "Male"),
@@ -29,7 +29,7 @@ class UserInformation(BaseModel):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="user_info"
     )
-    device_id = models.CharField(max_length=512, null=True, blank=True)
+    device_token = models.CharField(max_length=512, null=True, blank=True)
     person_name = models.CharField(max_length=255, null=True, blank=True)
     acc_type = models.CharField(max_length=25, choices=ACCOUNT_TYPE, default="PERSONAL")
     profile_pic = models.ImageField(upload_to=content_file_path, blank=True, null=True)

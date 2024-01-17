@@ -16,9 +16,9 @@ class UserLocation(models.Model):
 
     def __str__(self):
         try:
-            return f"{self.latitude}, {self.longitude}"
+            return f"{self.user_phone_number}- {self.latitude}, {self.longitude}"
         except:
-            return "None"
+            return f"{self.user_phone_number}-location"
 
     class Meta:
         ordering = ("user",)
@@ -37,6 +37,7 @@ class LocationRadius(models.Model):
             return "None"
 
     class Meta:
+        abstract=True
         ordering = ("location",)
 
 # abstract models

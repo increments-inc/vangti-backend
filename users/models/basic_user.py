@@ -111,7 +111,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.phone_number
 
 
-
 # class OTPModel(models.Model):
 #     """
 #     Model to handle user OTP
@@ -144,7 +143,7 @@ class RegistrationOTPModel(BaseModel):
                                  message="Phone number must be entered in the format: '+880XXXX-XXXXXX'. Up to 13 "
                                          "digits allowed.")
     phone_number = models.CharField(validators=[phone_regex], max_length=15)
-    device_id = models.CharField(max_length=512, null=True, blank=True)
+    device_token = models.CharField(max_length=512, null=True, blank=True)
     key = models.TextField(
         blank=True,
         null=True,
@@ -156,5 +155,3 @@ class RegistrationOTPModel(BaseModel):
 
     def __str__(self):
         return f"OTP - {self.phone_number}"
-
-

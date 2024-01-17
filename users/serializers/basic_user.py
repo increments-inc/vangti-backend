@@ -1,5 +1,4 @@
 import contextlib, json, random, pyotp, re
-from django.conf import settings
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -9,8 +8,7 @@ from django.urls import exceptions as url_exceptions
 from django.utils.http import urlsafe_base64_decode
 from django.utils.translation import gettext_lazy as _
 from rest_framework import exceptions, serializers, validators
-from rest_framework_simplejwt import settings as jwt_settings
-from rest_framework_simplejwt import tokens
+from rest_framework_simplejwt import tokens, settings as jwt_settings
 from rest_framework_simplejwt.exceptions import TokenError
 # from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from ..app_rest import TokenObtainPairSerializer
@@ -45,12 +43,12 @@ class NumberObtainPairSerializer(serializers.Serializer):
 class RegistrationOTPSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.RegistrationOTPModel
-        fields = ("phone_number", "device_id",)
+        fields = ("phone_number", "device_token",)
 
     def create(self, validated_data):
         print("here")
         phone_number = validated_data.pop("phone_number", None)
-        device_id = validated_data.pop("device_id", None)
+        device_id = validated_data.pop("device_token", None)
         if models.User.objects.filter(
                 phone_number=phone_number
         ).exists():
@@ -61,7 +59,7 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
 
         reg_phone = models.RegistrationOTPModel.objects.create(
             phone_number=phone_number,
-            device_id=device_id,
+            device_token=device_id,
             key=base_otp,
             expires_at=expires
         )
@@ -99,8 +97,9 @@ class RegistrationSerializer(serializers.ModelSerializer):
                 phone_number=phone_number,
                 pin=None
             )
-            user.user_info.device_id = reg.device_id
+            user.user_info.device_token = reg.device_token
             user.user_info.save()
+
         except models.RegistrationOTPModel.DoesNotExist:
             return -1
         return user
