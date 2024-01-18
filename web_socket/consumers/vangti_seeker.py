@@ -169,9 +169,9 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
 
         # accept request
         if (
-                # receive_dict["seeker"] == self.user.phone_number and
-                receive_dict["request"] == "accept" and
-                receive_dict["provider"] == self.user.phone_number
+                receive_dict["provider"] == self.user.phone_number and
+                receive_dict["request"] == "RESPONSE" and
+                receive_dict["status"] == "ACCEPTED"
         ):
             room_seeker = receive_dict["seeker"].split("+")[-1]
             room_provider = receive_dict["provider"].split("+")[-1]
@@ -281,6 +281,7 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
         try:
             t_req = TransactionRequest.objects.get(seeker__phone_number=seeker)
             t_req.provider = provider
+            t_req.status="ACCEPTED"
             t_req.save()
             return t_req
         except:

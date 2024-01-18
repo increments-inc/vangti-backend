@@ -25,6 +25,6 @@ urlpatterns = [
 
                   # transaction requests
 
-                  # path('search-vangti/', VangtiSearch.as_view(),
-                  #      name='transaction_search_vangti'),
+                  path('search-vangti/', VangtiSearch.as_view(),
+                       name='transaction_search_vangti'),
               ] + router.urls

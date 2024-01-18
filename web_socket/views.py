@@ -38,3 +38,5 @@ def vangti_request(request):
     )
     return JsonResponse({"message": message})
 
+
+

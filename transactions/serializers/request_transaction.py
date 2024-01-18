@@ -6,7 +6,7 @@ from locations.models import UserLocation
 
 class VangtiSearchSerializer(serializers.Serializer):
     note = serializers.IntegerField(max_value=1000, min_value=100)
-    preferred_notes = serializers.ListField(child=serializers.CharField())
+    # preferred_notes = serializers.ListField(child=serializers.CharField())
 
 
 class TransactionRequestSerializer(serializers.ModelSerializer):

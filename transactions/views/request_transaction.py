@@ -20,18 +20,20 @@ channel_layer = get_channel_layer()
 
 
 class VangtiSearch(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.AllowAny]
     serializer_class = VangtiSearchSerializer
 
-    @method_decorator(login_required)  # Ensure user is logged in
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
+    # @method_decorator(login_required)  # Ensure user is logged in
+    # def dispatch(self, request, *args, **kwargs):
+    #     return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, format=None):
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            # create room, send room id
-            return Response(serializer.data, status=status.HTTP_200_OK)
+        # if serializer.is_valid():
+        #     # create room, send room id
+        #     return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(request.data, status=status.HTTP_200_OK)
+
 
 class TransactionRequestViewSet(viewsets.ModelViewSet):
     queryset = TransactionRequest.objects.all()
