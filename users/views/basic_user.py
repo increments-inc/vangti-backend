@@ -227,8 +227,8 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserDeactivateSerializer
         if self.action == "change_pin":
             return PINSerializer
-        # if self.action == "change_profile":
-        #     return UserInformationSerializer
+        # if self.action == "phone_register":
+        #     return PhoneRegisterSerializer
         return self.serializer_class
 
     def perform_update(self, serializer):
@@ -279,3 +279,19 @@ class UserViewSet(viewsets.ModelViewSet):
         )
 
 
+class PhoneUserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = PhoneRegisterSerializer
+    permission_classes = [permissions.AllowAny]
+
+
+    def phone_register(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return response.Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return response.Response(
+            "",
+            status=status.HTTP_400_BAD_REQUEST
+        )

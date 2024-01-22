@@ -38,6 +38,8 @@ urlpatterns = [
                   path('change-profile/', UserInformationViewSet.as_view({"patch": "change_profile"}), name='user_change_profile'),
                   path('get-profile/', UserInformationViewSet.as_view({"get": "user_info"}), name='user_user_info'),
 
+                  path('phone-register/', PhoneUserViewSet.as_view({"post": "phone_register"}), name='user_phone_registration'),
+
                   # kyc/nid
                   path('nid-add/', UserNidInformationViewSet.as_view({"post": "add_nid"}), name='user_add_nid'),
                   path('nid-update/', UserNidInformationViewSet.as_view({"patch": "update_nid"}),

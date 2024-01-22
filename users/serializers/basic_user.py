@@ -172,4 +172,24 @@ class LoginSerializer(serializers.Serializer):
     otp = serializers.IntegerField()
 
 
+class PhoneRegisterSerializer(serializers.ModelSerializer):
+    phone_number = serializers.CharField()
+    device_id = serializers.CharField(source="user_info.device_token", read_only=True)
+    device_token = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = models.User
+        fields = ("id","phone_number", "device_id", 'device_token',)
+        read_only_fields = ["id", "device_id"]
+    def create(self, validated_data):
+        phone_number = validated_data.pop("phone_number", None)
+        device_id = validated_data.pop("device_id", None)
+        print(device_id)
+        user = models.User.objects.create(
+            phone_number=phone_number
+        )
+        # user.user_info.device_token =
+        print(user)
+        return user
+
 
