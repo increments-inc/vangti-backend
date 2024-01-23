@@ -139,8 +139,10 @@ class UserPINSerializer(serializers.Serializer):
     def create(self, validated_data):
         pin = validated_data.pop("pin", None)
         device_id = validated_data.pop("device_token", None)
+        # print("device_id", device_id)
         try:
-            user = models.UserInformation.objects.get(device_id=device_id).user
+            user = models.UserInformation.objects.get(device_token=device_id).user
+            # print("user", user)
         except:
             return -1
 
