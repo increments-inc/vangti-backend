@@ -24,8 +24,8 @@ urlpatterns = [
 
                   # registration
                   path('login/', CustomTokenObtainPairView.as_view(), name='user_login'),
-                  path('register/', RegistrationViewSet.as_view({"post": "post"}), name='user_registration'),
-                  path('set-pin/', RegistrationViewSet.as_view({"post": "set_pin"}), name='user_set_pin'),
+                  path('enter-otp/', RegistrationViewSet.as_view({"post": "post"}), name='user_registration'),
+                  path('enter-pin/', RegistrationViewSet.as_view({"post": "set_pin"}), name='user_set_pin'),
                   # path('set-pin-token/', UserPinViewSet.as_view({"post": "set_pin"}), name='user_set_pin_token'),
                   path('enter-phone-number/', GetNumberViewSet.as_view({"post": "post"}), name='user_number_enter'),
 
@@ -35,13 +35,18 @@ urlpatterns = [
 
                   # user profile
                   path('change-pin/', UserViewSet.as_view({"patch": "change_pin"}), name='user_change_pin'),
-                  path('change-profile/', UserInformationViewSet.as_view({"patch": "change_profile"}), name='user_change_profile'),
-                  path('get-profile/', UserInformationViewSet.as_view({"get": "user_info"}), name='user_user_info'),
+                  path('profile-change/', UserInformationViewSet.as_view({"patch": "change_profile"}), name='user_change_profile'),
+                  path('profile-get/', UserInformationViewSet.as_view({"get": "user_info"}), name='user_user_info'),
 
-                  path('phone-register/', PhoneUserViewSet.as_view({"post": "phone_register"}), name='user_phone_registration'),
+                  # path('phone-register/', PhoneUserViewSet.as_view({"post": "phone_register"}), name='user_phone_registration'),
 
                   # kyc/nid
                   path('nid-add/', UserNidInformationViewSet.as_view({"post": "add_nid"}), name='user_add_nid'),
+                  path('nid-front-add/', UserNidInformationViewSet.as_view({"patch": "nid_front_add"}), name='user_nid_front_add'),
+                  path('nid-back-add/', UserNidInformationViewSet.as_view({"patch": "nid_back_add"}), name='user_nid_back_add'),
+                  path('nid-photo-add/', UserNidInformationViewSet.as_view({"patch": "nid_photo_add"}), name='user_photo_add'),
+                  path('nid-signature-add/', UserNidInformationViewSet.as_view({"patch": "nid_signature_add"}), name='user_signature_add'),
+
                   path('nid-update/', UserNidInformationViewSet.as_view({"patch": "update_nid"}),
                        name='user_update_nid'),
                   path('nid-get/', UserNidInformationViewSet.as_view({"get": "retrieve"}),

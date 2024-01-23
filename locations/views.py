@@ -36,6 +36,7 @@ class LocationViewSet(viewsets.ModelViewSet):
 
 
     def update_location(self, *args, **kwargs):
+        print("helo", self.request.META.get('HTTP_AUTHORIZATION') )
         instance = self.get_queryset().get(user=self.request.user.id)
         serializer = self.serializer_class(instance, data=self.request.data, context={"request": self.request})
         if serializer.is_valid():

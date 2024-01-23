@@ -32,6 +32,7 @@ class UserRating(BaseModel):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="userrating_user"
     )
+    no_of_transaction = models.IntegerField(default=0)
     deal_success_rate = models.FloatField(default=0.0)
     total_amount_of_transaction = models.FloatField(default=0.0)
     dislikes = models.IntegerField(default=0)

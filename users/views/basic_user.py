@@ -10,6 +10,8 @@ from ..models import *
 from ..serializers import *
 from ..app_utils import get_reg_token
 from django.conf import settings
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
+from rest_framework import viewsets
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -40,11 +42,41 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
         resp.status_code = status.HTTP_200_OK
         resp.data = {
-            "detail": "Login successfully",
+            "detail": "Login successful",
             "data": serializer.validated_data,
         }
         return resp
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(
+                response=CustomTokenObtainPairSerializer,
+                examples=[
+                    OpenApiExample(
+                        "login successful",
+                        value={
+                            "detail": "Login successful",
+                            "data": {
+                                "refresh": "string",
+                                "access": "string"
+                            }
+                        }
+                    )
+                ],
+            ),
+            400: OpenApiResponse(
+                response=CustomTokenObtainPairSerializer,
+                examples=[
+                    OpenApiExample(
+                        "login error",
+                        value={
+                            "detail": "No active account found with the given credentials"
+                        }
+                    )
+                ],
+            )
+        }
+    )
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(
             data=request.data,
@@ -75,7 +107,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 "message": "Username or Password error",
                 "data": serializer.validated_data,
             }
-            return response.Response(resp, status=status.HTTP_200_OK)
+            return response.Response(resp, status=status.HTTP_400_BAD_REQUEST)
 
 
 class RegistrationViewSet(viewsets.ModelViewSet):
@@ -283,7 +315,6 @@ class PhoneUserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = PhoneRegisterSerializer
     permission_classes = [permissions.AllowAny]
-
 
     def phone_register(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
