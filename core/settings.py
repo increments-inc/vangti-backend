@@ -5,6 +5,7 @@ from decouple import config
 from datetime import timedelta
 import firebase_admin
 from firebase_admin import firestore, credentials
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -267,11 +268,16 @@ CHANNEL_LAYERS = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = "media"
 
-# Celery Configuration Options
-# CELERY_TIMEZONE = "Asia/Dhaka"
+# Celery settings
+CELERY_TIMEZONE = "Asia/Dhaka"
 # CELERY_TASK_TRACK_STARTED = True
 # CELERY_TASK_TIME_LIMIT = 30 * 60
-
-# Celery settings
 CELERY_BROKER_URL = "redis://localhost:6379"
 CELERY_RESULT_BACKEND = "redis://localhost:6379"
+CELERY_BEAT_SCHEDULE = {
+    'test_task': {
+        'task': 'web_socket.tasks.test_task',
+        'schedule': crontab(minute='*/1'),
+        'args': ('hello world',),
+    },
+}

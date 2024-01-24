@@ -6,6 +6,8 @@ from core.celery import app
 # from celery.decorators import task
 from django.contrib.auth import authenticate, login
 import requests
+
+
 @shared_task()
 def send_celery(scope):
     print("helo dummy")
@@ -31,12 +33,15 @@ def send_celery(scope):
     # )
 
 
-
-
 @shared_task(bind=True, name='queue_ws_event', ignore_result=True, queue='wsQ')
-def queue_ws_event( ws_channel, ws_event:dict, group=True):
+def queue_ws_event(ws_channel, ws_event: dict, group=True):
     channel_layer = get_channel_layer()
     if group:
-        async_to_sync(channel_layer.group_send)(ws_channel,ws_event)
+        async_to_sync(channel_layer.group_send)(ws_channel, ws_event)
     else:
-        async_to_sync(channel_layer.send)(ws_channel,ws_event)
+        async_to_sync(channel_layer.send)(ws_channel, ws_event)
+
+
+@app.task
+def test_task(arg):
+    print("helo task", arg)

@@ -124,6 +124,8 @@ class RegistrationViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == "set_pin":
             return UserPINSerializer
+        if self.action == "reset_pin":
+            return UserPINResetSerializer
         return self.serializer_class
 
     @staticmethod
@@ -185,6 +187,25 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         if user == -1:
             return response.Response({
                 "message": "Invalid PIN or invalid device",
+                "data": serializer.validated_data,
+            },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return response.Response(
+            "PIN Set Successfully",
+            status=status.HTTP_200_OK
+        )
+
+    def reset_pin(self, request, *args, **kwargs):
+        serializer = self.get_serializer_class()(
+            data=request.data,
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        if user == -1:
+            return response.Response({
+                "message": "user does not exist",
                 "data": serializer.validated_data,
             },
                 status=status.HTTP_400_BAD_REQUEST
@@ -341,10 +362,11 @@ class LogoutView(APIView):
     def post(self, request, *args):
         refresh_token = request.data["refresh"]
         token = request.META.get("HTTP_AUTHORIZATION", "").replace("Bearer ", "")
-        refresh_token_blacklist = RefreshToken(refresh_token).blacklist()
-        access_token_blacklist = JWTAccessToken(token).blacklist()
-        # refresh_token.blacklist()
-        # print(token)
-        print(refresh_token)
-        return response.Response("under construction", status=status.HTTP_200_OK)
+        try:
+            refresh_token_blacklist = RefreshToken(refresh_token).blacklist()
+            access_token_blacklist = JWTAccessToken(token).blacklist()
+            return response.Response("Logout successful", status=status.HTTP_200_OK)
+        except:
+            return response.Response("Logout not successful, check refresh token", status=status.HTTP_400_BAD_REQUEST)
+
 

@@ -19,7 +19,6 @@ urlpatterns = [
                   # simple jwt
                   # path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
                   path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-
                   path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
                   # registration
@@ -29,8 +28,11 @@ urlpatterns = [
                   # path('set-pin-token/', UserPinViewSet.as_view({"post": "set_pin"}), name='user_set_pin_token'),
                   path('enter-phone-number/', GetNumberViewSet.as_view({"post": "post"}), name='user_number_enter'),
 
-                  # registration
+                  # logout
                   path('logout/', LogoutView.as_view(), name='user_logout'),
+
+                  # reset pin----- is it needed?
+                  # path('reset-pin/', UserViewSet.as_view({"patch": "reset_pin"}), name='user_reset_pin'),
 
                   # user account deletion
                   path('deactivate/', UserViewSet.as_view({"patch": "deactivate_user"}), name='user_deactivate'),

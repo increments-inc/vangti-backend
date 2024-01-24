@@ -23,6 +23,7 @@ from django.utils.text import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
@@ -166,6 +167,33 @@ class UserPINSerializer(serializers.Serializer):
         return user
 
 
+#
+class UserPINResetSerializer(serializers.Serializer):
+    phone_number = serializers.CharField()
+    pin = serializers.CharField()
+
+    def create(self, validated_data):
+        phone_number = validated_data.pop("phone_number", None)
+        pin = validated_data.pop("pin", None)
+
+        try:
+            user = models.User.objects.get(
+                phone_number=phone_number,
+            )
+        except:
+            return -1
+        """send message to user via otp"""
+        try:
+            PINValidator().validate(password=pin)
+            hasher = PBKDF2PasswordHasher()
+            hashed_pin = hasher.encode(pin, settings.SALT)
+            user.pin = hashed_pin
+            user.save()
+        except:
+            return -1
+        return user
+
+
 class UserDeactivateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
@@ -190,8 +218,9 @@ class PhoneRegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.User
-        fields = ("id","phone_number", "device_id", 'device_token',)
+        fields = ("id", "phone_number", "device_id", 'device_token',)
         read_only_fields = ["id", "device_id"]
+
     def create(self, validated_data):
         phone_number = validated_data.pop("phone_number", None)
         device_id = validated_data.pop("device_id", None)
@@ -204,7 +233,5 @@ class PhoneRegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-
 class LogoutSerializer(serializers.Serializer):
     refresh = serializers.CharField()
-
