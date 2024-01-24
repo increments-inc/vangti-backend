@@ -4,3 +4,4 @@ media/
 db.sqlite3
 steps.txt
 credentials.json
+celerybeat-schedule.db
