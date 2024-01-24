@@ -69,6 +69,7 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
         )
         host_user = settings.EMAIL_HOST_USER
         # insert sms service here
+        # include this in celery
         send_mail(
             "Vangti OTP",
             f"Dear Customer,\nYour One-Time-Password for Vangti app is {base_otp}\nRegards,\nVangti Team",
