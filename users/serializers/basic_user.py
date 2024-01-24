@@ -19,6 +19,9 @@ from datetime import datetime, timedelta
 from ..pin_validator import PINValidator
 from django.contrib.auth.hashers import PBKDF2PasswordHasher
 
+from django.utils.text import gettext_lazy as _
+from rest_framework import serializers
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
@@ -200,4 +203,8 @@ class PhoneRegisterSerializer(serializers.ModelSerializer):
         print(user)
         return user
 
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
 

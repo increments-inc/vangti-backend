@@ -12,6 +12,11 @@ from ..app_utils import get_reg_token
 from django.conf import settings
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from rest_framework import viewsets
+from rest_framework.views import APIView
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from django.contrib.auth import logout
+from ..auth_jwt import JWTAccessToken
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
@@ -327,3 +332,19 @@ class PhoneUserViewSet(viewsets.ModelViewSet):
             "",
             status=status.HTTP_400_BAD_REQUEST
         )
+
+
+class LogoutView(APIView):
+    serializer_class = LogoutSerializer
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request, *args):
+        refresh_token = request.data["refresh"]
+        token = request.META.get("HTTP_AUTHORIZATION", "").replace("Bearer ", "")
+        refresh_token_blacklist = RefreshToken(refresh_token).blacklist()
+        access_token_blacklist = JWTAccessToken(token).blacklist()
+        # refresh_token.blacklist()
+        # print(token)
+        print(refresh_token)
+        return response.Response("under construction", status=status.HTTP_200_OK)
+

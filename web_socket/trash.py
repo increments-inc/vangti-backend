@@ -18,18 +18,28 @@ import requests
 
 
 # for sms
-import requests
+# import requests
+# #
+# url = "https://gateway.sms77.io/api/sms"
+# key = "191b46dc1f96a04F760aB932F9942936751CB62375c14e2Ab2b87e9b6F48882D"
+# querystring = {"p":key ,"to":"+8801754612819","text":"helo world"}
 #
-url = "https://gateway.sms77.io/api/sms"
-key = "191b46dc1f96a04F760aB932F9942936751CB62375c14e2Ab2b87e9b6F48882D"
-querystring = {"p":key ,"to":"+8801754612819","text":"helo world"}
+# headers = {
+# 	"X-RapidAPI-Key": "191b46dc1f96a04F760aB932F9942936751CB62375c14e2Ab2b87e9b6F48882D",
+# 	"X-RapidAPI-Host": "sms77io.p.rapidapi.com"
+# }
+#
+# response = requests.get(url,  params=querystring)
+#
+# print(response.json())
 
-headers = {
-	"X-RapidAPI-Key": "191b46dc1f96a04F760aB932F9942936751CB62375c14e2Ab2b87e9b6F48882D",
-	"X-RapidAPI-Host": "sms77io.p.rapidapi.com"
-}
+import datetime
+token = {'token_type': 'access', 'exp': 1706153103, 'iat': 1706081103, 'jti': 'ae3dccc04b90427aacabe8b6bb76ec25', 'user_id': '535', 'email': None, 'is_superuser': False, 'is_staff': False}
 
-response = requests.get(url,  params=querystring)
+# Assume `token` is your decoded JWT token
+expiration_timestamp = token['exp']
 
-print(response.json())
+# Convert the timestamp to a datetime object
+expiration_datetime = datetime.datetime.utcfromtimestamp(expiration_timestamp)
 
+print(expiration_datetime)
