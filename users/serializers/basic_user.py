@@ -133,16 +133,22 @@ class PINSerializer(serializers.ModelSerializer):
 
 
 class UserPINSerializer(serializers.Serializer):
+    phone_number = serializers.CharField()
     device_token = serializers.CharField()
     pin = serializers.CharField()
 
     def create(self, validated_data):
+        phone_number = validated_data.pop("phone_number", None)
         pin = validated_data.pop("pin", None)
-        device_id = validated_data.pop("device_token", None)
-        # print("device_id", device_id)
+        device_token = validated_data.pop("device_token", None)
+        print("device_id", device_token)
         try:
-            user = models.UserInformation.objects.get(device_token=device_id).user
-            # print("user", user)
+            user = models.User.objects.get(
+                phone_number=phone_number,
+                user_info__device_token=device_token
+            )
+            # user = models.UserInformation.objects.get(device_token=device_token).user
+            print("user", user)
         except:
             return -1
 

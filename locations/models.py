@@ -1,6 +1,8 @@
 from django.contrib.gis.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import ArrayField
+from django.contrib.gis.geos import Point
+
 import uuid
 
 User = get_user_model()
@@ -10,8 +12,8 @@ class UserLocation(models.Model):
     # user = models.CharField(max_length=256, null=True, blank=True)
     user = models.UUIDField(unique=True)
     user_phone_number = models.CharField(max_length=15, blank=True, null=True)
-    latitude = models.CharField(max_length=10)
-    longitude = models.CharField(max_length=10)
+    latitude = models.CharField(max_length=10, default="0")
+    longitude = models.CharField(max_length=10, default="0")
     centre = models.PointField()
 
     def __str__(self):
@@ -22,6 +24,10 @@ class UserLocation(models.Model):
 
     class Meta:
         ordering = ("user",)
+
+    def save(self, *args, **kwargs):
+        self.centre = Point(float(self.longitude), float(self.latitude))
+        super().save(*args, **kwargs)
 
 
 class LocationRadius(models.Model):
