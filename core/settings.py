@@ -277,7 +277,7 @@ CELERY_RESULT_BACKEND = "redis://localhost:6379"
 CELERY_BEAT_SCHEDULE = {
     'test_task': {
         'task': 'web_socket.tasks.test_task',
-        'schedule': crontab(minute='*/1'),
+        'schedule': crontab(minute="0", hour='*/3'),
         'args': ('hello world',),
     },
 }
