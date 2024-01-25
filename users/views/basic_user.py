@@ -60,26 +60,23 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                     OpenApiExample(
                         "login successful",
                         value={
-                            "detail": "Login successful",
-                            "data": {
-                                "refresh": "string",
-                                "access": "string"
-                            }
+                            "refresh": "string",
+                            "access": "string"
                         }
                     )
                 ],
             ),
-            400: OpenApiResponse(
-                response=CustomTokenObtainPairSerializer,
-                examples=[
-                    OpenApiExample(
-                        "login error",
-                        value={
-                            "detail": "No active account found with the given credentials"
-                        }
-                    )
-                ],
-            )
+            # 400: OpenApiResponse(
+            #     response=CustomTokenObtainPairSerializer,
+            #     examples=[
+            #         OpenApiExample(
+            #             "login error",
+            #             value={
+            #                 "detail": "No active account found with the given credentials"
+            #             }
+            #         )
+            #     ],
+            # )
         }
     )
     def post(self, request, *args, **kwargs):
@@ -88,15 +85,8 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             data=request.data,
             context={"request": request}
         )
-        serializer.is_valid(raise_exception=True)
-
-        resp = response.Response()
-        try:
-            # user = EPUA.authenticate(
-            #     request=request,
-            #     username=request.data.get("phone_number"),
-            #     otp=request.data.get("otp"),
-            # )
+        # serializer.is_valid(raise_exception=True)
+        if serializer.is_valid():
             try:
                 return self._otp_login(
                     request=request,
@@ -105,15 +95,12 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 
             except Exception as e:
                 # raise InvalidToken(e.args[0]) from e
-                return response.Response(e.args[0], status=status.HTTP_400_BAD_REQUEST)
+                return response.Response("", status=status.HTTP_400_BAD_REQUEST)
 
-        except Exception:
-
-            resp.data = {
-                "message": "Username or Password error",
-                "data": serializer.validated_data,
-            }
-            return response.Response(resp, status=status.HTTP_400_BAD_REQUEST)
+        return response.Response({
+            "message": "Username or Password error",
+            "errors": "invalid username or password",
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class RegistrationViewSet(viewsets.ModelViewSet):
@@ -263,8 +250,14 @@ class GetNumberViewSet(viewsets.ModelViewSet):
                     "User exists!",
                     status=status.HTTP_302_FOUND
                 )
+            if user == -2:
+                return response.Response(
+                    "User does not exist!",
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            print(user[-1])
             return response.Response(
-                "OTP sent in mail/sms",
+                f"OTP sent - {user[-1]}",
                 status=status.HTTP_200_OK
             )
 
@@ -296,16 +289,23 @@ class UserViewSet(viewsets.ModelViewSet):
     def deactivate_user(self, request, *args, **kwargs):
         instance = request.user
         data = request.data
-        serializer = self.get_serializer_class()(instance, data=data)
+        serializer = self.get_serializer_class()(
+            instance, data=data, context={'request': request}
+        )
         if serializer.is_valid():
-            serializer.save()
+            user = serializer.save()
+            if user == -1:
+                return response.Response(
+                    {"message": "PIN is not valid"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             return response.Response(
                 "User Deactivated",
                 status=status.HTTP_200_OK
             )
         return response.Response(
             "",
-            status=status.HTTP_200_OK
+            status=status.HTTP_400_BAD_REQUEST
         )
 
     def delete_user(self, request, *args, **kwargs):
@@ -368,5 +368,3 @@ class LogoutView(APIView):
             return response.Response("Logout successful", status=status.HTTP_200_OK)
         except:
             return response.Response("Logout not successful, check refresh token", status=status.HTTP_400_BAD_REQUEST)
-
-

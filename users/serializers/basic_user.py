@@ -45,39 +45,63 @@ class NumberObtainPairSerializer(serializers.Serializer):
 
 
 class RegistrationOTPSerializer(serializers.ModelSerializer):
+    is_reset_pin = serializers.BooleanField(default=False)
+
     class Meta:
         model = models.RegistrationOTPModel
-        fields = ("phone_number", "device_token",)
+        fields = ("phone_number", "device_token", "is_reset_pin",)
 
     def create(self, validated_data):
         print("here")
         phone_number = validated_data.pop("phone_number", None)
         device_id = validated_data.pop("device_token", None)
-        if models.User.objects.filter(
-                phone_number=phone_number
-        ).exists():
-            return -1
-        time_now = datetime.now()
-        expires = time_now + timedelta(seconds=310)
-        base_otp = pyotp.TOTP('base32secret3232').now()
+        is_reset_pin = validated_data.pop("is_reset_pin", False)
 
-        reg_phone = models.RegistrationOTPModel.objects.create(
-            phone_number=phone_number,
-            device_token=device_id,
-            key=base_otp,
-            expires_at=expires
-        )
-        host_user = settings.EMAIL_HOST_USER
-        # insert sms service here
-        # include this in celery
-        send_mail(
-            "Vangti OTP",
-            f"Dear Customer,\nYour One-Time-Password for Vangti app is {base_otp}\nRegards,\nVangti Team",
-            host_user,
-            [host_user],
-            fail_silently=False,
-        )
-        return reg_phone
+        if not is_reset_pin:
+            if models.User.objects.filter(
+                    phone_number=phone_number
+            ).exists():
+                return -1
+            time_now = datetime.now()
+            expires = time_now + timedelta(seconds=310)
+            base_otp = pyotp.TOTP('base32secret3232').now()
+
+            reg_phone = models.RegistrationOTPModel.objects.create(
+                phone_number=phone_number,
+                device_token=device_id,
+                key=base_otp,
+                expires_at=expires
+            )
+            host_user = settings.EMAIL_HOST_USER
+            # insert sms service here
+            # include this in celery
+            send_mail(
+                "Vangti OTP",
+                f"Dear Customer,\nYour One-Time-Password for Vangti app is {base_otp}\nRegards,\nVangti Team",
+                host_user,
+                [host_user],
+                fail_silently=False,
+            )
+            return reg_phone, base_otp
+        else:
+            if not models.User.objects.filter(
+                    phone_number=phone_number
+            ).exists():
+                return -2
+            time_now = datetime.now()
+            expires = time_now + timedelta(seconds=310)
+            base_otp = pyotp.TOTP('base32secret3232').now()
+
+            reg_phone = models.RegistrationOTPModel.objects.create(
+                phone_number=phone_number,
+                device_token=device_id,
+                key=base_otp,
+                expires_at=expires
+            )
+            host_user = settings.EMAIL_HOST_USER
+            # insert sms service here
+            # include this in celery
+            return reg_phone, base_otp
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -198,7 +222,21 @@ class UserPINResetSerializer(serializers.Serializer):
 class UserDeactivateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.User
-        fields = ("is_active",)
+        fields = ("is_active", "pin")
+
+    def update(self, instance, validated_data):
+        user = self.context.get("request").user
+        pin = validated_data.pop("pin", None)
+        is_active = validated_data.pop("is_active", True)
+        PINValidator().validate(password=pin)
+        hasher = PBKDF2PasswordHasher()
+        hashed_pin = hasher.encode(pin, settings.SALT)
+        print("23234234234234")
+        if user.pin != hashed_pin:
+            return -1
+        user.is_active = is_active
+        user.save()
+        return user
 
 
 # class UserInformationSerializer(serializers.ModelSerializer):
