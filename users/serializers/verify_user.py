@@ -140,9 +140,18 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
         # exclude = ("user","device_id")
         read_only_fields = ("acc_type",)
 
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        if rep.get('transactions') is None:
+            rep['transactions'] = 0
+        if rep.get('rating') is None:
+            rep['rating'] = 0
+        return rep
+
 
 class FrontNidSerializer(serializers.ModelSerializer):
     nid_front = serializers.ImageField()
+
     class Meta:
         model = models.UserNidInformation
         fields = ("nid_front",)
