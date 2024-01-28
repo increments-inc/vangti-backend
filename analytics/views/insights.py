@@ -1,31 +1,28 @@
-from django.contrib.auth.models import User
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from ..models import *
 from ..serializers import *
 from django.db.models import Avg, Sum, Count
-from transactions.models import TransactionHistory
 import calendar
 from datetime import datetime, timedelta
 from transactions.models import TransactionHistory
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse, OpenApiParameter, OpenApiTypes
+
 
 class InsightsViewSet(viewsets.ModelViewSet):
     queryset = Analytics.objects.all()
-    serializer_class = InsightsSerializer
+    serializer_class = InsightsListSerializer
+    permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get"]
 
-    # def get_queryset(self):
-    #     return self.queryset.filter(user=self.request.user)
+    def get_serializer_class(self):
+        if self.action == "most_vangti":
+            return DemandedVangtiSerializer
+        if self.action == "transaction_by_week":
+            return AvgTransactionSerializer
+        return InsightsListSerializer
 
     def profit_by_time(self, *args, **kwargs):
-        # query_time = self.request.query_params.get("time")
         today = datetime.now()
-        # if not query_time:
-        #     return Response(
-        #         "please provide query params - time",
-        #         status=status.HTTP_204_NO_CONTENT,
-        #     )
         try:
             num_days = calendar.monthrange(today.year, today.month)[1]
             day_s = [
@@ -53,7 +50,7 @@ class InsightsViewSet(viewsets.ModelViewSet):
         for date in day_s:
             total_amount_of_transaction = profit = no_of_transaction = 0
             for stat in user_analytics:
-                print(stat)
+                # print(stat)
                 if stat["created_at"].day == date.day:
                     total_amount_of_transaction = stat["total_amount_of_transaction"]
                     profit = stat["profit"]
@@ -61,15 +58,14 @@ class InsightsViewSet(viewsets.ModelViewSet):
                     break
             data = {
                 "date": str(date.date().strftime("%m/%d/%Y")),
-                "total_amount_of_transaction": str(total_amount_of_transaction),
-                "profit": str(profit),
-                "no_of_transaction": str(no_of_transaction),
+                "total_amount_of_transaction": total_amount_of_transaction,
+                "profit": profit,
+                "no_of_transaction": no_of_transaction,
             }
             scan_list.append(data)
         return Response(scan_list, status=status.HTTP_200_OK)
 
     def transaction_by_week(self, *args, **kwargs):
-        today = datetime.now()
         user_analytics = (
             self.get_queryset()
             .values("no_of_transaction", "total_amount_of_transaction", "profit", "created_at")
@@ -97,27 +93,36 @@ class InsightsViewSet(viewsets.ModelViewSet):
             Sum("no_of_transaction", default=0),
             Sum("total_amount_of_transaction", default=0)
         )
+        print(this_week_trans_number, last_week_trans_number)
+        if this_week_trans_number["no_of_transaction__sum"] == 0 and last_week_trans_number["no_of_transaction__sum"] == 0:
+            data = {
+                "total_amount_of_transaction": 0,
+                "no_of_transaction": 0,
+                "amount_stat": str(0),
+                "num_stat": str(0),
 
+            }
+            return Response(data, status=status.HTTP_200_OK)
         total_amount_transaction_stat = (
-                     (
-                             this_week_trans_number["total_amount_of_transaction__sum"] -
-                             last_week_trans_number["total_amount_of_transaction__sum"]
-                     ) /
-                     (
-                             this_week_trans_number["total_amount_of_transaction__sum"] +
-                             last_week_trans_number["total_amount_of_transaction__sum"]
-                     )
-                                     ) * 100
+                                                (
+                                                        this_week_trans_number["total_amount_of_transaction__sum"] -
+                                                        last_week_trans_number["total_amount_of_transaction__sum"]
+                                                ) /
+                                                (
+                                                        this_week_trans_number["total_amount_of_transaction__sum"] +
+                                                        last_week_trans_number["total_amount_of_transaction__sum"]
+                                                )
+                                        ) * 100
 
         total_num_transaction_stat = (
-                     (
-                             this_week_trans_number["no_of_transaction__sum"] -
-                             last_week_trans_number["no_of_transaction__sum"]
-                     ) /
-                     (
-                             this_week_trans_number["no_of_transaction__sum"] +
-                             last_week_trans_number["no_of_transaction__sum"]
-                     )
+                                             (
+                                                     this_week_trans_number["no_of_transaction__sum"] -
+                                                     last_week_trans_number["no_of_transaction__sum"]
+                                             ) /
+                                             (
+                                                     this_week_trans_number["no_of_transaction__sum"] +
+                                                     last_week_trans_number["no_of_transaction__sum"]
+                                             )
                                      ) * 100
 
         data = {
@@ -129,15 +134,40 @@ class InsightsViewSet(viewsets.ModelViewSet):
         }
         return Response(data, status=status.HTTP_200_OK)
 
-    # needs work
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("interval", OpenApiTypes.STR, OpenApiParameter.QUERY),
+        ],
+    )
     def most_vangti(self, *args, **kwargs):
+        interval = self.request.query_params.get("interval")
+        note_list = "0"
+        if interval is None:
+            return Response({
+                "message": "no interval provided"
+            }, status=status.HTTP_400_BAD_REQUEST)
         today = datetime.now()
-        data = {}
-        note_list = list(TransactionHistory.objects.filter(
+        past_transactions = TransactionHistory.objects.filter(
             created_at__lte=today,
-            created_at__gte=today-timedelta(days=15), # check the options
             provider=self.request.user
-        ).values_list("total_amount", flat=True))
-        if len(note_list)==0:
-            return Response("No data", status=status.HTTP_404_NOT_FOUND)
-        return Response(max(note_list), status=status.HTTP_200_OK)
+        )
+
+        if interval == "daily":
+            note_list = list(past_transactions.filter(
+                created_at__gte=today - timedelta(days=1),
+            ).values_list("total_amount", flat=True))
+        if interval == "weekly":
+            note_list = list(past_transactions.filter(
+                created_at__gte=today - timedelta(days=7),
+            ).values_list("total_amount", flat=True))
+        if interval == "monthly":
+            note_list = list(past_transactions.filter(
+                created_at__gte=today - timedelta(days=30),
+            ).values_list("total_amount", flat=True))
+
+        if len(note_list) != 0:
+            return Response({
+                "note": max(note_list),
+                "interval": interval
+            }, status=status.HTTP_200_OK)
+        return Response({"message": "no data"}, status=status.HTTP_404_NOT_FOUND)

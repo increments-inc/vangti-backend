@@ -264,7 +264,6 @@ CACHES = {
 # location
 LOCATION_RADIUS = 50000
 
-
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
