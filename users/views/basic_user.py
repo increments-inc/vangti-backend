@@ -279,8 +279,8 @@ class UserViewSet(viewsets.ModelViewSet):
             return UserDeactivateSerializer
         if self.action == "change_pin":
             return PINSerializer
-        # if self.action == "phone_register":
-        #     return PhoneRegisterSerializer
+        if self.action == "delete_user":
+            return UsersDeletionScheduleSerializer
         return self.serializer_class
 
     def perform_update(self, serializer):
@@ -309,10 +309,13 @@ class UserViewSet(viewsets.ModelViewSet):
         )
 
     def delete_user(self, request, *args, **kwargs):
-        # cretae db and run crontab
+        serializer = self.get_serializer_class()(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
         return response.Response(
-            "",
-            status=status.HTTP_200_OK
+            {"message": "User Deletion failed"},
+            status=status.HTTP_400_BAD_REQUEST
         )
 
     def change_pin(self, request, *args, **kwargs):
