@@ -260,7 +260,9 @@ CACHES = {
         "LOCATION": "redis://127.0.0.1:6379",
     }
 }
-LOCATION_RADIUS = 50
+
+# location
+LOCATION_RADIUS = 50000
 
 
 CHANNEL_LAYERS = {

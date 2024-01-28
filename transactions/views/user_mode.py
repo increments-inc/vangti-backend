@@ -14,7 +14,7 @@ class UserServiceModeViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_mode(self, *args, **kwargs):
-        serializer = self.serializer_class(self.queryset.get(user=self.request.user))
+        serializer = self.serializer_class(self.queryset.get(user=self.request.user), context={'request': self.request})
         return response.Response(
             serializer.data,
             status=status.HTTP_200_OK
