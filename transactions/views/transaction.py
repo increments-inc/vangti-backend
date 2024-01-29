@@ -83,30 +83,38 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get"]
 
+    def get_serializer_class(self):
+        if self.action == "provider_history":
+            return TransactionProviderHistorySerializer
+        if self.action == "seeker_history":
+            return TransactionSeekerHistorySerializer
+
     def provider_history(self, *args, **kwargs):
         user = self.request.user
         queryset = self.queryset.filter(provider=user)
         if queryset:
-            serializer = self.serializer_class(queryset)
-            return response.Response(
-                serializer.data,
-                status=status.HTTP_200_OK
-            )
+            print("no value")
+        serializer = self.get_serializer_class()(queryset, many=True)
         return response.Response(
-            "No Data found",
-            status=status.HTTP_404_NOT_FOUND
+            serializer.data,
+            status=status.HTTP_200_OK
         )
+        # return response.Response(
+        #     {"message":"No Data found" },
+        #     status=status.HTTP_404_NOT_FOUND
+        # )
 
     def seeker_history(self, *args, **kwargs):
         user = self.request.user
         queryset = self.queryset.filter(seeker=user)
         if queryset:
-            serializer = self.serializer_class(queryset)
-            return response.Response(
-                serializer.data,
-                status=status.HTTP_200_OK
-            )
+            print("no value")
+        serializer = self.get_serializer_class()(queryset, many=True)
         return response.Response(
-            "No Data found",
-            status=status.HTTP_404_NOT_FOUND
+            serializer.data,
+            status=status.HTTP_200_OK
         )
+        # return response.Response(
+        #     {"message":"No Data found" },
+        #     status=status.HTTP_404_NOT_FOUND
+        # )
