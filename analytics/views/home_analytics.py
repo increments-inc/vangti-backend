@@ -1,13 +1,13 @@
 from django.contrib.auth.models import User
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
-from ..serializers import *
-from django.db.models import Avg, Sum, Count
+from django.db.models import Avg
 from transactions.models import TransactionHistory
 from datetime import datetime, timedelta
 from django.contrib.gis.measure import Distance
 from locations.models import UserLocation
 from django.conf import settings
+from ..serializers import *
 
 
 class HomeAnalyticsViewSet(viewsets.ModelViewSet):
