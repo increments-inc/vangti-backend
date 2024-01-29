@@ -71,11 +71,6 @@ print(a1.make_transaction())
 """
 
 
-    # def retrieve(self, request, *args, **kwargs):
-    #     instance = self.queryset.filter(
-    #     serializer = self.serializer_class(queryset, many=True)
-    #     return response.Response(serializer.data, status=status.HTTP_200_OK)
-
 # history and insights
 class TransactionHistoryViewSet(viewsets.ModelViewSet):
     queryset = TransactionHistory.objects.all()
