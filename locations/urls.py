@@ -10,9 +10,9 @@ urlpatterns = [
                   path('get/', LocationViewSet.as_view(
                       {"get": "get_location"}
                   ), name='user_set_location'),
-                  path('set/', LocationViewSet.as_view(
-                      {"post": "post_location"}
-                  ), name='user_set_location'),
+                  # path('set/', LocationViewSet.as_view(
+                  #     {"post": "post_location"}
+                  # ), name='user_set_location'),
                   path('update/', LocationViewSet.as_view(
                       {"patch": "update_location"}
                   ), name='user_set_location'),
