@@ -24,7 +24,7 @@ class UserInformationViewSet(viewsets.ModelViewSet):
     def user_info(self, *args, **kwargs):
         user = self.request.user
         instance = self.queryset.filter(user=user).first()
-        serializer = self.serializer_class(instance, context={''})
+        serializer = self.serializer_class(instance, context={'request': self.request})
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
     def change_profile(self, request, *args, **kwargs):

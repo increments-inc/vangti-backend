@@ -8,6 +8,7 @@ from rest_framework import (
     views,
     viewsets,
 )
+from utils.custom_pagination import CustomPagination
 from rest_framework_simplejwt.views import TokenObtainPairView
 from ..models import *
 from ..serializers import *
@@ -110,6 +111,7 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionHistorySerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get"]
+    # pagination_class = CustomPagination
 
     def get_serializer_class(self):
         if self.action == "provider_history":
@@ -123,6 +125,14 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
         if queryset:
             print("no value")
         serializer = self.get_serializer_class()(queryset, many=True, context={"request":self.request})
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        # data = self.get_paginated_response(serializer.data)
         return response.Response(
             serializer.data,
             status=status.HTTP_200_OK
@@ -138,6 +148,13 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
         if queryset:
             print("no value")
         serializer = self.get_serializer_class()(queryset, many=True, context={"request":self.request})
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        # data = self.get_paginated_response(serializer.data)
         return response.Response(
             serializer.data,
             status=status.HTTP_200_OK

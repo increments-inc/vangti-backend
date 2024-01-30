@@ -18,7 +18,7 @@ class Transaction(BaseModel):
     # )
     # transaction_no = models.CharField(max_length=255, null=True, blank=True)
     total_amount = models.FloatField(default=0, null=True)
-    preferred_notes = ArrayField(ArrayField(models.CharField(max_length=10, null=True, blank=True)))
+    preferred_notes = ArrayField(models.CharField(max_length=10, null=True, blank=True))
     provider = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="transaction_provider", null=True
     )
@@ -53,7 +53,7 @@ class TransactionHistory(BaseModel):
     transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE,
                                     related_name="history_transaction")
     total_amount = models.FloatField()
-    preferred_notes = ArrayField(ArrayField(models.CharField(max_length=10)))
+    preferred_notes = ArrayField(models.CharField(max_length=10))
     provider = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="history_provider"
     )

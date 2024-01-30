@@ -1,8 +1,9 @@
-import hashlib
-
-from rest_framework import exceptions, serializers, validators
+from drf_spectacular.utils import extend_schema_field
+from rest_framework import serializers
 from ..models import *
 import blurhash
+from locations.models import UserLocation
+from django.contrib.gis.measure import Distance
 
 
 class TransactionHistorySerializer(serializers.ModelSerializer):
@@ -23,10 +24,9 @@ class TransactionSerializer(serializers.ModelSerializer):
         number = obj.get_transaction_unique_no
         return number
 
+
 class TransactionProviderSerializer(serializers.ModelSerializer):
     transaction_no = serializers.CharField(write_only=True)
-
-
 
     class Meta:
         model = Transaction
@@ -38,6 +38,9 @@ class TransactionProviderSerializer(serializers.ModelSerializer):
         return instance
 
 
+class HashPictureSerializer(serializers.Serializer):
+    url = serializers.CharField()
+    hash = serializers.CharField()
 
 
 class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
@@ -48,8 +51,7 @@ class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
     dislikes = serializers.IntegerField(source="provider.userrating_user.dislikes", read_only=True)
     deal_success_rate = serializers.FloatField(source="provider.userrating_user.deal_success_rate", read_only=True)
     distance = serializers.SerializerMethodField(read_only=True)
-    hash = serializers.SerializerMethodField(read_only=True)
-    provider_picture = serializers.ImageField(source="provider.user_info.profile_pic", read_only=True)
+    provider_picture = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = TransactionHistory
@@ -65,31 +67,43 @@ class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
             "dislikes",
             "deal_success_rate",
             "distance",
-            "hash",
             "provider_picture",
         )
 
     def get_distance(self, obj):
-        return "100.00"
+        user = self.context.get("request").user
+        user_center = UserLocation.objects.get(user=user.id).centre
+        provider_center = UserLocation.objects.get(user=obj.provider.id).centre
+        distance = user_center.distance(provider_center)
+        dummy = list(UserLocation.objects.exclude(user=user.id).filter(
+            centre__distance_lte=(user_center, Distance(km=10000))
+        ).values_list("user", flat=True))
+        print()
+        # for city in UserLocation.objects.filter(user=user.id).annotate(distance=Distance("centre", provider_center)):
+        #     print( city.distance)
 
-    def get_hash(self, obj):
-        print(obj)
+        print(user_center, provider_center, "hsdgfhjsgdgshjgd2222", dummy, distance)
+
+        return f"{distance}"
+
+    @extend_schema_field(HashPictureSerializer)
+    def get_provider_picture(self, obj):
+        request = self.context.get("request")
+        hash = ""
         provider_pic = obj.provider.user_info.profile_pic
-        print(provider_pic.url)
         if provider_pic is not None:
             with open(provider_pic.url[1:], 'rb') as image_file:
                 hash = blurhash.encode(image_file, x_components=4, y_components=3)
-            print("seeker", hash)
-            return hash
-        with open('/Users/mac1/Downloads/nid.jpeg', 'rb') as image_file:
-            hash = blurhash.encode(image_file, x_components=4, y_components=3)
-        print("fshdgfsjhd", hash)
-        return hash
+        else:
+            with open('/Users/mac1/Downloads/nid.jpeg', 'rb') as image_file:
+                hash = blurhash.encode(image_file, x_components=4, y_components=3)
+        return {
+            "url": request.build_absolute_uri(provider_pic.url),
+            "hash": hash
+        }
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        if ret["provider_name"] is None:
-            ret['provider_name'] = ""
         if ret["total_amount__of_transactions"] is None:
             ret['total_amount__of_transactions'] = float(0)
         if ret["rating"] is None:
@@ -107,8 +121,8 @@ class TransactionProviderHistorySerializer(serializers.ModelSerializer):
     seeker_name = serializers.CharField(source="seeker.user_info.person_name", read_only=True)
     total_deals = serializers.IntegerField(source="seeker.userrating_user.no_of_transaction", read_only=True)
     rating = serializers.FloatField(source="seeker.userrating_user.rating", read_only=True)
-    hash = serializers.SerializerMethodField(read_only=True)
-    seeker_picture = serializers.ImageField(source="seeker.user_info.profile_pic", read_only=True)
+    seeker_picture = serializers.SerializerMethodField(read_only=True)
+
     class Meta:
         model = TransactionHistory
         fields = (
@@ -119,30 +133,27 @@ class TransactionProviderHistorySerializer(serializers.ModelSerializer):
             "seeker_name",
             "total_deals",
             "rating",
-            "hash",
             "seeker_picture",
         )
 
-
-
-    def get_hash(self, obj):
-        print(obj)
+    @extend_schema_field(HashPictureSerializer)
+    def get_seeker_picture(self, obj):
+        request = self.context.get("request")
+        hash = ""
         seeker_pic = obj.seeker.user_info.profile_pic
-        print(seeker_pic.url)
         if seeker_pic is not None:
             with open(seeker_pic.url[1:], 'rb') as image_file:
                 hash = blurhash.encode(image_file, x_components=4, y_components=3)
-            print("seeker", hash)
-            return hash
-        with open('/Users/mac1/Downloads/nid.jpeg', 'rb') as image_file:
-            hash = blurhash.encode(image_file, x_components=4, y_components=3)
-        print("fshdgfsjhd", hash)
-        return hash
+        else:
+            with open('/Users/mac1/Downloads/nid.jpeg', 'rb') as image_file:
+                hash = blurhash.encode(image_file, x_components=4, y_components=3)
+        return {
+            "url": request.build_absolute_uri(seeker_pic.url),
+            "hash": hash
+        }
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
-        if ret["seeker_name"] is None:
-            ret['seeker_name'] = ""
         if ret["total_deals"] is None:
             ret['total_deals'] = 0
         if ret["rating"] is None:

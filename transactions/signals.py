@@ -19,3 +19,19 @@ def create_instance(sender, instance, created, **kwargs):
             )
     except:
         pass
+
+@receiver(post_save, sender=Transaction)
+def create_instance(sender, instance, created, **kwargs):
+    # if created:
+    try:
+        if instance.is_completed:
+            TransactionHistory.objects.create(
+                transaction=instance,
+                total_amount=instance.total_amount,
+                preferred_notes=instance.preferred_notes,
+                provider=instance.provider,
+                seeker=instance.seeker,
+                charge=instance.charge
+            )
+    except:
+        pass

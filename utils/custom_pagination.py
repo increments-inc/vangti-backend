@@ -21,7 +21,10 @@ class NotFoundExtended(APIException):
 
 
 class CustomPagination(pagination.PageNumberPagination):
-    page_size_query_param = "size" or 20
+    page_size_query_param = "limit"
+    # page_size = 10
+    # page_size_query_param = 'page_size'
+    max_page_size = 100
 
     def get_paginated_response(self, data):
         if hasattr(self, "page"):
