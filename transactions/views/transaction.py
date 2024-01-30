@@ -11,6 +11,7 @@ from rest_framework import (
 from rest_framework_simplejwt.views import TokenObtainPairView
 from ..models import *
 from ..serializers import *
+from django.db.models import Q
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -20,9 +21,14 @@ class TransactionViewSet(viewsets.ModelViewSet):
     lookup_field = 'transaction_no'
     http_method_names = ["get", "patch"]
 
+    def get_serializer_class(self):
+        if self.action == "update_provider":
+            return TransactionProviderSerializer
+        return self.serializer_class
+
     def list(self, request, *args, **kwargs):
         # no list shown
-        queryset = self.queryset.none()
+        queryset = self.queryset.filter(Q(seeker=request.user) | Q(provider=request.user))
         serializer = self.serializer_class(queryset, many=True, context={"request": request})
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -32,6 +38,33 @@ class TransactionViewSet(viewsets.ModelViewSet):
         instance = self.queryset.get(id=int(transaction_id))
         serializer = self.serializer_class(instance, context={"request": request})
         return response.Response(serializer.data, status=status.HTTP_200_OK)
+
+    def update(self, request, *args, **kwargs):
+        # print(kwargs)
+        transaction_id = kwargs[self.lookup_field][8:]
+        instance = self.queryset.get(id=int(transaction_id))
+        if instance.seeker == request.user:
+            serializer = self.serializer_class(instance, context={"request": request}, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return response.Response(serializer.data, status=status.HTTP_200_OK)
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
+
+        return response.Response({"message": "not authorised to patch"}, status=status.HTTP_403_FORBIDDEN)
+
+    def update_provider(self, request, *args, **kwargs):
+        # print(kwargs)
+        transaction_id = request.data.get("transaction_no")[8:]
+        instance = self.queryset.get(id=int(transaction_id))
+        if instance.provider == request.user:
+            serializer = self.get_serializer_class()(instance, context={"request": request}, data=request.data, partial=True)
+            if serializer.is_valid():
+                data_instance = serializer.save()
+                data = self.serializer_class(data_instance, context={"request": request}).data
+                return response.Response(data, status=status.HTTP_200_OK)
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
+
+        return response.Response({"message": "not authorised to patch"}, status=status.HTTP_403_FORBIDDEN)
 
 
 """

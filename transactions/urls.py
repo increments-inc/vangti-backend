@@ -8,6 +8,11 @@ router.register("", TransactionViewSet, basename="transaction")
 # router.register("user-mode", UserServiceModeViewSet, basename="user_service_mode")
 
 urlpatterns = [
+                  path('update-by-provider/', TransactionViewSet.as_view({"patch": "update_provider"}),
+                       name='user_update_provider'),
+
+
+                # user service mode
                   path('get-user-mode/', UserServiceModeViewSet.as_view({"get": "get_mode"}),
                        name='user_get_mode'),
                   path('change-user-mode/', UserServiceModeViewSet.as_view({"patch": "mode_change"}),
@@ -20,7 +25,7 @@ urlpatterns = [
                        name='seeker_history'),
 
                   # rating
-                  path('rate-deal/', TransactionRatingViewSet.as_view({"post": "rate_transaction"}),
+                  path('rate-deal/', TransactionRatingViewSet.as_view({"post": "create"}),
                        name='transaction_get_review'),
 
                   # transaction requests

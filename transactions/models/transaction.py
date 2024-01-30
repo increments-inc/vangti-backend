@@ -7,6 +7,7 @@ from utils import qr
 from django.contrib.sites.models import Site
 from django.core.files import File
 from datetime import datetime
+from utils.helper import content_file_path, ImageCompress
 
 User = get_user_model()
 
@@ -26,7 +27,7 @@ class Transaction(BaseModel):
     )
     charge = models.FloatField(default=0.0)
     is_completed = models.BooleanField(default=False)
-    qr_image = models.ImageField(null=True, blank=True)
+    qr_image = models.ImageField(upload_to=content_file_path, null=True, blank=True)
 
     class Meta:
         ordering = ("-created_at", "-id",)

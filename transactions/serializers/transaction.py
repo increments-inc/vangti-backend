@@ -9,9 +9,32 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
 
 
 class TransactionSerializer(serializers.ModelSerializer):
+    transaction_no = serializers.SerializerMethodField()
+
     class Meta:
         model = Transaction
         fields = "__all__"
+
+    @staticmethod
+    def get_transaction_no(obj):
+        number = obj.get_transaction_unique_no
+        return number
+
+class TransactionProviderSerializer(serializers.ModelSerializer):
+    transaction_no = serializers.CharField(write_only=True)
+
+
+
+    class Meta:
+        model = Transaction
+        fields = ("transaction_no", "is_completed")
+
+    def update(self, instance, validated_data):
+        instance.is_completed = validated_data.pop("is_completed", False)
+        instance.save()
+        return instance
+
+
 
 
 class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
