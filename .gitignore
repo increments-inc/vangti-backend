@@ -3,3 +3,6 @@ media/
 .env
 db.sqlite3
 steps.txt
+credentials.json
+celerybeat-schedule.db
+send_request.py

@@ -1,15 +1,17 @@
 from pathlib import Path
-import os, sys
+import os
+import sys
 from decouple import config
 from datetime import timedelta
-
+import firebase_admin
+from firebase_admin import firestore, credentials
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-az+a*smk6&1sm68!hly(zcq@vp)gd6e!*e*e=%gf5!=eb7qpj#'
 
 DEBUG = True
-
 
 SALT = "random"
 
@@ -20,6 +22,7 @@ INSTALLED_APPS = [
     'daphne',
 
     # default
+    "django.contrib.sites",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -36,16 +39,19 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'corsheaders',
     'rest_framework_simplejwt',
-
+    'rest_framework_simplejwt.token_blacklist',
 
     # apps
     'users',
-
+    'subscription',
     'analytics',
-    'transaction',
+    'transactions',
     'web_socket',
-
+    'locations',
+    'user_setting',
 ]
+
+SITE_ID = 1
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -53,19 +59,26 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
         # simple jwt
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ],
+    "DEFAULT_RENDERER_CLASSES": (
+        "utils.renderer.CustomJSONRenderer",
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ),
+    # "EXCEPTION_HANDLER": "utils.renderer.custom_exception_handler",
+    "DEFAULT_PAGINATION_CLASS": "utils.custom_pagination.CustomPagination",
+    "PAGE_SIZE": 20,
     # swagger
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": False,
@@ -85,7 +98,10 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "user_id",
     "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
 
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "AUTH_TOKEN_CLASSES": (
+        # "rest_framework_simplejwt.tokens.AccessToken",
+        "users.auth_jwt.JWTAccessToken",
+    ),
     "TOKEN_TYPE_CLAIM": "token_type",
     "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
 
@@ -95,8 +111,6 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
     "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
-
-
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Vangti API',
@@ -154,18 +168,36 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'core.wsgi.application'
-ASGI_APPLICATION = "core.asgi.application"
+ASGI_APPLICATION = 'core.asgi.application'
 
 DATABASES = {
-   'default': {
-       'ENGINE': config("DB_ENGINE", default="django.db.backends.sqlite3"),
-       'NAME': config("DB_NAME", default=BASE_DIR / "db.sqlite3"),
-       'USER': config("DB_USER", default=""),
-       'PASSWORD': config("DB_PASSWORD", default=""),
-       'HOST': config("DB_HOST", default=""),
-       'PORT': config("DB_PORT", default=""),
-   }
+    'default': {
+        'ENGINE': config("DB_ENGINE", default="django.db.backends.sqlite3"),
+        'NAME': config("DB_NAME", default=BASE_DIR / "db.sqlite3"),
+        'USER': config("DB_USER", default=""),
+        'PASSWORD': config("DB_PASSWORD", default=""),
+        'HOST': config("DB_HOST", default=""),
+        'PORT': config("DB_PORT", default=""),
+    },
+    'location': {
+        'ENGINE': config("DB_ENGINE_LOC", default="django.db.backends.sqlite3"),
+        'NAME': config("DB_NAME_LOC", default=BASE_DIR / "db1.sqlite3"),
+        'USER': config("DB_USER_LOC", default=""),
+        'PASSWORD': config("DB_PASSWORD_LOC", default=""),
+        'HOST': config("DB_HOST_LOC", default=""),
+        'PORT': config("DB_PORT_LOC", default=""),
+    }
 }
+
+DATABASE_ROUTERS = ['core.db_router.LocationRouter']
+
+# firebase
+FIREBASE_API_KEY = config("FIREBASE_API_KEY")
+FIREBASE_PROJECT_ID = config("FIREBASE_PROJECT_ID")
+cred = credentials.Certificate(os.path.join(BASE_DIR, "credentials.json"))
+firebase_admin.initialize_app(cred)
+
+# password validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -182,7 +214,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'UTC'
@@ -191,15 +222,12 @@ USE_I18N = True
 
 USE_TZ = True
 
-
 STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
 GDAL_LIBRARY_PATH = config("GDAL_LIBRARY_PATH")
 GEOS_LIBRARY_PATH = config("GEOS_LIBRARY_PATH")
-
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = config("EMAIL_HOST")
@@ -210,9 +238,8 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 # EMAIL_USE_SSL = config('EMAIL_USE_SSL') == 'True'
 DEFAULT_FROM_EMAIL = "Organization Name <demo@domain.com>"
 
-
 # authentication parameters
-REST_SESSION_LOGIN=False
+REST_SESSION_LOGIN = False
 # REST_USE_JWT = True
 JWT_AUTH_COOKIE = "access"
 JWT_AUTH_REFRESH_COOKIE = "refresh"
@@ -224,3 +251,46 @@ JWT_AUTH_REFRESH_COOKIE = "refresh"
 # ACCOUNT_EMAIL_VERIFICATION = "none"
 # REST_SESSION_LOGIN = False  # Set Session ID and CSRF Token to Cookie
 # LOGOUT_ON_PASSWORD_CHANGE = True  # For Cookie Based Login
+
+
+# redis
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://127.0.0.1:6379",
+    }
+}
+
+# location
+LOCATION_RADIUS = 50000
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = "media"
+
+# Celery settings
+CELERY_TIMEZONE = "Asia/Dhaka"
+# CELERY_TASK_TRACK_STARTED = True
+# CELERY_TASK_TIME_LIMIT = 30 * 60
+CELERY_BROKER_URL = "redis://localhost:6379"
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
+CELERY_BEAT_SCHEDULE = {
+    'test_task': {
+        'task': 'web_socket.tasks.test_task',
+        'schedule': crontab(minute="0", hour='*/3'),
+        'args': ('hello world',),
+    },
+    'user_deletion_routine_task': {
+        'task': 'users.tasks.user_deletion_routine_task',
+        'schedule': crontab(minute='*/5'),
+    },
+}
+

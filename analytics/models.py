@@ -1,6 +1,6 @@
-from django.contrib.gis.db import models
+# from django.contrib.gis.db import models
 from django.contrib.auth import get_user_model
-from core.abstract_models import BaseModel
+from core.abstract_models import models, BaseModel
 from django.contrib.postgres.fields import ArrayField
 import uuid
 
@@ -27,22 +27,25 @@ class Analytics(BaseModel):
         ordering = ("-created_at",)
 
 
+# foreign key/ one to one
 class UserRating(BaseModel):
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="userrating_user"
     )
+    no_of_transaction = models.IntegerField(default=0)
     deal_success_rate = models.FloatField(default=0.0)
     total_amount_of_transaction = models.FloatField(default=0.0)
     dislikes = models.IntegerField(default=0)
-    rating = models.CharField(max_length=10, choices=REVIEW_STAR, null=True, blank=True)
+    rating = models.FloatField(default=0.0)
+    provider_response_time = models.DurationField(null=True, blank=True)
 
     class Meta:
         ordering = ("-created_at",)
 
 
 class AppFeedback(BaseModel):
-    rating = models.CharField(max_length=10, choices=REVIEW_STAR, null=True, blank=True)
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="appfeedback_user"
     )
+    rating = models.FloatField(default=0.0)
     message = models.TextField(null=True, blank=True)

@@ -37,11 +37,6 @@ class EmailPhoneUsernameAuthentication(BaseBackend):
         except User.DoesNotExist:
             return None
 
-        # userotp = user.user_otp.all().last()
-        # if str(pin) == str(userotp.key) and (userotp.expires_at >= datetime.now()):
-        #     return user
-
-
         # try:
         # PINValidator().validate(password=pin)
 
@@ -49,9 +44,10 @@ class EmailPhoneUsernameAuthentication(BaseBackend):
         hashed_pin = hasher.encode(pin, settings.SALT)
 
         if hashed_pin == user.pin:
+            if not user.is_active:
+                user.is_active = True
+                user.save()
             return user
-
-
 
         return None
 

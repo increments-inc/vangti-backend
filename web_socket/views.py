@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.http import JsonResponse
 from rest_framework import (
     permissions,
     response,
@@ -8,30 +8,35 @@ from rest_framework import (
 )
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import *
-from .serializers import *
 from django.conf import settings
+from django.core.cache.backends.base import DEFAULT_TIMEOUT
+from django.views.decorators.cache import cache_page
+from django.utils.decorators import method_decorator
+from django.core.cache import cache
+from rest_framework.decorators import api_view, schema
+from rest_framework.views import APIView
+from django.conf import settings
+from celery import shared_task
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync, sync_to_async
+from core.celery import app
+# from celery.decorators import task
+from django.contrib.auth import authenticate, login
+
+def vangti_request(request):
+    message = {
+        "seeker": "ajk",
+    }
+    channel_layer = get_channel_layer()
+
+    async_to_sync(channel_layer.group_send)(
+        "14-location-room", {
+            'type': 'send_sdpt',
+            'receive_dict': message,
+        },
+        # immediately=True
+    )
+    return JsonResponse({"message": message})
 
 
-class LocationViewSet(viewsets.ModelViewSet):
-    queryset = UserLocation.objects.all()
-    serializer_class = LocationSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ["get", "patch", "post"]
-
-    def perform_create(self, serializer):
-        return serializer.save(user=self.request.user)
-
-
-class ChatHistoryViewSet(viewsets.ModelViewSet):
-    queryset = ChatHistory.objects.all()
-    serializer_class = ChatHistorySerializer
-    permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ["get"]
-
-
-class CallHistoryViewSet(viewsets.ModelViewSet):
-    queryset = CallHistory.objects.all()
-    serializer_class = CallHistorySerializer
-    permission_classes = [permissions.IsAuthenticated]
-    http_method_names = ["get"]
 

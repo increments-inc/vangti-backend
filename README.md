@@ -1,2 +1,2 @@
 **Vangti App**
-App for vangti transaction
+ - App for vangti transaction
