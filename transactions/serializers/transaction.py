@@ -1,5 +1,8 @@
+import hashlib
+
 from rest_framework import exceptions, serializers, validators
 from ..models import *
+import blurhash
 
 
 class TransactionHistorySerializer(serializers.ModelSerializer):
@@ -44,6 +47,9 @@ class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
     rating = serializers.FloatField(source="provider.userrating_user.rating", read_only=True)
     dislikes = serializers.IntegerField(source="provider.userrating_user.dislikes", read_only=True)
     deal_success_rate = serializers.FloatField(source="provider.userrating_user.deal_success_rate", read_only=True)
+    distance = serializers.SerializerMethodField(read_only=True)
+    hash = serializers.SerializerMethodField(read_only=True)
+    provider_picture = serializers.ImageField(source="provider.user_info.profile_pic", read_only=True)
 
     class Meta:
         model = TransactionHistory
@@ -58,7 +64,27 @@ class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
             "rating",
             "dislikes",
             "deal_success_rate",
+            "distance",
+            "hash",
+            "provider_picture",
         )
+
+    def get_distance(self, obj):
+        return "100.00"
+
+    def get_hash(self, obj):
+        print(obj)
+        provider_pic = obj.provider.user_info.profile_pic
+        print(provider_pic.url)
+        if provider_pic is not None:
+            with open(provider_pic.url[1:], 'rb') as image_file:
+                hash = blurhash.encode(image_file, x_components=4, y_components=3)
+            print("seeker", hash)
+            return hash
+        with open('/Users/mac1/Downloads/nid.jpeg', 'rb') as image_file:
+            hash = blurhash.encode(image_file, x_components=4, y_components=3)
+        print("fshdgfsjhd", hash)
+        return hash
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -72,6 +98,8 @@ class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
             ret['dislikes'] = 0
         if ret["deal_success_rate"] is None:
             ret['deal_success_rate'] = float(0)
+        if ret["provider_picture"] is None:
+            ret['provider_picture'] = ""
         return ret
 
 
@@ -79,7 +107,8 @@ class TransactionProviderHistorySerializer(serializers.ModelSerializer):
     seeker_name = serializers.CharField(source="seeker.user_info.person_name", read_only=True)
     total_deals = serializers.IntegerField(source="seeker.userrating_user.no_of_transaction", read_only=True)
     rating = serializers.FloatField(source="seeker.userrating_user.rating", read_only=True)
-
+    hash = serializers.SerializerMethodField(read_only=True)
+    seeker_picture = serializers.ImageField(source="seeker.user_info.profile_pic", read_only=True)
     class Meta:
         model = TransactionHistory
         fields = (
@@ -90,7 +119,25 @@ class TransactionProviderHistorySerializer(serializers.ModelSerializer):
             "seeker_name",
             "total_deals",
             "rating",
+            "hash",
+            "seeker_picture",
         )
+
+
+
+    def get_hash(self, obj):
+        print(obj)
+        seeker_pic = obj.seeker.user_info.profile_pic
+        print(seeker_pic.url)
+        if seeker_pic is not None:
+            with open(seeker_pic.url[1:], 'rb') as image_file:
+                hash = blurhash.encode(image_file, x_components=4, y_components=3)
+            print("seeker", hash)
+            return hash
+        with open('/Users/mac1/Downloads/nid.jpeg', 'rb') as image_file:
+            hash = blurhash.encode(image_file, x_components=4, y_components=3)
+        print("fshdgfsjhd", hash)
+        return hash
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
@@ -100,4 +147,6 @@ class TransactionProviderHistorySerializer(serializers.ModelSerializer):
             ret['total_deals'] = 0
         if ret["rating"] is None:
             ret['rating'] = float(0)
+        if ret["seeker_picture"] is None:
+            ret['seeker_picture'] = ""
         return ret

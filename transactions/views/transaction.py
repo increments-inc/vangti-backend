@@ -122,7 +122,7 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
         queryset = self.queryset.filter(provider=user)
         if queryset:
             print("no value")
-        serializer = self.get_serializer_class()(queryset, many=True)
+        serializer = self.get_serializer_class()(queryset, many=True, context={"request":self.request})
         return response.Response(
             serializer.data,
             status=status.HTTP_200_OK
@@ -137,7 +137,7 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
         queryset = self.queryset.filter(seeker=user)
         if queryset:
             print("no value")
-        serializer = self.get_serializer_class()(queryset, many=True)
+        serializer = self.get_serializer_class()(queryset, many=True, context={"request":self.request})
         return response.Response(
             serializer.data,
             status=status.HTTP_200_OK
