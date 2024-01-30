@@ -23,7 +23,6 @@ def send_celery(scope):
     # user = sync_to_async(authenticate)(username="admin", password="admin")
     # print(user)
     # channel_layer = get_channel_layer()
-    #
     # channel_layer.group_send(
     #     "dummy", {
     #         'type': 'send.data',
@@ -31,15 +30,6 @@ def send_celery(scope):
     #     },
     #     # immediately=True
     # )
-
-
-@shared_task(bind=True, name='queue_ws_event', ignore_result=True, queue='wsQ')
-def queue_ws_event(ws_channel, ws_event: dict, group=True):
-    channel_layer = get_channel_layer()
-    if group:
-        async_to_sync(channel_layer.group_send)(ws_channel, ws_event)
-    else:
-        async_to_sync(channel_layer.send)(ws_channel, ws_event)
 
 
 @app.task
