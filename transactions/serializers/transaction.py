@@ -3,7 +3,7 @@ from rest_framework import serializers
 from ..models import *
 import blurhash
 from locations.models import UserLocation
-from django.contrib.gis.measure import Distance
+from django.contrib.gis.db.models.functions import Distance
 
 
 class TransactionHistorySerializer(serializers.ModelSerializer):
@@ -73,16 +73,16 @@ class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
     def get_distance(self, obj):
         user = self.context.get("request").user
         user_center = UserLocation.objects.get(user=user.id).centre
-        provider_center = UserLocation.objects.get(user=obj.provider.id).centre
-        distance = user_center.distance(provider_center)
-        dummy = list(UserLocation.objects.exclude(user=user.id).filter(
-            centre__distance_lte=(user_center, Distance(km=10000))
-        ).values_list("user", flat=True))
-        print()
-        # for city in UserLocation.objects.filter(user=user.id).annotate(distance=Distance("centre", provider_center)):
-        #     print( city.distance)
+        provider_id = obj.provider.id
+        provider = UserLocation.objects.get(user=obj.provider.id)
 
-        print(user_center, provider_center, "hsdgfhjsgdgshjgd2222", dummy, distance)
+        distance = 100
+
+        all_distance = dict(UserLocation.objects.filter(user=user.id).annotate(
+            distance=Distance("centre", provider.centre)).values("user_phone_number", "distance"))
+        print(all_distance, "all distance all")
+
+
 
         return f"{distance}"
 

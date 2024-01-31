@@ -16,6 +16,7 @@ class CustomJSONRenderer(JSONRenderer):
             messages = (
                 data.pop("messages") if "messages" in data else ""
             )
+            print(data)
             errors = data.pop("errors") if "errors" in data else None
             data = data.pop("data") if "data" in data else data
             links = data.pop("links") if "links" in data else {}

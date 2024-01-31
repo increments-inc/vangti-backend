@@ -26,7 +26,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     @staticmethod
     def _otp_login(request, serializer):
         resp = response.Response()
-
         # setting the jwt cookies
         # set_jwt_cookies(
         #     response=resp,
@@ -37,7 +36,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         #         settings.JWT_AUTH_REFRESH_COOKIE
         #     ),
         # )
-
         resp.set_cookie('access',
                         str(serializer.validated_data.get(settings.JWT_AUTH_COOKIE)),
                         httponly=True)
@@ -50,6 +48,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             "detail": "Login successful",
             "data": serializer.validated_data,
         }
+
         return resp
 
     @extend_schema(
@@ -66,17 +65,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                     )
                 ],
             ),
-            # 400: OpenApiResponse(
-            #     response=CustomTokenObtainPairSerializer,
-            #     examples=[
-            #         OpenApiExample(
-            #             "login error",
-            #             value={
-            #                 "detail": "No active account found with the given credentials"
-            #             }
-            #         )
-            #     ],
-            # )
         }
     )
     def post(self, request, *args, **kwargs):
@@ -87,15 +75,19 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         )
         # serializer.is_valid(raise_exception=True)
         if serializer.is_valid():
-            try:
-                return self._otp_login(
-                    request=request,
-                    serializer=serializer
-                )
-
-            except Exception as e:
-                # raise InvalidToken(e.args[0]) from e
-                return response.Response("", status=status.HTTP_400_BAD_REQUEST)
+            return self._otp_login(
+                request=request,
+                serializer=serializer
+            )
+            # try:
+            #     return self._otp_login(
+            #         request=request,
+            #         serializer=serializer
+            #     )
+            #
+            # except Exception as e:
+            #     # raise InvalidToken(e.args[0]) from e
+            #     return response.Response("", status=status.HTTP_400_BAD_REQUEST)
 
         return response.Response({
             "message": "Username or Password error",
@@ -264,7 +256,7 @@ class GetNumberViewSet(viewsets.ModelViewSet):
         # serializer.is_valid(raise_exception=True)
         return response.Response(
 
-            "Input proper data",
+            {"details": "Input proper data"},
             status=status.HTTP_400_BAD_REQUEST
         )
 

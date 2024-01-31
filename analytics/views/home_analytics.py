@@ -8,6 +8,7 @@ from django.contrib.gis.measure import Distance
 from locations.models import UserLocation
 from django.conf import settings
 from ..serializers import *
+from web_socket.fcm import send_push2
 
 
 class HomeAnalyticsViewSet(viewsets.ModelViewSet):
@@ -137,6 +138,7 @@ class HomeAnalyticsViewSet(viewsets.ModelViewSet):
 
     def home_analytics(self, request, *args, **kwargs):
         user = request.user
+        send_push2(user, user, {})
         mode = user.user_mode.is_provider
         if mode:
             data = self.provider_analytics()

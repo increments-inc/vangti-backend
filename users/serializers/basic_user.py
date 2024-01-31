@@ -18,6 +18,7 @@ from django.conf import settings
 from datetime import datetime, timedelta
 from ..pin_validator import PINValidator
 from django.contrib.auth.hashers import PBKDF2PasswordHasher
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 from django.utils.text import gettext_lazy as _
 from rest_framework import serializers
@@ -27,11 +28,21 @@ from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
+        for token in OutstandingToken.objects.filter(user=user):
+            if not hasattr(token, 'blacklistedtoken'):
+                print("hrhfg")
+                BlacklistedToken.objects.create(token=token)
+                print("blacklist", token)
         token = super().get_token(user)
+
+
         # Add custom claims
         token["email"] = user.email
         token["is_superuser"] = user.is_superuser
         token["is_staff"] = user.is_staff
+        all_token = OutstandingToken.objects.all().count()
+        print("fsjhgdjhs",all_token)
+
         return token
 
 
