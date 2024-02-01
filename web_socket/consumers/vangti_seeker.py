@@ -14,65 +14,6 @@ from users.models import User
 from ..fcm import send_push
 from ..tasks import *
 
-# reference json data to be sent
-"""
-# old
-{
-    "seeker": "user_phone",
-    "amount": 1000,
-    "preferred": "100,20",
-    "request":"PENDING",
-    "provider": null
-}
-# new
-# request -send- pending
-{
-    "request":"POST",
-    "amount": 1000,
-    "preferred": ["100","20"],
-    "seeker": "user_phone_number",
-    "provider": null,
-    "status": "PENDING"
-}
-# !!!!!!!!request - to user
-{
-    "request":"POST",
-    "amount": 1000,
-    "preferred": ["100","20"],
-    "seeker": "seeker_user_phone_number",
-    "provider": "possible_provider_user_phone_number",
-    "status": "PENDING"
-}
-# response - reject
-{
-    "request":"RESPONSE",
-    "amount": 1000,
-    "preferred": ["100","20"],
-    "seeker": "seeker_user_phone_number",
-    "provider": "possible_provider_user_phone_number",
-    "status": "REJECTED"
-}
-# response - accept
-{
-    "request":"RESPONSE",
-    "amount": 1000,
-    "preferred": ["100","20"],
-    "seeker": "seeker_user_phone_number",
-    "provider": "possible_provider_user_phone_number",
-    "status": "ACCEPTED"
-}
-# transaction instance
-{
-    "request":"RESPONSE",
-    "amount": 1000,
-    "preferred": ["100","20"],
-    "seeker": "seeker_user_phone_number",
-    "provider": "provider_user_phone_number",
-    "status": "IN_TRANSACTION",
-    "transaction_id": "id"
-}
-"""
-
 
 class InterruptExecution(Exception):
     def __init__(self, message="Interrupt Execution"):
@@ -103,6 +44,7 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         user = self.scope["user"]
         receive_dict = text_data
+        print(text_data, user)
         try:
             receive_dict = json.loads(text_data)
             receive_dict["user"] = self.user.phone_number
@@ -263,6 +205,7 @@ class VangtiSeekerConsumer(AsyncWebsocketConsumer):
             )
             user_provider_list = list(
                 User.objects.filter(
+                    is_superuser=False,
                     id__in=user_location_list,
                     user_mode__is_provider=True
                 ).order_by(

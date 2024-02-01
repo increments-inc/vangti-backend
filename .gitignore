@@ -8,3 +8,4 @@ credentials.json
 celerybeat-schedule.db
 send_request.py
 managemant/
+message.txt

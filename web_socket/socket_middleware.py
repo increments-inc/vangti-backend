@@ -16,10 +16,6 @@ def get_user(user_id):
 
 
 class QueryAuthMiddleware:
-    """
-    Custom middleware (insecure) that takes user IDs from the query string.
-    """
-
     def __init__(self, app):
         self.app = app
 
@@ -27,6 +23,7 @@ class QueryAuthMiddleware:
         print()
         token = scope["query_string"].decode("utf-8").split("=")[1]
         decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+        print(decoded_token, "sdsdfsfdfsd")
         user_id = decoded_token['user_id']
         scope['user'] = await get_user(user_id)
 
