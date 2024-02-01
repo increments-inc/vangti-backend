@@ -1,24 +1,40 @@
 import json
-import time
-
 from channels.db import database_sync_to_async
 from django.db import transaction
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 from locations.models import UserLocation, LocationRadius
 from ..fcm import send_push
+from transactions.models import Transaction
+from ..models import *
+
+"""transaction_id-message-room"""
+
+"""
+{
+"transaction":"phone",
+"user":"",
+"message": 51,
+}
+{
+"request":"get",
+"data":{}
+}
+{
+"request":"post",
+"data":{
+"transaction":1,
+"user":"",
+"message": "helo friend"
+}
+}
+"""
 
 
 class TransactionMessageConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        kwargs = self.scope.get("url_route")["kwargs"]
-        # room = kwargs["user_room_name"]
         self.user = self.scope["user"]
-        room_name = self.user.phone_number.split("+")[1]
-        self.room_group_name = f"{room_name}-room"
-        print(self.room_group_name)
-        print("all items", self.scope, self.scope["user"], kwargs, self.channel_layer)
-
+        self.room_group_name = self.scope.get("url_route")["kwargs"]["room_name"]
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
@@ -32,42 +48,61 @@ class TransactionMessageConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive(self, text_data):
-        print(text_data)
-        try:
-            text_data = json.loads(text_data)
-            print(text_data, type(text_data))
-        except:
-            pass
         receive_dict = text_data
 
-        if "send_requests" in text_data:
-            user_list = await self.get_user_list(text_data)
-            print(user_list)
-            is_affirmed = await self.send_user_push(user_list)
-            if is_affirmed:
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        'type': 'send.sdpt',
-                        'receive_dict': "ok to quit",
-                    }
-                )
-            else:
-                await self.channel_layer.group_send(
-                    self.room_group_name,
-                    {
-                        'type': 'send.sdpt',
-                        'receive_dict': "no response",
-                    }
-                )
+        try:
+            receive_dict = json.loads(text_data)
+        except:
+            return
+        transaction = await self.get_transaction(self.room_group_name)
+        if transaction is None:
+            return
 
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'send.sdpt',
-                'receive_dict': receive_dict,
+        if receive_dict["request"] == "get":
+            user = self.user
+            data = receive_dict["data"]
+            get_msg = await self.get_transaction_msg(transaction)
+            receive_dict = {
+                "request": "response",
+                "transaction": transaction,
+                "data": get_msg
             }
-        )
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'send.sdpt',
+                    'receive_dict': receive_dict,
+                }
+            )
+
+        if receive_dict["request"] == "post":
+            user = self.user
+            data = receive_dict["data"]
+            create_msg = await self.create_transaction_msg(user, data)
+
+            receive_dict = {
+                "request": "response",
+                "transaction": data["transaction"],
+                "user": self.user.phone_number,
+                "message": data["message"]
+            }
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'send.sdpt',
+                    'receive_dict': receive_dict,
+                }
+            )
+
+        # receive_dict["user"] =self.scope["user"].phone_number
+        # await self.channel_layer.group_send(
+        #     self.room_group_name,
+        #     {
+        #         'type': 'send.sdpt',
+        #         'receive_dict': receive_dict,
+        #         # 'user': self.scope["user"]
+        #     }
+        # )
 
     async def send_sdpt(self, event):
         receive_dict = event['receive_dict']
@@ -76,56 +111,30 @@ class TransactionMessageConsumer(AsyncWebsocketConsumer):
             'message': receive_dict,
         }))
 
-    # async def send_to_receiver_data(self, event):
-    #     receive_dict = event['receive_dict']
-    #     if type(receive_dict) == str:
-    #         receive_dict = json.loads(receive_dict)
-    #
-    #     await self.send(text_data=json.dumps({
-    #         'message': receive_dict,
-    #         "user": self.user.phone_number
-    #     }))
-
-    async def send_user_push(self, user_list):
-        is_affirmed = False
-        for user in user_list:
-            token = ""
-            send_push("", "helo", token, {"user": user})
-            # confirm the waiting time
-            time.sleep(60)
-            is_affirmed = await self.get_user_affirmation("room_name")
-            if is_affirmed:
-                break
-
-        return is_affirmed
-
+    @database_sync_to_async
+    def get_transaction(self, room_name):
+        try:
+            transaction_id = room_name.split("-")[0]
+            transaction = Transaction.objects.filter(id=int(transaction_id)).first()
+            if transaction is None:
+                return None
+            return transaction.id
+        except:
+            return None
 
     @database_sync_to_async
-    def get_user_list(self, room_name):
-        user = self.user
-        print(user)
+    def create_transaction_msg(self, user, data):
         try:
-            return UserLocation.objects.using('location').get(user=user.id).location_radius_userlocation.user_id_list
+
+            return TransactionMessages.objects.create(user=user, transaction_id=data["transaction"],
+                                                      message=data["message"])
         except:
-            return
+            return None
 
     @database_sync_to_async
-    def get_user_affirmation(self, room_name):
-        user = self.user
-        print(user)
+    def get_transaction_msg(self, transaction_id):
         try:
-            return UserLocation.objects.using('location').get(user=user.id).location_radius_userlocation.user_id_list
+            return list(TransactionMessages.objects.filter(transaction_id=transaction_id).values("user__phone_number",
+                                                                                                 "message"))
         except:
-            return
-
-    # @database_sync_to_async
-    # def insert_offer(self, text_data, client):
-    #     roomname = self.scope.get("url_route")["kwargs"]["room_name"]
-    #     room = RoomModel.objects.get(
-    #         name=roomname
-    #     )
-    #     text_data = text_data.replace("{", "").replace("}", "").replace("\":", "").replace("message", "")
-    #     room.offer_sdp = text_data
-    #     room.offer_client = client
-    #
-    #     return room.save()
+            return None

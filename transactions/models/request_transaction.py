@@ -19,7 +19,7 @@ class TransactionRequest(BaseModel):
     amount = models.FloatField(default=0.0)
     preferred_notes = ArrayField(models.CharField(max_length=50, null=True, blank=True))
     # is_affirmed = models.BooleanField(default=False)
-    request_status = models.CharField(max_length=15, choices=REQUEST_STATUS, default="PENDING")
+    status = models.CharField(max_length=15, choices=REQUEST_STATUS, default="PENDING")
     provider = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="user_transaction_provider", null=True
     )

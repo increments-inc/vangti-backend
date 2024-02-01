@@ -17,6 +17,7 @@ class TransactionRatingViewSet(viewsets.ModelViewSet):
     queryset = TransactionReview.objects.all()
     serializer_class = TransactionReviewSerializer
     permission_classes = [permissions.IsAuthenticated]
+    lookup_field = 'transaction_no'
     http_method_names = ["get", "post", ]
 
     def get_serializer_class(self):

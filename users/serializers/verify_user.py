@@ -123,6 +123,9 @@ class VerifiedUsersSerializer(serializers.ModelSerializer):
 
 class UserInformationRetrieveSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(source="user.phone_number", read_only=True)
+    transactions = serializers.IntegerField(source="user.userrating_user.no_of_transaction", read_only=True)
+    rating = serializers.FloatField(source="user.userrating_user.rating", read_only=True)
+
     # rating = serializers.FloatField(source="user.rating")
     class Meta:
         model = models.UserInformation
@@ -131,8 +134,42 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
             "acc_type",
             "profile_pic",
             "phone_number",
-            # "rating"
+            "transactions",
+            "rating"
         )
         # exclude = ("user","device_id")
         read_only_fields = ("acc_type",)
 
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        if rep.get('transactions') is None:
+            rep['transactions'] = 0
+        if rep.get('rating') is None:
+            rep['rating'] = 0
+        return rep
+
+
+class FrontNidSerializer(serializers.ModelSerializer):
+    nid_front = serializers.ImageField()
+
+    class Meta:
+        model = models.UserNidInformation
+        fields = ("nid_front",)
+
+
+class BackNidSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.UserNidInformation
+        fields = ("nid_back",)
+
+
+class PhotoNidSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.UserNidInformation
+        fields = ("user_photo",)
+
+
+class SignNidSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.UserNidInformation
+        fields = ("signature",)

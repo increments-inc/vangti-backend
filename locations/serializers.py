@@ -11,10 +11,22 @@ from django.db.models import Q
 
 
 class LocationSerializer(serializers.ModelSerializer):
+    google_api_data = serializers.SerializerMethodField()
     class Meta:
         model = UserLocation
-        fields = "__all__"
-        read_only_fields = ["user", "centre"]
+        fields = (
+            "latitude",
+            "longitude",
+            "user_phone_number",
+            "centre",
+            "google_api_data",
+        )
+        read_only_fields = ["user_phone_number","centre", "google_api_data"]
+    def get_google_api_data(self, obj):
+        return {
+            "address":" dummy data",
+            "address_long":" dummy data"
+        }
 
     def user_list(self, obj):
         user = self.context.get("request").user

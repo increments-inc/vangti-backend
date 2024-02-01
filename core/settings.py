@@ -5,6 +5,7 @@ from decouple import config
 from datetime import timedelta
 import firebase_admin
 from firebase_admin import firestore, credentials
+from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -21,6 +22,7 @@ INSTALLED_APPS = [
     'daphne',
 
     # default
+    "django.contrib.sites",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -37,6 +39,7 @@ INSTALLED_APPS = [
     'debug_toolbar',
     'corsheaders',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
 
     # apps
     'users',
@@ -48,25 +51,37 @@ INSTALLED_APPS = [
     'user_setting',
 ]
 
+SITE_ID = 1
+
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         # simple jwt
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly'
     ],
+    "DEFAULT_RENDERER_CLASSES": (
+        "utils.renderer.CustomJSONRenderer",
+        "rest_framework.renderers.JSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
+    ),
+    # "EXCEPTION_HANDLER": "utils.renderer.custom_exception_handler",
+    "DEFAULT_PAGINATION_CLASS": "utils.custom_pagination.CustomPagination",
+    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+
+    "PAGE_SIZE": 10,
     # swagger
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=1200),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": False,
@@ -86,7 +101,10 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "user_id",
     "USER_AUTHENTICATION_RULE": "rest_framework_simplejwt.authentication.default_user_authentication_rule",
 
-    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "AUTH_TOKEN_CLASSES": (
+        # "rest_framework_simplejwt.tokens.AccessToken",
+        "users.auth_jwt.JWTAccessToken",
+    ),
     "TOKEN_TYPE_CLAIM": "token_type",
     "TOKEN_USER_CLASS": "rest_framework_simplejwt.models.TokenUser",
 
@@ -245,8 +263,9 @@ CACHES = {
         "LOCATION": "redis://127.0.0.1:6379",
     }
 }
-LOCATION_RADIUS = 50
 
+# location
+LOCATION_RADIUS = 50000
 
 CHANNEL_LAYERS = {
     "default": {
@@ -260,11 +279,21 @@ CHANNEL_LAYERS = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = "media"
 
-# Celery Configuration Options
-# CELERY_TIMEZONE = "Asia/Dhaka"
+# Celery settings
+CELERY_TIMEZONE = "Asia/Dhaka"
 # CELERY_TASK_TRACK_STARTED = True
 # CELERY_TASK_TIME_LIMIT = 30 * 60
-
-# Celery settings
 CELERY_BROKER_URL = "redis://localhost:6379"
 CELERY_RESULT_BACKEND = "redis://localhost:6379"
+CELERY_BEAT_SCHEDULE = {
+    'test_task': {
+        'task': 'web_socket.tasks.test_task',
+        'schedule': crontab(minute="0", hour='*/3'),
+        'args': ('hello world',),
+    },
+    'user_deletion_routine_task': {
+        'task': 'users.tasks.user_deletion_routine_task',
+        'schedule': crontab(minute='*/5'),
+    },
+}
+

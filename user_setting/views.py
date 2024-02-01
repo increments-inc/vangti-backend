@@ -42,7 +42,7 @@ class UserSettingViewSet(viewsets.ModelViewSet):
 
     def get_setting(self, request, *args, **kwargs):
         instance = self.queryset.filter(user=self.request.user).first()
-        serializer = self.get_serializer_class()(instance, data=request.data)
+        serializer = self.get_serializer_class()(instance)
         return response.Response(
             serializer.data, status=status.HTTP_200_OK
         )
@@ -53,3 +53,12 @@ class VangtiTermsViewSet(viewsets.ModelViewSet):
     serializer_class = VangtiTermsSerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get"]
+
+    def get_terms(self, *ars, **kwargs):
+        instance = self.queryset.last()
+        serializer = self.get_serializer_class()(instance,
+                                                 # context={"request": self.request}
+                                                 )
+        return response.Response(
+            serializer.data, status=status.HTTP_200_OK
+        )

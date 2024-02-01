@@ -55,3 +55,4 @@ zope.interface==6.1
 drf-extra-fields==3.7.0
 firebase-admin==6.3.0
 celery==5.3.6
+qrcode==7.4.2
