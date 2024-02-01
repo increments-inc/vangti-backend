@@ -1,3 +1,4 @@
+import hashlib
 import json
 import time
 from django.contrib.gis.measure import Distance
@@ -14,6 +15,14 @@ from users.models import User
 from ..fcm import send_push
 from ..tasks import *
 from ..models import TransactionMessages
+from django.conf import settings
+import blurhash
+
+
+def get_hash(picture_url):
+    with open(picture_url[1:], 'rb') as image_file:
+        hash = blurhash.encode(image_file, x_components=4, y_components=3)
+    return hash
 
 
 class InterruptExecution(Exception):
@@ -74,6 +83,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             send_user = user_list[0]
 
             receive_dict["data"]["provider"] = user_list[0]
+            receive_dict["data"]["seeker_info"] = await self.get_seeker_info(receive_dict["data"]["seeker"])
             print("final", receive_dict)
             await self.channel_layer.group_send(
                 f"{send_user}-room",
@@ -177,7 +187,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
             receive_dict["data"]["seeker_location"] = await self.get_user_location(receive_dict["data"]["seeker"])
             receive_dict["data"]["provider_location"] = await self.get_user_location(receive_dict["data"]["provider"])
-            receive_dict["data"]["direction"] = await self.get_direction(receive_dict["data"]["seeker"], receive_dict["data"]["provider"])
+            receive_dict["data"]["direction"] = await self.get_direction(receive_dict["data"]["seeker"],
+                                                                         receive_dict["data"]["provider"])
 
             if receive_dict["data"]["provider"]:
                 await self.channel_layer.group_send(
@@ -208,7 +219,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             room_seeker = receive_dict["data"]["seeker"]
             room_provider = receive_dict["data"]["provider"]
 
-            receive_dict["data"]["provider_msg"] = await self.get_previous_messages(receive_dict["data"]["transaction_id"])
+            receive_dict["data"]["provider_msg"] = await self.get_previous_messages(
+                receive_dict["data"]["transaction_id"])
             receive_dict["data"]["user_msg"] = "qwerty"
             if receive_dict["data"]["provider"]:
                 await self.channel_layer.group_send(
@@ -360,6 +372,28 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             return messages
         except:
             return []
+
+    @database_sync_to_async
+    def get_seeker_info(self, seeker):
+        try:
+            seeker = User.objects.get(id=seeker)
+            pic_url = seeker.user_info.profile_pic.url
+            return {
+                "name": seeker.user_info.person_name,
+                "picture": {
+                    "url": settings.DOMAIN_NAME + pic_url,
+                    "hash": get_hash(pic_url)
+                },
+                "rating": seeker.userrating_user.rating,
+                "total_deals": seeker.userrating_user.no_of_transaction
+            }
+        except:
+            return {
+                "name": "",
+                "picture": "",
+                "rating": 0.0,
+                "total_deals": 0
+            }
 
     async def some_long_running_task(self, start_time):
         try:

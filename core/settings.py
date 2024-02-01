@@ -297,3 +297,6 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
+
+# DOMAIN
+DOMAIN_NAME = config("DOMAIN")
