@@ -39,6 +39,7 @@ def send_push2(sender, receiver, data):
             )
             response = messaging.send(message)
             print("successfully delivered", response)
+            break
         except:
             print("error sending")
     return

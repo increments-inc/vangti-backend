@@ -10,3 +10,9 @@ class UserFirebaseToken(BaseModel):
 
     class Meta:
         ordering = ("user",)
+
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            print("new!", self.user)
+            self.model.objects.filter(user=self.user).delete()
+        super().save(*args, **kwargs)

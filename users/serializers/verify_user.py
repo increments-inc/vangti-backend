@@ -125,11 +125,13 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(source="user.phone_number", read_only=True)
     transactions = serializers.IntegerField(source="user.userrating_user.no_of_transaction", read_only=True)
     rating = serializers.FloatField(source="user.userrating_user.rating", read_only=True)
+    user_id = serializers.CharField(source="user.id", read_only=True)
 
     # rating = serializers.FloatField(source="user.rating")
     class Meta:
         model = models.UserInformation
         fields = (
+            "user_id",
             "person_name",
             "acc_type",
             "profile_pic",
