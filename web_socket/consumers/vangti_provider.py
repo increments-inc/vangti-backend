@@ -32,7 +32,7 @@ class InterruptExecution(Exception):
         super().__init__(self.message)
 
 
-class VangtiRequestConsumer(AsyncWebsocketConsumer):
+class VangtiRequestConsumer2(AsyncWebsocketConsumer):
     async def connect(self):
         kwargs = self.scope.get("url_route")["kwargs"]
         self.user = self.scope["user"]
