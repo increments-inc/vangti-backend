@@ -1,3 +1,5 @@
+import time
+
 from django.conf import settings
 from celery import shared_task
 from channels.layers import get_channel_layer
@@ -10,6 +12,7 @@ import requests
 
 @shared_task()
 def send_celery(scope):
+    time.sleep(10)
     print("helo dummy")
     # message = {
     #     "seeker": "ajk",

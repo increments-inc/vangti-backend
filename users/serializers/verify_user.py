@@ -126,7 +126,7 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
     transactions = serializers.IntegerField(source="user.userrating_user.no_of_transaction", read_only=True)
     rating = serializers.FloatField(source="user.userrating_user.rating", read_only=True)
     user_id = serializers.CharField(source="user.id", read_only=True)
-
+    is_provider = serializers.BooleanField(source="user.user_mode.is_provider", read_only=True)
     # rating = serializers.FloatField(source="user.rating")
     class Meta:
         model = models.UserInformation
@@ -137,7 +137,8 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
             "profile_pic",
             "phone_number",
             "transactions",
-            "rating"
+            "rating",
+            "is_provider",
         )
         # exclude = ("user","device_id")
         read_only_fields = ("acc_type",)
@@ -148,6 +149,8 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
             rep['transactions'] = 0
         if rep.get('rating') is None:
             rep['rating'] = 0
+        if rep.get('is_provider') is None:
+            rep['is_provider'] = False
         return rep
 
 

@@ -27,6 +27,8 @@ def vangti_request(request):
     message = {
         "seeker": "ajk",
     }
+
+
     channel_layer = get_channel_layer()
 
     async_to_sync(channel_layer.group_send)(

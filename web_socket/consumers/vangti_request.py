@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import time
@@ -52,6 +53,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
+
+
     async def receive(self, text_data):
         user = self.scope["user"]
         receive_dict = text_data
@@ -70,7 +73,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         ):
             print("post pending none")
             user_list = await self.get_user_list(receive_dict)
-            print(user_list)
+            # print(user_list)
             # cache set
             cache.set(
                 receive_dict["data"]["seeker"],
@@ -79,16 +82,22 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             )
             # print(cache.get(f"{user.phone_number}"))
             # send_user = user_list[0].split("+")[-1]
-            print("here")
             send_user = user_list[0]
-
             receive_dict["data"]["provider"] = user_list[0]
             receive_dict["data"]["seeker_info"] = await self.get_seeker_info(receive_dict["data"]["seeker"])
             print("final", receive_dict)
+            cache.set(
+                f'{receive_dict["data"]["seeker"]}-request',
+                [
+                    receive_dict["data"]["provider"], "pending"
+                ],
+                timeout=60
+            )
+            # send_celery("")
             await self.channel_layer.group_send(
                 f"{send_user}-room",
                 {
-                    'type': 'send_pending_data',
+                    'type': 'send_seeker_data',
                     'receive_dict': receive_dict,
                 }
             )
@@ -115,6 +124,14 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 receive_dict["data"]["provider"] = user_list[0]
                 # receive_dict["request"] = "POST"
                 receive_dict["status"] = "PENDING"
+
+                cache.set(
+                    f'{receive_dict["data"]["seeker"]}-request',
+                    [
+                        receive_dict["data"]["provider"], "pending"
+                    ],
+                    timeout=60
+                )
                 await self.channel_layer.group_send(
                     f"{send_user}-room",
                     {
@@ -247,6 +264,43 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             'message': receive_dict,
             "user": str(self.user.id)
         }))
+
+        await asyncio.sleep(15)
+        await self.set_timer(receive_dict)
+
+    async def send_seeker_data(self, event):
+        receive_dict = event['receive_dict']
+        if type(receive_dict) == str:
+            receive_dict = json.loads(receive_dict)
+
+        await self.send(text_data=json.dumps({
+            'message': receive_dict,
+            "user": str(self.user.id)
+        }))
+        await asyncio.sleep(15)
+        # print("hi")
+
+        await self.set_timer(receive_dict)
+        # send_celery.delay("")
+        # await asyncio.sleep(10)
+
+    async def set_timer(self, receive_dict):
+        state = cache.get(
+            f'{receive_dict["data"]["seeker"]}-request',
+        )
+        provider = receive_dict["data"]["provider"]
+        if state[0] != provider:
+            print(receive_dict)
+            receive_dict["status"]="TIMEOUT"
+            await self.channel_layer.group_send(
+                f"{receive_dict['data']['provider']}-room",
+                {
+                    'type': 'send_to_receiver_data',
+                    'receive_dict': receive_dict,
+                }
+            )
+        print("time!!!", state)
+        # return
 
     async def send_pending_data(self, event):
         receive_dict = event['receive_dict']
