@@ -119,13 +119,31 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             'message': receive_dict,
             "user": str(self.user.id)
         }))
-        await self.delayed_message()
-        print("sate reject!!!!!!!!!!!", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
-        # send_celery(self.scope["query_string"])
-        # await self.set_timeout(receive_dict)
+        # await self.delayed_message(receive_dict)
 
-    async def delayed_message(self):
-        await asyncio.sleep(10)  # Sleep for 10 seconds
+        for i in range(0, 10):
+            print("time", i)
+            await asyncio.sleep(1)
+            # time.sleep(1)
+            print("cache value ", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
+            if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
+                break
+        if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
+            await self.set_timeout(receive_dict)
+        print("10 seconds have passed")
+
+    async def delayed_message(self, receive_dict):
+        for i in range(0, 10):
+            print("time", i)
+            await asyncio.sleep(1)
+            # time.sleep(1)
+            print("cache value ", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
+            if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
+                break
+
+          # Sleep for 10 seconds
+        if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
+            await self.set_timeout(receive_dict)
         print("10 seconds have passed")
 
     async def send_to_seeker(self, event):
@@ -138,19 +156,15 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         }))
 
     async def set_timeout(self, receive_dict):
-        # await asyncio.sleep(10)
-        # time.sleep(10)
-        print("set")
+        print("in set timeout")
         if cache.get(
                 f'{receive_dict["data"]["seeker"]}-request',
         ) is not None:
             state = cache.get(
                 f'{receive_dict["data"]["seeker"]}-request',
             )
-            print("state", state)
             own_provider = receive_dict["data"]["provider"]
             cache_provider = state[0]
-            print(receive_dict)
             if cache_provider == own_provider:
                 receive_dict["status"] = "TIMEOUT"
                 await self.channel_layer.group_send(
@@ -160,15 +174,12 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                         'receive_dict': receive_dict,
                     }
                 )
-            # if cache.get(
-            #         f'{receive_dict["data"]["seeker"]}-request',
-            # ) is not None:
-            #
-            #
-            #     print("here in 2nd portion\n")
-            #     receive_dict["status"] = "REJECTED"
-            #     await self.receive_reject(receive_dict)
-            # print("forwarded to reject!!!", state)
+            if cache.get(
+                    f'{receive_dict["data"]["seeker"]}-request',
+            ) is not None:
+                print("here in 2nd portion\n")
+                receive_dict["status"] = "REJECTED"
+                await self.receive_reject(receive_dict)
 
     async def receive_pending(self, receive_dict):
         user_list = await self.get_user_list(receive_dict)
@@ -210,6 +221,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
     async def receive_reject(self, receive_dict):
         user_list = cache.get(receive_dict["data"]["seeker"])
+        print(user_list)
         if user_list[0] == receive_dict["data"]["provider"]:
             user_list.pop(0)
             cache.set(receive_dict["data"]["seeker"], user_list)
@@ -330,6 +342,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     def get_user_list(self, room_name):
         user = self.user
         try:
+            print("here")
             center = UserLocation.objects.using('location').get(user=user.id).centre
             radius = settings.LOCATION_RADIUS
             user_location_list = list(
