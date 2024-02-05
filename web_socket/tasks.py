@@ -11,28 +11,10 @@ import requests
 
 
 @shared_task()
-def send_celery(scope):
-    time.sleep(10)
+def send_celery(query_string):
     print("helo dummy")
-    # message = {
-    #     "seeker": "ajk",
-    # }
-    # # async_to_sync(channel_layer.group_send)(
-    # #     "8801234567891-room", {
-    # #             'type': 'send.data',
-    # #             'receive_dict': message,
-    # #     }, immediately=True
-    # # )
-    # user = sync_to_async(authenticate)(username="admin", password="admin")
-    # print(user)
-    # channel_layer = get_channel_layer()
-    # channel_layer.group_send(
-    #     "dummy", {
-    #         'type': 'send.data',
-    #         'receive_dict': message,
-    #     },
-    #     # immediately=True
-    # )
+    token = query_string.decode("utf-8").split("=")[-1]
+
 
 
 @app.task

@@ -127,10 +127,10 @@ class RegistrationSerializer(serializers.ModelSerializer):
         otp = validated_data.pop("otp", None)
         time_now = datetime.now()
         try:
-            reg = models.RegistrationOTPModel.objects.get(
+            reg = models.RegistrationOTPModel.objects.filter(
                 phone_number=phone_number,
                 expires_at__gte=time_now
-            )
+            ).last()
             if str(reg.key) != otp:
                 return -1
             user = models.User.objects.create(

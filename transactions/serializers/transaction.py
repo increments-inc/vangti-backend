@@ -6,6 +6,28 @@ from locations.models import UserLocation
 from django.contrib.gis.db.models.functions import Distance
 
 
+def get_hash(picture_url):
+    with open(picture_url[1:], 'rb') as image_file:
+        hash = blurhash.encode(image_file, x_components=4, y_components=3)
+    return hash
+
+
+class HashPictureSerializer(serializers.Serializer):
+    url = serializers.CharField()
+    hash = serializers.CharField()
+
+
+class InfoSerializer(serializers.Serializer):
+    picture = HashPictureSerializer()
+    name = serializers.CharField()
+    rating = serializers.FloatField()
+    deals = serializers.IntegerField()
+    deal_amounts = serializers.FloatField()
+    dislikes = serializers.IntegerField()
+    distance = serializers.CharField()
+    phone_number = serializers.CharField()
+
+
 class TransactionHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = TransactionHistory
@@ -14,6 +36,8 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
 
 class TransactionSerializer(serializers.ModelSerializer):
     transaction_no = serializers.SerializerMethodField()
+    seeker_info = serializers.SerializerMethodField()
+    provider_info = serializers.SerializerMethodField()
 
     class Meta:
         model = Transaction
@@ -23,6 +47,70 @@ class TransactionSerializer(serializers.ModelSerializer):
     def get_transaction_no(obj):
         number = obj.get_transaction_unique_no
         return number
+
+    @extend_schema_field(InfoSerializer)
+    def get_seeker_info(self, obj):
+        request = self.context.get('request')
+
+        name = obj.seeker.user_info.person_name
+        picture = obj.seeker.user_info.profile_pic
+        try:
+            url = request.build_absolute_uri(picture)
+            hash = get_hash(picture.url)
+        except:
+            url = ""
+            hash = "L2SigQD$_2IpDhD%t8oJ_4xtt3IV"
+        rating = obj.seeker.userrating_user.rating
+        deals = obj.seeker.userrating_user.no_of_transaction
+        deal_amounts = obj.seeker.userrating_user.total_amount_of_transaction
+        dislikes = obj.seeker.userrating_user.dislikes
+        distance = str(0)
+        phone_number = obj.seeker.phone_number
+        return {
+            "name": name,
+            "picture": {
+                "url": url,
+                "hash": hash
+            },
+            "rating": rating,
+            "deals": deals,
+            "amount": deal_amounts,
+            "dislikes": dislikes,
+            "distance": distance,
+            "phone_number": phone_number
+        }
+
+    @extend_schema_field(InfoSerializer)
+    def get_provider_info(self, obj):
+        request = self.context.get('request')
+
+        name = obj.provider.user_info.person_name
+        picture = obj.provider.user_info.profile_pic
+        try:
+            url = request.build_absolute_uri(picture)
+            hash = get_hash(picture.url)
+        except:
+            url = ""
+            hash = "L2SigQD$_2IpDhD%t8oJ_4xtt3IV"
+        rating = obj.provider.userrating_user.rating
+        deals = obj.provider.userrating_user.no_of_transaction
+        deal_amounts = obj.provider.userrating_user.total_amount_of_transaction
+        dislikes = obj.provider.userrating_user.dislikes
+        distance = str(0)
+        phone_number = obj.provider.phone_number
+        return {
+            "name": name,
+            "picture": {
+                "url": url,
+                "hash": hash
+            },
+            "rating": rating,
+            "deals": deals,
+            "amount": deal_amounts,
+            "dislikes": dislikes,
+            "distance": distance,
+            "phone_number": phone_number
+        }
 
 
 class TransactionProviderSerializer(serializers.ModelSerializer):
@@ -36,11 +124,6 @@ class TransactionProviderSerializer(serializers.ModelSerializer):
         instance.is_completed = validated_data.pop("is_completed", False)
         instance.save()
         return instance
-
-
-class HashPictureSerializer(serializers.Serializer):
-    url = serializers.CharField()
-    hash = serializers.CharField()
 
 
 class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
@@ -81,8 +164,6 @@ class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
         all_distance = dict(UserLocation.objects.filter(user=user.id).annotate(
             distance=Distance("centre", provider.centre)).values("user_phone_number", "distance"))
         print(all_distance, "all distance all")
-
-
 
         return f"{distance}"
 

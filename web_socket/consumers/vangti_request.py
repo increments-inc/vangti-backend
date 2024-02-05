@@ -1,5 +1,7 @@
 import asyncio
 import json
+import time
+
 from django.contrib.gis.measure import Distance
 from django.contrib.gis.geos import Point
 from django.core.cache import cache
@@ -31,6 +33,9 @@ class InterruptExecution(Exception):
 
 
 class VangtiRequestConsumer(AsyncWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reject_received = False
     async def connect(self):
         kwargs = self.scope.get("url_route")["kwargs"]
         self.user = self.scope["user"]
@@ -55,8 +60,10 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         user = self.scope["user"]
         receive_dict = text_data
         try:
-            receive_dict = json.loads(text_data)
+            if type(text_data) == str:
+                receive_dict = json.loads(text_data)
         except:
+            print("in exception")
             return
         print("all data", receive_dict)
         # send out request (seeker end)
@@ -112,8 +119,14 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             'message': receive_dict,
             "user": str(self.user.id)
         }))
-        await asyncio.sleep(10)
-        await self.set_timeout(receive_dict)
+        await self.delayed_message()
+        print("sate reject!!!!!!!!!!!", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
+        # send_celery(self.scope["query_string"])
+        # await self.set_timeout(receive_dict)
+
+    async def delayed_message(self):
+        await asyncio.sleep(10)  # Sleep for 10 seconds
+        print("10 seconds have passed")
 
     async def send_to_seeker(self, event):
         receive_dict = event['receive_dict']
@@ -125,6 +138,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         }))
 
     async def set_timeout(self, receive_dict):
+        # await asyncio.sleep(10)
+        # time.sleep(10)
+        print("set")
         if cache.get(
                 f'{receive_dict["data"]["seeker"]}-request',
         ) is not None:
@@ -144,18 +160,19 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                         'receive_dict': receive_dict,
                     }
                 )
-            if cache.get(
-                    f'{receive_dict["data"]["seeker"]}-request',
-            ) is not None:
-                print("sate reject", cache.get(f'{receive_dict["data"]["seeker"]}-request')
-
-                )
-                await self.receive_reject(receive_dict)
-            print("forwarded to reject!!!", state)
+            # if cache.get(
+            #         f'{receive_dict["data"]["seeker"]}-request',
+            # ) is not None:
+            #
+            #
+            #     print("here in 2nd portion\n")
+            #     receive_dict["status"] = "REJECTED"
+            #     await self.receive_reject(receive_dict)
+            # print("forwarded to reject!!!", state)
 
     async def receive_pending(self, receive_dict):
         user_list = await self.get_user_list(receive_dict)
-
+        print("here", user_list)
         # cache set
         cache.set(
             receive_dict["data"]["seeker"],
@@ -172,7 +189,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             [
                 receive_dict["data"]["provider"], "pending"
             ],
-            timeout=60
+            timeout=None
         )
         await self.channel_layer.group_send(
             f"{send_user}-room",
@@ -182,7 +199,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             }
         )
         receive_dict["status"] = "SEARCHING"
-        receive_dict["provider"] = None
+        receive_dict["data"]["provider"] = None
         await self.channel_layer.group_send(
             f'{receive_dict["data"]["seeker"]}-room',
             {
@@ -200,7 +217,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             send_user = user_list[0]
             receive_dict["data"]["provider"] = user_list[0]
             receive_dict["status"] = "PENDING"
-            if cache.get(f'{receive_dict["data"]["seeker"]}-request'):
+            if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
                 cache.set(
                     f'{receive_dict["data"]["seeker"]}-request',
                     [
@@ -231,17 +248,13 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             )
 
     async def receive_accept(self, receive_dict):
-        cache.delete(
-            f'{receive_dict["data"]["seeker"]}-request'
-        )
+        print("hdfhgsjhdgfs")
         room_seeker = receive_dict["data"]["seeker"]
         room_provider = receive_dict["data"]["provider"]
         transaction_id = await self.update_request_instance(receive_dict)
         receive_dict["status"] = "ON_GOING_TRANSACTION"
         receive_dict["data"]["transaction_id"] = transaction_id
         if receive_dict["data"]["provider"]:
-
-
             await self.channel_layer.group_send(
                 f"{room_seeker}-room",
                 {
@@ -256,6 +269,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     'receive_dict': receive_dict,
                 }
             )
+        cache.delete(
+            f'{receive_dict["data"]["seeker"]}-request'
+        )
 
     async def receive_location(self, receive_dict):
         room_seeker = receive_dict["data"]["seeker"]
@@ -315,7 +331,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         user = self.user
         try:
             center = UserLocation.objects.using('location').get(user=user.id).centre
-            radius = 10000
+            radius = settings.LOCATION_RADIUS
             user_location_list = list(
                 UserLocation.objects.using('location').filter(
                     centre__distance_lte=(center, Distance(km=radius))
@@ -358,9 +374,10 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 seeker=seeker,
                 charge=amount * 0.01
             )
-            return transaction.id
+            transact = datetime.now().date().strftime('%Y%m%d') + str(transaction.id)
+            return str(transact)
         except:
-            return 0
+            return str(0)
 
     @database_sync_to_async
     def get_user_location(self, user):
