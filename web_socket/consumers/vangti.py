@@ -1,6 +1,7 @@
 import asyncio
 import json
 import time
+
 from django.contrib.gis.measure import Distance
 from django.contrib.gis.geos import Point
 from django.core.cache import cache
@@ -17,7 +18,6 @@ from ..tasks import *
 from ..models import TransactionMessages
 from django.conf import settings
 import blurhash
-import multiprocessing
 
 
 def get_hash(picture_url):
@@ -32,11 +32,10 @@ class InterruptExecution(Exception):
         super().__init__(self.message)
 
 
-class VangtiRequestConsumer(AsyncWebsocketConsumer):
+class VangtiRequestConsumer3(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.reject_received = False
-
     async def connect(self):
         kwargs = self.scope.get("url_route")["kwargs"]
         self.user = self.scope["user"]
@@ -58,7 +57,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive(self, text_data):
-        print(text_data)
         user = self.scope["user"]
         receive_dict = text_data
         try:
@@ -68,10 +66,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             print("in exception")
             return
         print("all data", receive_dict)
-        await self.condition_gate(receive_dict)
-
-    async def condition_gate(self, receive_dict):
-        # send out request
+        # send out request (seeker end)
         if (
                 receive_dict["data"]["seeker"] == str(self.user.id) and
                 receive_dict["request"] == "TRANSACTION" and
@@ -117,7 +112,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             await self.receive_message(receive_dict)
 
     async def send_to_receiver_data(self, event):
-        # await send_celery(self.scope["path"], self.scope["query_string"], event)
         receive_dict = event['receive_dict']
         if type(receive_dict) == str:
             receive_dict = json.loads(receive_dict)
@@ -125,17 +119,18 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             'message': receive_dict,
             "user": str(self.user.id)
         }))
+        # await self.delayed_message(receive_dict)
 
-        # def intensive_task(self):
-        #     for i in range(0, 10):
-        #         print("im here", i)
-        #         asyncio.sleep(1)
-        #
-        # process = multiprocessing.Process(target=interrupt_task)
-        # process.start()
-        # for i in range(0, 10):
-        #     await asyncio.sleep(1)
-        # await send_celery(self.scope["path"], self.scope["query_string"], receive_dict)
+        for i in range(0, 10):
+            print("time", i)
+            await asyncio.sleep(1)
+            # time.sleep(1)
+            print("cache value ", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
+            if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
+                break
+        if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
+            await self.set_timeout(receive_dict)
+        print("10 seconds have passed")
 
     async def delayed_message(self, receive_dict):
         for i in range(0, 10):
@@ -146,7 +141,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
 
-        # Sleep for 10 seconds
+          # Sleep for 10 seconds
         if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
             await self.set_timeout(receive_dict)
         print("10 seconds have passed")
@@ -187,7 +182,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 await self.receive_reject(receive_dict)
 
     async def receive_pending(self, receive_dict):
-        cache.set("ping", "pong", timeout=None)
         user_list = await self.get_user_list(receive_dict)
         print("here", user_list)
         # cache set
@@ -266,6 +260,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             )
 
     async def receive_accept(self, receive_dict):
+        print("hdfhgsjhdgfs")
         room_seeker = receive_dict["data"]["seeker"]
         room_provider = receive_dict["data"]["provider"]
         transaction_id = await self.update_request_instance(receive_dict)

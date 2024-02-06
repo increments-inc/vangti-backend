@@ -300,3 +300,8 @@ CELERY_BEAT_SCHEDULE = {
 
 # DOMAIN
 DOMAIN_NAME = config("DOMAIN")
+
+
+# SMS
+SMS_URL = config("SMS_URL")
+SMS_API_KEY = config("SMS_API_KEY")

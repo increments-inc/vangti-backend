@@ -24,6 +24,7 @@ class InfoSerializer(serializers.Serializer):
     deals = serializers.IntegerField()
     deal_amounts = serializers.FloatField()
     dislikes = serializers.IntegerField()
+    deal_success_rate= serializers.FloatField()
     distance = serializers.CharField()
     phone_number = serializers.CharField()
 
@@ -38,15 +39,31 @@ class TransactionSerializer(serializers.ModelSerializer):
     transaction_no = serializers.SerializerMethodField()
     seeker_info = serializers.SerializerMethodField()
     provider_info = serializers.SerializerMethodField()
-
+    qr = serializers.SerializerMethodField()
     class Meta:
         model = Transaction
-        fields = "__all__"
+        # fields = "__all__"
+        exclude = ("qr_image",)
 
     @staticmethod
     def get_transaction_no(obj):
         number = obj.get_transaction_unique_no
         return number
+
+    @extend_schema_field(HashPictureSerializer)
+    def get_qr(self, obj):
+        request = self.context.get('request')
+        try:
+            image = request.build_absolute_uri(obj.qr_image.url)
+            hash = get_hash(obj.qr_image.url)
+        except:
+            image = ""
+            hash = ""
+
+        return {
+            "url": image,
+            "hash": hash
+        }
 
     @extend_schema_field(InfoSerializer)
     def get_seeker_info(self, obj):
@@ -55,15 +72,17 @@ class TransactionSerializer(serializers.ModelSerializer):
         name = obj.seeker.user_info.person_name
         picture = obj.seeker.user_info.profile_pic
         try:
-            url = request.build_absolute_uri(picture)
+            url = request.build_absolute_uri(picture.url)
             hash = get_hash(picture.url)
         except:
             url = ""
-            hash = "L2SigQD$_2IpDhD%t8oJ_4xtt3IV"
+            hash = ""
         rating = obj.seeker.userrating_user.rating
         deals = obj.seeker.userrating_user.no_of_transaction
         deal_amounts = obj.seeker.userrating_user.total_amount_of_transaction
         dislikes = obj.seeker.userrating_user.dislikes
+        deal_success_rate = obj.seeker.userrating_user.deal_success_rate
+
         distance = str(0)
         phone_number = obj.seeker.phone_number
         return {
@@ -76,6 +95,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "deals": deals,
             "amount": deal_amounts,
             "dislikes": dislikes,
+            "deal_success_rate" :deal_success_rate,
             "distance": distance,
             "phone_number": phone_number
         }
@@ -87,15 +107,16 @@ class TransactionSerializer(serializers.ModelSerializer):
         name = obj.provider.user_info.person_name
         picture = obj.provider.user_info.profile_pic
         try:
-            url = request.build_absolute_uri(picture)
+            url = request.build_absolute_uri(picture.url)
             hash = get_hash(picture.url)
         except:
             url = ""
-            hash = "L2SigQD$_2IpDhD%t8oJ_4xtt3IV"
+            hash = ""
         rating = obj.provider.userrating_user.rating
         deals = obj.provider.userrating_user.no_of_transaction
         deal_amounts = obj.provider.userrating_user.total_amount_of_transaction
         dislikes = obj.provider.userrating_user.dislikes
+        deal_success_rate = obj.provider.userrating_user.deal_success_rate
         distance = str(0)
         phone_number = obj.provider.phone_number
         return {
@@ -108,6 +129,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "deals": deals,
             "amount": deal_amounts,
             "dislikes": dislikes,
+            "deal_success_rate": deal_success_rate,
             "distance": distance,
             "phone_number": phone_number
         }
@@ -176,8 +198,7 @@ class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
             with open(provider_pic.url[1:], 'rb') as image_file:
                 hash = blurhash.encode(image_file, x_components=4, y_components=3)
         else:
-            with open('/Users/mac1/Downloads/nid.jpeg', 'rb') as image_file:
-                hash = blurhash.encode(image_file, x_components=4, y_components=3)
+            hash = ""
         return {
             "url": request.build_absolute_uri(provider_pic.url),
             "hash": hash
@@ -226,8 +247,7 @@ class TransactionProviderHistorySerializer(serializers.ModelSerializer):
             with open(seeker_pic.url[1:], 'rb') as image_file:
                 hash = blurhash.encode(image_file, x_components=4, y_components=3)
         else:
-            with open('/Users/mac1/Downloads/nid.jpeg', 'rb') as image_file:
-                hash = blurhash.encode(image_file, x_components=4, y_components=3)
+            hash = ""
         return {
             "url": request.build_absolute_uri(seeker_pic.url),
             "hash": hash
