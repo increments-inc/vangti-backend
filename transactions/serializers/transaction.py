@@ -148,6 +148,18 @@ class TransactionProviderSerializer(serializers.ModelSerializer):
         return instance
 
 
+class TransactionSeekerSerializer(serializers.ModelSerializer):
+    transaction_no = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = Transaction
+        fields = ("transaction_no", "is_completed")
+
+    def update(self, instance, validated_data):
+        instance.is_completed = validated_data.pop("is_completed", False)
+        instance.save()
+        return instance
+
 class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
     provider_name = serializers.CharField(source="provider.user_info.person_name", read_only=True)
     total_amount__of_transactions = serializers.FloatField(source="provider.userrating_user.no_of_transaction",

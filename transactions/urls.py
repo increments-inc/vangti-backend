@@ -10,6 +10,8 @@ router.register("", TransactionViewSet, basename="transaction")
 urlpatterns = [
                   path('update-by-provider/', TransactionViewSet.as_view({"patch": "update_provider"}),
                        name='user_update_provider'),
+                  path('update-by-seeker/', TransactionViewSet.as_view({"patch": "update_seeker"}),
+                       name='user_update_seeker'),
 
 
                 # user service mode

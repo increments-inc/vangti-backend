@@ -25,6 +25,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == "update_provider":
             return TransactionProviderSerializer
+        if self.action == "update_seeker":
+            return TransactionSeekerSerializer
         return self.serializer_class
 
     def list(self, request, *args, **kwargs):
@@ -40,7 +42,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         serializer = self.serializer_class(instance, context={"request": request})
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
-    def update(self, request, *args, **kwargs):
+    def update_seeker(self, request, *args, **kwargs):
         # print(kwargs)
         transaction_id = kwargs[self.lookup_field][8:]
         instance = self.queryset.get(id=int(transaction_id))
