@@ -30,8 +30,7 @@ urlpatterns = [
                   path('rate-deal/', TransactionRatingViewSet.as_view({"post": "create"}),
                        name='transaction_get_review'),
 
-                  # transaction requests
-
-                  # path('search-vangti/', VangtiSearch.as_view(),
-                  #      name='transaction_search_vangti'),
+                  # transaction open
+                  path('open-deals/', TransactionViewSet.as_view({"get": "open_transactions"}),
+                       name='user_open_transactions'),
               ] + router.urls

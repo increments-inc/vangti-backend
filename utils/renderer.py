@@ -7,6 +7,7 @@ from rest_framework.views import exception_handler
 class CustomJSONRenderer(JSONRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         messages = detail = errors = links = count = total_pages = None
+        print(data)
         if data is not None:
             detail = (
                 data.pop("detail")
@@ -16,7 +17,6 @@ class CustomJSONRenderer(JSONRenderer):
             messages = (
                 data.pop("messages") if "messages" in data else ""
             )
-            print(data)
             errors = data.pop("errors") if "errors" in data else None
             data = data.pop("data") if "data" in data else data
             links = data.pop("links") if "links" in data else {}

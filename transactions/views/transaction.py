@@ -14,7 +14,20 @@ from ..models import *
 from ..serializers import *
 from django.db.models import Q
 from utils.apps.transaction import get_transaction_id
+from utils.apps.user import default_user_models
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
+def send_message_to_channel(request, user, message):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"{user.id}-room",
+        {
+            "type": "send_to_receiver_data",
+            'receive_dict': message
+        }
+    )
+    return
 
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
@@ -42,7 +55,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         try:
             instance = self.queryset.get(id=int(transaction_id))
         except:
-            return response.Response({"error": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
+            return response.Response({"errors": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.serializer_class(instance, context={"request": request})
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -50,30 +63,52 @@ class TransactionViewSet(viewsets.ModelViewSet):
         return response.Response("", status=status.HTTP_200_OK)
 
     def update_seeker(self, request, *args, **kwargs):
-        # print(kwargs)
         transaction_id = get_transaction_id(request.data["transaction_no"])
         try:
             instance = self.queryset.get(id=int(transaction_id))
         except:
-            return response.Response({"error": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
+            return response.Response({"errors": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
+        if instance.is_completed:
+            return response.Response({"errors": "Deal is already completed"}, status=status.HTTP_400_BAD_REQUEST)
         if instance.seeker == request.user:
-            serializer = self.get_serializer_class()(instance, context={"request": request}, data=request.data, partial=True)
+            serializer = self.get_serializer_class()(
+                instance, context={"request": request},
+                data=request.data,
+                partial=True)
             if serializer.is_valid():
                 instance = serializer.save()
                 if instance == -1:
-                    return response.Response({"error": "transaction pin not valid"}, status=status.HTTP_400_BAD_REQUEST)
+                    return response.Response({"errors": "transaction pin not valid"},
+                                             status=status.HTTP_400_BAD_REQUEST)
+                message = {
+                    'request': 'TRANSACTION',
+                    'status': 'COMPLETED_TRANSACTION',
+                    'data': {
+                        'amount': int(instance.total_amount),
+                        'preferred': instance.preferred_notes,
+                        'transaction_id': instance.get_transaction_unique_no,
+                        'seeker': f'{instance.seeker.id}',
+                        'seeker_info': {
+                            'name': '',
+                            'picture': {'url': '', 'hash': ''},
+                            'rating': 0.0,
+                            'total_deals': 0
+                        },
+                        'provider': f'{instance.provider.id}'
+                    }
+                }
+                send_message_to_channel(request,instance.provider, message )
                 return response.Response(serializer.data, status=status.HTTP_200_OK)
-            return response.Response(serializer.data, status=status.HTTP_200_OK)
+            return response.Response({"errors": "data not valid"}, status=status.HTTP_400_BAD_REQUEST)
 
         return response.Response({"message": "not authorised to update"}, status=status.HTTP_403_FORBIDDEN)
 
     def update_provider(self, request, *args, **kwargs):
-        # print(kwargs)
         transaction_id = get_transaction_id(request.data["transaction_no"])
         try:
             instance = self.queryset.get(id=int(transaction_id))
         except:
-            return response.Response({"error": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
+            return response.Response({"errors": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
         if request.user == instance.provider:
             serializer = self.get_serializer_class()(instance, context={"request": request}, data=request.data,
                                                      partial=True)
@@ -82,45 +117,19 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 data = self.serializer_class(data_instance, context={"request": request}).data
                 return response.Response(data, status=status.HTTP_200_OK)
             return response.Response(serializer.data, status=status.HTTP_200_OK)
-
         return response.Response({"message": "not authorised to update"}, status=status.HTTP_403_FORBIDDEN)
 
-
-"""
-def transaction_id(start_id):
-    while True:
-        start_id += 1
-        yield start_id
-
-class Account:
-    transaction_id = transaction_id(100)
-
-    def make_transaction(self):
-        return next(Account.transaction_id)
-
-a1 = Account()
-a2 = Account()
-
-print(a1.make_transaction())
-print(a2.make_transaction())
-print(a1.make_transaction())
-
-import itertools
-
-class Account:
-    transaction_id = itertools.count(start=100, step=1)
-
-    def make_transaction(self):
-        return next(Account.transaction_id)
-
-a1 = Account()
-a2 = Account()
-
-print(a1.make_transaction())
-print(a2.make_transaction())
-print(a1.make_transaction())
-
-"""
+    def open_transactions(self, request, *args, **kwargs):
+        queryset = self.queryset.filter(
+            Q(seeker=request.user) | Q(provider=request.user)
+        ).filter(
+            is_completed=False
+        )
+        if queryset.exists():
+            instance = queryset.order_by("-created_at").first()
+            serializer = self.serializer_class(instance, context={"request": request})
+            return response.Response(serializer.data, status=status.HTTP_200_OK)
+        return response.Response({}, status=status.HTTP_200_OK)
 
 
 # history and insights
@@ -146,6 +155,7 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer_class()(queryset, many=True, context={"request": self.request})
 
         page = self.paginate_queryset(queryset)
+        print(page)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
