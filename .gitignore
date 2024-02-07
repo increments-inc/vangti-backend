@@ -7,5 +7,5 @@ credentials2.json
 credentials.json
 celerybeat-schedule.db
 send_request.py
-managemant/
+management/
 message.txt
