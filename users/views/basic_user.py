@@ -249,7 +249,7 @@ class GetNumberViewSet(viewsets.ModelViewSet):
                 )
             print(user[-1])
             return response.Response(
-                f"OTP sent - {user[-1]}",
+                f"OTP sent via sms",
                 status=status.HTTP_200_OK
             )
 
