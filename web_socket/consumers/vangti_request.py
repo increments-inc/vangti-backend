@@ -36,6 +36,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         room_name = self.user.id
         self.room_group_name = f"{room_name}-room"
         print("all items", self.scope, self.scope["user"], kwargs, self.channel_layer, self.room_group_name)
+        print("CONNECTED!!!!!!!!  ", self.scope["user"])
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
@@ -58,7 +59,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         except:
             print("in exception")
             return
-        print("all data", receive_dict)
+        print("all data!!!!\n", receive_dict)
         await self.condition_gate(receive_dict)
 
     async def condition_gate(self, receive_dict):
@@ -108,6 +109,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             await self.receive_message(receive_dict)
 
     async def send_to_receiver_data(self, event):
+        print("all send sata !!!!\n", event)
         receive_dict = event['receive_dict']
         if type(receive_dict) == str:
             receive_dict = json.loads(receive_dict)
@@ -377,7 +379,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 seeker=seeker,
                 charge=amount * 0.01
             )
-            transact = datetime.now().date().strftime('%Y%m%d') + str(transaction.id)
+            transact = transaction.get_transaction_unique_no
             return str(transact)
         except:
             return str(0)

@@ -8,7 +8,7 @@ import jwt
 import requests
 from cryptography.fernet import Fernet
 from django.conf import settings
-
+import base64
 from django.core.mail import EmailMessage, send_mass_mail
 
 # image compression
@@ -111,3 +111,17 @@ class Util:
         email.send()
 
 
+def base64_encode(data):
+    return base64.b64encode(str(data).encode("utf-8")).decode("utf-8")
+
+
+def base64_decode(data):
+    return base64.b64decode(str(data)).decode("utf-8")
+
+
+def int_to_hex(data):
+    return '{:016x}'.format(int(data))
+
+
+def hex_to_int(data):
+    return int(str(data), 16)

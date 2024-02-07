@@ -24,7 +24,7 @@ class InfoSerializer(serializers.Serializer):
     deals = serializers.IntegerField()
     deal_amounts = serializers.FloatField()
     dislikes = serializers.IntegerField()
-    deal_success_rate= serializers.FloatField()
+    deal_success_rate = serializers.FloatField()
     distance = serializers.CharField()
     phone_number = serializers.CharField()
 
@@ -40,10 +40,11 @@ class TransactionSerializer(serializers.ModelSerializer):
     seeker_info = serializers.SerializerMethodField()
     provider_info = serializers.SerializerMethodField()
     qr = serializers.SerializerMethodField()
+
     class Meta:
         model = Transaction
         # fields = "__all__"
-        exclude = ("qr_image",)
+        exclude = ("qr_image", 'transaction_pin')
 
     @staticmethod
     def get_transaction_no(obj):
@@ -95,7 +96,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "deals": deals,
             "amount": deal_amounts,
             "dislikes": dislikes,
-            "deal_success_rate" :deal_success_rate,
+            "deal_success_rate": deal_success_rate,
             "distance": distance,
             "phone_number": phone_number
         }
@@ -136,29 +137,42 @@ class TransactionSerializer(serializers.ModelSerializer):
 
 
 class TransactionProviderSerializer(serializers.ModelSerializer):
-    transaction_no = serializers.CharField(write_only=True)
+    transaction_no = serializers.CharField(source="get_transaction_unique_no")
 
     class Meta:
         model = Transaction
-        fields = ("transaction_no", "is_completed")
+        fields = (
+            "transaction_no",
+            "is_completed",
+        )
+        read_only_fields = ("is_completed",)
 
     def update(self, instance, validated_data):
-        instance.is_completed = validated_data.pop("is_completed", False)
+        instance.is_completed = True
         instance.save()
         return instance
 
 
 class TransactionSeekerSerializer(serializers.ModelSerializer):
-    transaction_no = serializers.CharField(write_only=True)
+    transaction_no = serializers.CharField(source="get_transaction_unique_no")
 
     class Meta:
         model = Transaction
-        fields = ("transaction_no", "is_completed")
+        fields = (
+            "transaction_no",
+            "transaction_pin",
+            "is_completed",
+        )
+        read_only_fields = ("is_completed",)
 
     def update(self, instance, validated_data):
-        instance.is_completed = validated_data.pop("is_completed", False)
-        instance.save()
-        return instance
+        pin = validated_data.pop("transaction_pin", None)
+        if pin == instance.transaction_pin:
+            instance.is_completed = True
+            instance.save()
+            return instance
+        return -1
+
 
 class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
     provider_name = serializers.CharField(source="provider.user_info.person_name", read_only=True)

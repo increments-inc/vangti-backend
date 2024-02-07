@@ -20,23 +20,14 @@ class TransactionRatingViewSet(viewsets.ModelViewSet):
     lookup_field = 'transaction_no'
     http_method_names = ["get", "post", ]
 
-    def get_serializer_class(self):
-        if self.action == "rate_transaction":
-            return TransactionReviewRetrieveSerializer
-        return self.serializer_class
-
     def create(self, request, *args, **kwargs):
         user = self.request.user
-        data = self.request.data
-        serializer = self.serializer_class(data=data)
+        serializer = self.serializer_class(data=request.data, context={"request": request})
         if serializer.is_valid():
-            serializer.save()
+            review = serializer.save()
+            if review == -1:
+                return response.Response({"error": "No valid transaction found"}, status=status.HTTP_400_BAD_REQUEST)
+            if review == -2:
+                return response.Response({"error": "User not authorised to rate this transaction"}, status=status.HTTP_403_FORBIDDEN)
             return response.Response(serializer.data, status=status.HTTP_201_CREATED)
-        return response.Response("", status=status.HTTP_204_NO_CONTENT)
-
-    def rate_transaction(self, request, *args, **kwargs):
-        transaction = request.data.get("transaction", None)
-        queryset = self.queryset.filter(transaction=transaction)
-        serializer = self.serializer_class(queryset, many=True)
-        return response.Response(serializer.data, status=status.HTTP_200_OK)
-
+        return response.Response("", status=status.HTTP_400_BAD_REQUEST)
