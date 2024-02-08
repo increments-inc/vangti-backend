@@ -29,7 +29,7 @@ class UserServiceModeViewSet(viewsets.ModelViewSet):
     def mode_change(self, *args, **kwargs):
         instance = self.queryset.get(user=self.request.user)
         data = self.request.data
-        serializer = self.serializer_class(instance, data=data)
+        serializer = self.serializer_class(instance, data=data, context={"request": self.request})
         try:
             self.request.user.users_verified
         except ObjectDoesNotExist:

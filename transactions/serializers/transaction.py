@@ -270,6 +270,7 @@ class TransactionProviderHistorySerializer(serializers.ModelSerializer):
         hash = ""
         seeker_pic = obj.seeker.user_info.profile_pic
         if seeker_pic is not None:
+            print(seeker_pic)
             with open(seeker_pic.url[1:], 'rb') as image_file:
                 hash = blurhash.encode(image_file, x_components=4, y_components=3)
         else:

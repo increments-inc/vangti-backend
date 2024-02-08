@@ -12,8 +12,10 @@ class UserLocation(models.Model):
     # user = models.CharField(max_length=256, null=True, blank=True)
     user = models.UUIDField(unique=True)
     user_phone_number = models.CharField(max_length=15, blank=True, null=True)
-    latitude = models.CharField(max_length=10, default="0")
-    longitude = models.CharField(max_length=10, default="0")
+    # latitude = models.CharField(max_length=10, default="0")
+    # longitude = models.CharField(max_length=10, default="0")
+    latitude = models.FloatField(default=0.0)
+    longitude = models.FloatField(default=0.0)
     centre = models.PointField()
 
     def __str__(self):

@@ -17,6 +17,7 @@ from ..tasks import *
 from ..models import TransactionMessages
 from django.conf import settings
 import blurhash
+from utils.apps.location import get_directions
 
 
 def get_hash(picture_url):
@@ -329,25 +330,40 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     async def receive_location(self, receive_dict):
         room_seeker = receive_dict["data"]["seeker"]
         room_provider = receive_dict["data"]["provider"]
-        receive_dict["data"]["seeker_location"] = await self.get_user_location(receive_dict["data"]["seeker"])
-        receive_dict["data"]["provider_location"] = await self.get_user_location(receive_dict["data"]["provider"])
-        receive_dict["data"]["direction"] = await self.get_direction(receive_dict["data"]["seeker"],
-                                                                     receive_dict["data"]["provider"])
-        if receive_dict["data"]["provider"]:
-            await self.channel_layer.group_send(
-                f"{room_seeker}-room",
-                {
-                    'type': 'send_to_receiver_data',
-                    'receive_dict': receive_dict,
-                }
-            )
-            await self.channel_layer.group_send(
-                f"{room_provider}-room",
-                {
-                    'type': 'send_to_receiver_data',
-                    'receive_dict': receive_dict,
-                }
-            )
+        # get seeker location if null
+        if ("latitude" in receive_dict["data"]["seeker_location"]) and (
+                "longitude" in receive_dict["data"]["seeker_location"]):
+            if (receive_dict["data"]["seeker_location"]["latitude"] == 0) or (
+                    receive_dict["data"]["seeker_location"]["longitude"] == 0):
+                receive_dict["data"]["seeker_location"] = await self.get_user_location(receive_dict["data"]["seeker"])
+        # get provider location if null
+        if ("latitude" in receive_dict["data"]["provider_location"]) and (
+                "longitude" in receive_dict["data"]["provider_location"]):
+            if (receive_dict["data"]["provider_location"]["latitude"] == 0) or (
+                    receive_dict["data"]["provider_location"]["longitude"] == 0):
+                receive_dict["data"]["provider_location"] = await self.get_user_location(
+                    receive_dict["data"]["provider"])
+        # directions
+        receive_dict["data"]["direction"] = await self.get_direction(
+            receive_dict["data"]["seeker"],
+            receive_dict["data"]["provider"]
+        )
+
+        # send location to seeker, provider
+        await self.channel_layer.group_send(
+            f"{receive_dict['data']['seeker']}-room",
+            {
+                'type': 'send_to_receiver_data',
+                'receive_dict': receive_dict,
+            }
+        )
+        await self.channel_layer.group_send(
+            f"{receive_dict['data']['provider']}-room",
+            {
+                'type': 'send_to_receiver_data',
+                'receive_dict': receive_dict,
+            }
+        )
 
     async def receive_message(self, receive_dict):
         room_seeker = receive_dict["data"]["seeker"]
@@ -370,14 +386,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     'receive_dict': receive_dict,
                 }
             )
-
-    @database_sync_to_async
-    def get_direction(self, seeker_location, provider_location):
-        user = self.user
-        try:
-            return ""
-        except:
-            return ""
 
     @database_sync_to_async
     def get_user_list(self, room_name):
@@ -423,11 +431,10 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     seeker=seeker,
                     is_completed=False
                 )
-                # total_amount = amount,
-                # preferred_notes = preferred,
-                # provider = provider,
-                # seeker = seeker,
-                # charge = amount * 0.01
+                transaction.total_amount = amount
+                transaction.preferred_notes = preferred,
+                transaction.charge = amount * 0.01
+                transaction.save()
             except Transaction.DoesNotExist:
                 transaction = Transaction.objects.create(
                     total_amount=amount,
@@ -444,10 +451,30 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_user_location(self, user):
         try:
-            location = "100, 100"
-            return location
+            location = UserLocation.objects.filter(user=user.id).last()
+            return {
+                "latitude": location.latitude,
+                "longitude": location.longitude
+            }
         except:
-            return "0"
+            return {
+                "latitude": 0.0,
+                "longitude": 0.0
+            }
+
+    @database_sync_to_async
+    def get_direction(self, seeker_location, provider_location):
+        try:
+            # get_directions(seeker_location, provider_location)
+            return get_directions(seeker_location, provider_location)
+        except:
+            return {
+                "start_location": 0.0,
+                "end_location": 0.0,
+                "distance": "0 km",
+                "duration": "0 min",
+                "polyline": [(0, 0)]
+            }
 
     @database_sync_to_async
     def get_previous_messages(self, transaction_id):

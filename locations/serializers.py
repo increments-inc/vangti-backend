@@ -9,6 +9,12 @@ from drf_extra_fields.geo_fields import PointField
 from django.core.cache import cache
 from django.db.models import Q
 from utils.apps.location import latlong_to_address
+from drf_spectacular.utils import extend_schema_field
+
+
+class GoogleMapsSerializer(serializers.Serializer):
+    formatted_address = serializers.CharField()
+    place_id = serializers.CharField()
 
 
 class LocationSerializer(serializers.ModelSerializer):
@@ -29,6 +35,7 @@ class LocationSerializer(serializers.ModelSerializer):
             "google_api_data"
         ]
 
+    @extend_schema_field(GoogleMapsSerializer)
     def get_google_api_data(self, obj):
         lat_long = f"{obj.latitude},{obj.longitude}"
         return latlong_to_address(lat_long)

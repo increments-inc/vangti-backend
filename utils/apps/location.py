@@ -36,3 +36,13 @@ def get_directions(source, destination):
     return response_json
 
 
+
+"""
+{
+                "start_location": 0.0,
+                "end_location": 0.0,
+                "distance": "0 km",
+                "duration": "0 min",
+                "polyline": [(0, 0)]
+            }
+"""
