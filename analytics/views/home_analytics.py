@@ -138,7 +138,7 @@ class HomeAnalyticsViewSet(viewsets.ModelViewSet):
 
     def home_analytics(self, request, *args, **kwargs):
         user = request.user
-        send_push2(user, user, {})
+        # send_push2(user, user, {})
         mode = user.user_mode.is_provider
         if mode:
             data = self.provider_analytics()

@@ -17,7 +17,7 @@ class CustomJSONRenderer(JSONRenderer):
             messages = (
                 data.pop("messages") if "messages" in data else ""
             )
-            errors = data.pop("errors") if "errors" in data else None
+            # errors = data.pop("errors") if "errors" in data else None
             data = data.pop("data") if "data" in data else data
             links = data.pop("links") if "links" in data else {}
             count = data.pop("count") if "count" in data else 0
@@ -25,6 +25,17 @@ class CustomJSONRenderer(JSONRenderer):
             data = data.pop("results") if "results" in data else data
 
         stats_code = renderer_context["response"].status_code
+        errors = []
+
+        if stats_code >= 400:
+            errors.append(detail)
+            if len(messages) !=0:
+                if "message" in messages[0]:
+                    errors.append(messages[0]["message"])
+            if "errors" in data:
+                errors.append(data.pop("errors"))
+            detail = ""
+            messages = ""
 
         response_data = {
             # "detail": errors[0].split(":")[1].strip() if errors else detail,

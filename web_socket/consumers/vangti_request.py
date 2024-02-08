@@ -128,6 +128,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
         receive_dict["data"]["provider"] = provider
+        receive_dict["data"]["status"] = 'PENDING'
 
         if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
             print("here")
@@ -173,14 +174,35 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 await self.receive_reject(receive_dict)
 
     async def receive_pending(self, receive_dict):
+        receive_dict["status"] = "SEARCHING"
+        # receive_dict["data"]["provider"] = None
+        await self.channel_layer.group_send(
+            f'{receive_dict["data"]["seeker"]}-room',
+            {
+                'type': 'send_to_receiver_data',
+                'receive_dict': receive_dict,
+            }
+        )
+
         user_list = await self.get_user_list(receive_dict)
         print("here", user_list)
+        # if len(user_list)==0:
+        #     receive_dict["status"] = "NO_PROVIDER"
+        #     await self.channel_layer.group_send(
+        #         f'{receive_dict["data"]["seeker"]}-room',
+        #         {
+        #             'type': 'send_to_receiver_data',
+        #             'receive_dict': receive_dict,
+        #         }
+        #     )
+        #     return
         # cache set
         cache.set(
             receive_dict["data"]["seeker"],
             user_list,
             timeout=None
         )
+
         send_user = user_list[0]
         receive_dict["data"]["provider"] = user_list[0]
         receive_dict["data"]["seeker_info"] = await self.get_seeker_info(
@@ -193,7 +215,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             ],
             timeout=None
         )
-
+        receive_dict["status"] = "PENDING"
         await self.channel_layer.group_send(
             f"{send_user}-room",
             {
@@ -201,16 +223,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 'receive_dict': receive_dict,
             }
         )
-        receive_dict["status"] = "SEARCHING"
-        receive_dict["data"]["provider"] = None
-        await self.channel_layer.group_send(
-            f'{receive_dict["data"]["seeker"]}-room',
-            {
-                'type': 'send_to_receiver_data',
-                'receive_dict': receive_dict,
-            }
-        )
-        receive_dict["status"] = "PENDING"
         receive_dict["data"]["provider"] = send_user
         await self.delayed_message_seeker(receive_dict)
 

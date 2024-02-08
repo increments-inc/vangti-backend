@@ -44,7 +44,7 @@ class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
         # fields = "__all__"
-        exclude = ("id","qr_image", 'transaction_pin')
+        exclude = ("id","qr_image",)
 
     @staticmethod
     def get_transaction_no(obj):
