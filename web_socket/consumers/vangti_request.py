@@ -60,6 +60,43 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             print("in exception")
             return
         print("all data!!!!\n", receive_dict)
+
+        if "seeker" in receive_dict["data"]:
+            if receive_dict["data"]["seeker"] == str(self.user.id):
+                user_list = await self.get_user_list(receive_dict)
+                print("here", user_list)
+                # cache set
+
+                if len(user_list) == 0:
+                    receive_dict["status"] = "NO_PROVIDER"
+                    await self.channel_layer.group_send(
+                        f'{receive_dict["data"]["seeker"]}-room',
+                        {
+                            'type': 'send_to_receiver_data',
+                            'receive_dict': receive_dict,
+                        }
+                    )
+                    return
+                cache.set(
+                    receive_dict["data"]["seeker"],
+                    user_list,
+                    timeout=None
+                )
+                receive_dict["status"] = "SEARCHING"
+                # await self.channel_layer.group_send(
+                #     f'{receive_dict["data"]["seeker"]}-room',
+                #     {
+                #         'type': 'send_to_receiver_data',
+                #         'receive_dict': receive_dict,
+                #     }
+                # )
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    'user': str(self.user.id)
+                }))
+
+                receive_dict["status"] = "PENDING"
+
         await self.condition_gate(receive_dict)
 
     async def condition_gate(self, receive_dict):
@@ -166,26 +203,26 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                         'receive_dict': receive_dict,
                     }
                 )
-            # if cache.get(
-            #         f'{receive_dict["data"]["seeker"]}-request',
-            # ) is not None:
-            #     print("here in 2nd portion\n")
+                # if cache.get(
+                #         f'{receive_dict["data"]["seeker"]}-request',
+                # ) is not None:
+                #     print("here in 2nd portion\n")
                 receive_dict["status"] = "REJECTED"
                 await self.receive_reject(receive_dict)
 
     async def receive_pending(self, receive_dict):
-        receive_dict["status"] = "SEARCHING"
-        # receive_dict["data"]["provider"] = None
-        await self.channel_layer.group_send(
-            f'{receive_dict["data"]["seeker"]}-room',
-            {
-                'type': 'send_to_receiver_data',
-                'receive_dict': receive_dict,
-            }
-        )
+        # receive_dict["status"] = "SEARCHING"
+        # # receive_dict["data"]["provider"] = None
+        # await self.channel_layer.group_send(
+        #     f'{receive_dict["data"]["seeker"]}-room',
+        #     {
+        #         'type': 'send_to_receiver_data',
+        #         'receive_dict': receive_dict,
+        #     }
+        # )
 
-        user_list = await self.get_user_list(receive_dict)
-        print("here", user_list)
+        # user_list = await self.get_user_list(receive_dict)
+        # print("here", user_list)
         # if len(user_list)==0:
         #     receive_dict["status"] = "NO_PROVIDER"
         #     await self.channel_layer.group_send(
@@ -197,10 +234,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         #     )
         #     return
         # cache set
-        cache.set(
-            receive_dict["data"]["seeker"],
-            user_list,
-            timeout=None
+        user_list = cache.get(
+            receive_dict["data"]["seeker"]
         )
 
         send_user = user_list[0]
@@ -225,8 +260,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         )
         receive_dict["data"]["provider"] = send_user
         await self.delayed_message_seeker(receive_dict)
-
-
 
     async def receive_reject(self, receive_dict):
         user_list = cache.get(receive_dict["data"]["seeker"])
@@ -384,13 +417,25 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             preferred = data["data"]["preferred"]
             provider = User.objects.get(id=data["data"]["provider"])
             seeker = User.objects.get(id=data["data"]["seeker"])
-            transaction = Transaction.objects.create(
-                total_amount=amount,
-                preferred_notes=preferred,
-                provider=provider,
-                seeker=seeker,
-                charge=amount * 0.01
-            )
+            try:
+                transaction = Transaction.objects.get(
+                    provider=provider,
+                    seeker=seeker,
+                    is_completed=False
+                )
+                # total_amount = amount,
+                # preferred_notes = preferred,
+                # provider = provider,
+                # seeker = seeker,
+                # charge = amount * 0.01
+            except Transaction.DoesNotExist:
+                transaction = Transaction.objects.create(
+                    total_amount=amount,
+                    preferred_notes=preferred,
+                    provider=provider,
+                    seeker=seeker,
+                    charge=amount * 0.01
+                )
             transact = transaction.get_transaction_unique_no
             return str(transact)
         except:

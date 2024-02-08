@@ -6,6 +6,7 @@ from rest_framework import (
 )
 from ..serializers import *
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 
 
 class UserServiceModeViewSet(viewsets.ModelViewSet):
@@ -34,6 +35,18 @@ class UserServiceModeViewSet(viewsets.ModelViewSet):
         except ObjectDoesNotExist:
             return response.Response(
                 {"message": "User not verified"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if Transaction.objects.filter(
+                Q(seeker=self.request.user) | Q(provider=self.request.user)
+        ).filter(
+            is_completed=False
+        ).exists():
+            print("open deals exists")
+            return response.Response(
+                {
+                    "errors": "Cannot change mode while transaction is ongoing"
+                },
                 status=status.HTTP_400_BAD_REQUEST
             )
         if serializer.is_valid():
