@@ -12,13 +12,30 @@ from utils.apps.location import latlong_to_address
 from drf_spectacular.utils import extend_schema_field
 
 
-class GoogleMapsSerializer(serializers.Serializer):
+class MapsSerializer(serializers.Serializer):
     formatted_address = serializers.CharField()
     place_id = serializers.CharField()
 
 
-class LocationSerializer(serializers.ModelSerializer):
+class GoogleMapsSerializer(serializers.ModelSerializer):
     google_api_data = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserLocation
+        fields = (
+            "latitude",
+            "longitude",
+            "google_api_data",
+        )
+    @extend_schema_field(MapsSerializer)
+    def get_google_api_data(self, obj):
+        lat_long = f"{obj.latitude},{obj.longitude}"
+        return latlong_to_address(lat_long)
+
+
+
+class LocationSerializer(serializers.ModelSerializer):
+    # google_api_data = serializers.SerializerMethodField()
 
     class Meta:
         model = UserLocation
@@ -27,18 +44,15 @@ class LocationSerializer(serializers.ModelSerializer):
             "longitude",
             # "user_phone_number",
             # "centre",
-            "google_api_data",
+            # "google_api_data",
         )
         read_only_fields = [
             # "user_phone_number",
             # "centre",
-            "google_api_data"
+            # "google_api_data"
         ]
 
-    @extend_schema_field(GoogleMapsSerializer)
-    def get_google_api_data(self, obj):
-        lat_long = f"{obj.latitude},{obj.longitude}"
-        return latlong_to_address(lat_long)
+
 
     def user_list(self, obj):
         user = self.context.get("request").user

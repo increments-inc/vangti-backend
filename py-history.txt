@@ -1,0 +1,22 @@
+from locations.models import *
+from django.contrib.gis.db.models.functions import Distance
+from django.contrib.gis.geos import Point, LineString
+from django.contrib.gis.geos import GEOSGeometry
+
+
+gd = PolyLine.objects.annotate( distance=Distance("linestring", Point(90.39383933207665, 23.868143354821704, srid=4326))).values("linestring", "distance")
+gd[0]["linestring"]
+gd[0]["distance"]
+
+poly = PolyLine.objects.first()
+poly.linestring.project(poly.point) # returns a distance
+point_in_ls = poly.linestring.interpolate(poly.linestring.project(poly.point)) # returns a point object
+# to get a Point, point_in_ls.x  and point_in_ls.y
+ls.contains(point_in_ls)
+index = ls.coords.index(tuple(point_in_ls))
+# list insert --> my_list.insert(index, element)
+# segment list after list(linestring) --> list[x:]
+
+
+
+

@@ -1,7 +1,7 @@
 from django.contrib.gis.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import ArrayField
-from django.contrib.gis.geos import Point
+from django.contrib.gis.geos import Point, LineString
 
 import uuid
 
@@ -45,8 +45,22 @@ class LocationRadius(models.Model):
             return "None"
 
     class Meta:
-        abstract=True
+        abstract = True
         ordering = ("location",)
+
+
+class PolyLine(models.Model):
+    linestring = models.LineStringField(null=True, blank=True)
+    point = models.PointField(null=True, blank=True)
+
+    # user_id_list = ArrayField(models.CharField(max_length=256))
+
+    def __str__(self):
+        return "one line string"
+
+    # class Meta:
+    #     abstract = True
+        # ordering = ("location",)
 
 # abstract models
 # class UserLocation(models.Model):

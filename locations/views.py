@@ -15,6 +15,11 @@ class LocationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get", "patch", "post"]
 
+    def get_serializer_class(self):
+        if self.action == "get_reverse_geocode":
+            return GoogleMapsSerializer
+        return self.serializer_class
+
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user.id)
 
@@ -45,3 +50,14 @@ class LocationViewSet(viewsets.ModelViewSet):
                 serializer.data,
                 status=status.HTTP_200_OK
             )
+
+    def get_reverse_geocode(self, *args, **kwargs):
+        # print("helo", self.request.META.get('HTTP_AUTHORIZATION'))
+        instance = self.get_queryset().get(user=self.request.user.id)
+        serializer = self.get_serializer_class()(instance, context={"request": self.request})
+
+        return response.Response(
+            serializer.data,
+            status=status.HTTP_200_OK
+        )
+

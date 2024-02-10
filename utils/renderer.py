@@ -29,7 +29,7 @@ class CustomJSONRenderer(JSONRenderer):
 
         if stats_code >= 400:
             errors.append(detail)
-            if len(messages) !=0:
+            if len(messages) != 0:
                 if "message" in messages[0]:
                     errors.append(messages[0]["message"])
             if "errors" in data:
@@ -46,7 +46,7 @@ class CustomJSONRenderer(JSONRenderer):
             "links": links,
             "count": count,
             "total_pages": total_pages,
-            "data": data or [],
+            "data": data if data else (None if data == {} else []),
         }
 
         with contextlib.suppress(Exception):

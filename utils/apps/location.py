@@ -1,6 +1,10 @@
 import polyline
 from django.conf import settings
 import requests
+from locations.models import PolyLine
+from django.contrib.gis.geos import Point, LineString
+from django.contrib.gis.measure import D, Distance
+# from django.contrib.gis.db.models.functions import Distance
 
 
 def polyline_to_latlong(poly_str):
@@ -46,3 +50,27 @@ def get_directions(source, destination):
                 "polyline": [(0, 0)]
             }
 """
+
+
+def process_polyline():
+    empty_array = []
+    array = polyline_to_latlong(
+        'y{upCemufP}@?AWP?rACnDClFE|JGvA?CiB?kBAsACeGnJ?t@ETGLKNAtABnB?hECnEItB?jHMdBAZ}EtAqTB}@@Q')
+    for arr in array:
+        empty_array.append(Point(arr[1], arr[0]))
+    point = Point(90, 23)
+
+
+    pl= PolyLine.objects.create(
+        linestring=LineString(empty_array),
+        point = point
+    )
+    pl = PolyLine.objects.filter()
+    print(pl)
+    distance = 5
+    # print(PolyLine.objects.filter(
+    #     linestring__ST_DWithin(point, D(m=5))
+    # )
+    # )
+
+# process_polyline()
