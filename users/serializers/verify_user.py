@@ -1,5 +1,6 @@
 from rest_framework import exceptions, serializers, validators
 from .. import models
+from drf_extra_fields.fields import Base64ImageField
 
 
 class AddNidSerializer(serializers.ModelSerializer):
@@ -128,6 +129,7 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
     user_id = serializers.CharField(source="user.id", read_only=True)
     is_provider = serializers.BooleanField(source="user.user_mode.is_provider", read_only=True)
     # rating = serializers.FloatField(source="user.rating")
+    profile_pic = Base64ImageField(required=False)
     class Meta:
         model = models.UserInformation
         fields = (

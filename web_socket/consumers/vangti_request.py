@@ -18,6 +18,7 @@ from ..models import TransactionMessages
 from django.conf import settings
 import blurhash
 from utils.apps.location import get_directions
+from utils.apps.transaction import get_transaction_id
 
 
 def get_hash(picture_url):
@@ -61,13 +62,12 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             print("in exception")
             return
         print("all data!!!!\n", receive_dict)
-
+        status = receive_dict["status"]
         if "seeker" in receive_dict["data"]:
-            if receive_dict["data"]["seeker"] == str(self.user.id):
+            if receive_dict["data"]["seeker"] == str(self.user.id) and status == "PENDING":
                 user_list = await self.get_user_list(receive_dict)
                 print("here", user_list)
                 # cache set
-
                 if len(user_list) == 0:
                     receive_dict["status"] = "NO_PROVIDER"
                     await self.channel_layer.group_send(
@@ -96,55 +96,56 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     'user': str(self.user.id)
                 }))
 
-                receive_dict["status"] = "PENDING"
+                receive_dict["status"] = status
 
         await self.condition_gate(receive_dict)
 
     async def condition_gate(self, receive_dict):
         # send out request
-        if (
-                receive_dict["data"]["seeker"] == str(self.user.id) and
-                receive_dict["request"] == "TRANSACTION" and
-                receive_dict["status"] == "PENDING" and
-                receive_dict["data"]["provider"] is None
-        ):
-            await self.receive_pending(receive_dict)
+        if receive_dict["request"] == "TRANSACTION":
+            if (
+                    receive_dict["data"]["seeker"] == str(self.user.id) and
+                    receive_dict["request"] == "TRANSACTION" and
+                    receive_dict["status"] == "PENDING" and
+                    receive_dict["data"]["provider"] is None
+            ):
+                await self.receive_pending(receive_dict)
 
-        # reject request
-        if (
-                receive_dict["data"]["provider"] == str(self.user.id) and
-                receive_dict["request"] == "TRANSACTION" and
-                receive_dict["status"] == "REJECTED"
-        ):
-            await self.receive_reject(receive_dict)
+            # reject request
+            if (
+                    receive_dict["data"]["provider"] == str(self.user.id) and
+                    receive_dict["request"] == "TRANSACTION" and
+                    receive_dict["status"] == "REJECTED"
+            ):
+                await self.receive_reject(receive_dict)
 
-        # accept request
-        if (
-                receive_dict["data"]["provider"] == str(self.user.id) and
-                receive_dict["request"] == "TRANSACTION" and
-                receive_dict["status"] == "ACCEPTED"
-        ):
-            await self.receive_accept(receive_dict)
+            # accept request
+            if (
+                    receive_dict["data"]["provider"] == str(self.user.id) and
+                    receive_dict["request"] == "TRANSACTION" and
+                    receive_dict["status"] == "ACCEPTED"
+            ):
+                await self.receive_accept(receive_dict)
 
         # location
         if (
-                (receive_dict["data"]["seeker"] == str(self.user.id)
-                 or receive_dict["data"]["provider"] == str(self.user.id))
-                and
+                # (receive_dict["data"]["seeker"] == str(self.user.id)
+                #  or receive_dict["data"]["provider"] == str(self.user.id))
+                # and
                 receive_dict["request"] == "LOCATION" and
                 receive_dict["status"] == "ON_GOING_TRANSACTION"
         ):
             await self.receive_location(receive_dict)
-
-        # message
-        if (
-                (receive_dict["data"]["seeker"] == str(self.user.id)
-                 or receive_dict["data"]["provider"] == str(self.user.id))
-                and
-                receive_dict["request"] == "MESSAGE" and
-                receive_dict["status"] == "ON_GOING_TRANSACTION"
-        ):
-            await self.receive_message(receive_dict)
+            # message
+        if receive_dict["request"] == "MESSAGE":
+            if (
+                    (receive_dict["data"]["seeker"] == str(self.user.id)
+                     or receive_dict["data"]["provider"] == str(self.user.id))
+                    and
+                    receive_dict["request"] == "MESSAGE" and
+                    receive_dict["status"] == "ON_GOING_TRANSACTION"
+            ):
+                await self.receive_message(receive_dict)
 
     async def send_to_receiver_data(self, event):
         print("all send sata !!!!\n", event)
@@ -328,26 +329,37 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive_location(self, receive_dict):
-        room_seeker = receive_dict["data"]["seeker"]
-        room_provider = receive_dict["data"]["provider"]
-        # get seeker location if null
-        if ("latitude" in receive_dict["data"]["seeker_location"]) and (
-                "longitude" in receive_dict["data"]["seeker_location"]):
-            if (receive_dict["data"]["seeker_location"]["latitude"] == 0) or (
-                    receive_dict["data"]["seeker_location"]["longitude"] == 0):
-                receive_dict["data"]["seeker_location"] = await self.get_user_location(receive_dict["data"]["seeker"])
-        # get provider location if null
-        if ("latitude" in receive_dict["data"]["provider_location"]) and (
-                "longitude" in receive_dict["data"]["provider_location"]):
-            if (receive_dict["data"]["provider_location"]["latitude"] == 0) or (
-                    receive_dict["data"]["provider_location"]["longitude"] == 0):
-                receive_dict["data"]["provider_location"] = await self.get_user_location(
+        user = self.user.id
+        print("location", user)
+        if (
+                "latitude" in receive_dict["data"]["location"]
+                and
+                "longitude" in receive_dict["data"]["location"]
+        ):
+            if (
+                    receive_dict["data"]["location"]["latitude"] == 0 or
+                    receive_dict["data"]["location"]["longitude"] == 0
+            ):
+                receive_dict["data"]["location"] = await self.get_user_location(
                     receive_dict["data"]["provider"])
+
+        print(receive_dict["data"]["location"])
+
+        # transaction
+
         # directions
-        receive_dict["data"]["direction"] = await self.get_direction(
-            receive_dict["data"]["seeker"],
-            receive_dict["data"]["provider"]
+        # modify data
+        receive_dict["data"]["data"] = await self.get_direction_data(
+            receive_dict["data"]
         )
+        if receive_dict["data"]["data"] == -1:
+            receive_dict["status"] = "INVALID_TRANSACTION"
+            receive_dict["data"] = {}
+            await self.send(text_data=json.dumps({
+                'message': receive_dict,
+                'user': str(self.user.id)
+            }))
+            return
 
         # send location to seeker, provider
         await self.channel_layer.group_send(
@@ -449,9 +461,11 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             return str(0)
 
     @database_sync_to_async
-    def get_user_location(self, user):
+    def get_user_location(self, user_id):
         try:
-            location = UserLocation.objects.filter(user=user.id).last()
+            print("im in here", user_id)
+            location = UserLocation.objects.using("location").filter(user=user_id).last()
+            print(location)
             return {
                 "latitude": location.latitude,
                 "longitude": location.longitude
@@ -463,18 +477,30 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             }
 
     @database_sync_to_async
-    def get_direction(self, seeker_location, provider_location):
+    def get_direction_data(self, data):
+        transaction_id = get_transaction_id(data["transaction_id"])
+        print("tr", transaction_id)
+        # employ cache
+        try:
+            transaction = Transaction.objects.get(id=transaction_id)
+            data["seeker"] = transaction.seeker.id
+            data["provider"] = transaction.provider.id
+            if transaction.seeker==self.user:
+                data["seeker_location"]=data["location"]
+                data["provider_location"] = self.get_user_location(transaction.provider)
+            if transaction.provider==self.user:
+                data["seeker_location"]=self.get_user_location(transaction.seeker)
+                data["provider_location"]=data["location"]
+
+        except:
+            return -1
+        print(transaction, "here")
         try:
             # get_directions(seeker_location, provider_location)
-            return get_directions(seeker_location, provider_location)
+            data["direction"]= get_directions(transaction_id, data["seeker_location"], data["provider_location"])
         except:
-            return {
-                "start_location": 0.0,
-                "end_location": 0.0,
-                "distance": "0 km",
-                "duration": "0 min",
-                "polyline": [(0, 0)]
-            }
+            data = -1
+        return data
 
     @database_sync_to_async
     def get_previous_messages(self, transaction_id):

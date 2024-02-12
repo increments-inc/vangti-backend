@@ -50,17 +50,19 @@ class LocationRadius(models.Model):
 
 
 class PolyLine(models.Model):
+    # seeker = models.UUIDField(null=True, blank=True)
+    # provider = models.UUIDField(null=True, blank=True)
+    transaction = models.IntegerField(null=True, blank=True)
     linestring = models.LineStringField(null=True, blank=True)
-    point = models.PointField(null=True, blank=True)
 
-    # user_id_list = ArrayField(models.CharField(max_length=256))
+    # point = models.PointField(null=True, blank=True)
 
     def __str__(self):
         return "one line string"
 
-    # class Meta:
-    #     abstract = True
-        # ordering = ("location",)
+    class Meta:
+        # abstract = True
+        ordering = ("transaction",)
 
 # abstract models
 # class UserLocation(models.Model):
