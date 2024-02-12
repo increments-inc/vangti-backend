@@ -345,14 +345,13 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
         print(receive_dict["data"]["location"])
 
-        # transaction
 
         # directions
         # modify data
-        receive_dict["data"]["data"] = await self.get_direction_data(
+        receive_dict["data"] = await self.get_direction_data(
             receive_dict["data"]
         )
-        if receive_dict["data"]["data"] == -1:
+        if receive_dict["data"] == -1:
             receive_dict["status"] = "INVALID_TRANSACTION"
             receive_dict["data"] = {}
             await self.send(text_data=json.dumps({
@@ -376,6 +375,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 'receive_dict': receive_dict,
             }
         )
+
 
     async def receive_message(self, receive_dict):
         room_seeker = receive_dict["data"]["seeker"]
@@ -483,23 +483,30 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         # employ cache
         try:
             transaction = Transaction.objects.get(id=transaction_id)
-            data["seeker"] = transaction.seeker.id
-            data["provider"] = transaction.provider.id
+            data["seeker"] =str( transaction.seeker.id)
+            data["provider"] = str(transaction.provider.id)
             if transaction.seeker==self.user:
                 data["seeker_location"]=data["location"]
-                data["provider_location"] = self.get_user_location(transaction.provider)
+                prov = UserLocation.objects.using("location").filter(user=transaction.provider.id).last()
+                data["provider_location"] = {
+                    "latitude": prov.latitude,
+                    "longitude": prov.longitude
+                }
             if transaction.provider==self.user:
-                data["seeker_location"]=self.get_user_location(transaction.seeker)
+                seek = UserLocation.objects.using("location").filter(user=transaction.seeker.id).last()
+                data["seeker_location"]={
+                    "latitude": seek.latitude,
+                    "longitude": seek.longitude
+                }
                 data["provider_location"]=data["location"]
-
         except:
             return -1
-        print(transaction, "here")
         try:
             # get_directions(seeker_location, provider_location)
             data["direction"]= get_directions(transaction_id, data["seeker_location"], data["provider_location"])
+
         except:
-            data = -1
+            return -1
         return data
 
     @database_sync_to_async
