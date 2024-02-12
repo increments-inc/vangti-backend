@@ -66,8 +66,8 @@ def get_directions(transaction_id, source_dict, destination_dict):
     #     Point(destination_dict['longitude'], destination_dict['latitude'], srid=4326),
     # )
     source_deviation = destination_deviation = 0
-    source_point = Point(source_dict['longitude'], source_dict['latitude'], srid=4326),
-    destination_point = Point(destination_dict['longitude'], destination_dict['latitude'], srid=4326),
+    source_point = Point(source_dict['longitude'], source_dict['latitude'], srid=4326)
+    destination_point = Point(destination_dict['longitude'], destination_dict['latitude'], srid=4326)
     poly = PolyLine.objects.filter(transaction=transaction_id)
     if poly.exists():
         poly_obj = poly.first()
@@ -75,24 +75,21 @@ def get_directions(transaction_id, source_dict, destination_dict):
         poly_obj = PolyLine.objects.create(
             transaction=transaction_id
         )
-    print("here fsdfs")
+    print("here fsdfs", "poly_obj.linestring")
     if poly_obj.linestring is not None:
-        print("hfgeh", PolyLine.objects.filter(transaction=transaction_id).annotate(
-            distance=Distance("linestring", source_point)))
+
         source_deviation = PolyLine.objects.filter(transaction=transaction_id).annotate(
             distance=Distance("linestring", source_point)).values(
-            "linestring", "distance")
-        print("herrr")
+            "linestring", "distance").values("distance").first()["distance"].km
         destination_deviation = PolyLine.objects.filter(transaction=transaction_id).annotate(
             distance=Distance("linestring", destination_point)).values(
-            "linestring", "distance")
-        print("im here in no tnone")
+            "linestring", "distance").values("distance").first()["distance"].km
+        print("im here in no tnone", type(source_deviation), destination_deviation)
 
         # if source_deviation < 30 and destination_deviation < 30:
         #     return poly_obj.linestring
 
-    print(poly_obj.linestring)
-    if (poly_obj.linestring is None) or (source_deviation > 30 or destination_deviation > 30):
+    if (poly_obj.linestring is None) or (source_deviation > 300 or destination_deviation > 300):
         directions_url = f"https://maps.googleapis.com/maps/api/directions/json?origin={source}&destination={destination}&key={settings.GOOGLE_MAPS_API_KEY}&mode=walking"
         direction_response = requests.request("GET", directions_url)
         # direction_response ={}

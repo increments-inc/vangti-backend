@@ -499,6 +499,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     "longitude": seek.longitude
                 }
                 data["provider_location"]=data["location"]
+            del data["location"]
         except:
             return -1
         try:
