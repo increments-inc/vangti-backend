@@ -89,7 +89,7 @@ def get_directions(transaction_id, source_dict, destination_dict):
         # if source_deviation < 30 and destination_deviation < 30:
         #     return poly_obj.linestring
 
-    if (poly_obj.linestring is None) or (source_deviation > 300 or destination_deviation > 300):
+    if (poly_obj.linestring is None) or (source_deviation > 3000000 or destination_deviation > 3000000):
         directions_url = f"https://maps.googleapis.com/maps/api/directions/json?origin={source}&destination={destination}&key={settings.GOOGLE_MAPS_API_KEY}&mode=walking"
         direction_response = requests.request("GET", directions_url)
         # direction_response ={}
@@ -108,9 +108,13 @@ def get_directions(transaction_id, source_dict, destination_dict):
                 "latitude": point[0],
                 "longitude": point[1]
             })
+
+        print("wjehwkejhwkjheffjwkehfwjehf",empty_point_list)
         response_json = {
-            "distance": response["routes"][0]["legs"]["distance"]["text"],
-            "duration": response["routes"][0]["legs"]["duration"]["text"],
+            # "distance": response["routes"][0]["legs"][0]["distance"]["text"],
+            # "duration": response["routes"][0]["legs"][0]["duration"]["text"],
+            "distance": "hajgsdjm",
+            "duration": "ajsdhah",
             "polyline": empty_point_list
         }
     else:

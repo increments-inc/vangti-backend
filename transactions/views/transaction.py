@@ -63,11 +63,13 @@ class TransactionViewSet(viewsets.ModelViewSet):
         return response.Response("", status=status.HTTP_200_OK)
 
     def update_seeker(self, request, *args, **kwargs):
+        print(request.data)
         transaction_id = get_transaction_id(request.data["transaction_no"])
         try:
             instance = self.queryset.get(id=int(transaction_id))
         except:
             return response.Response({"errors": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
+        print(instance.is_completed)
         if instance.is_completed:
             return response.Response({"errors": "Deal is already completed"}, status=status.HTTP_400_BAD_REQUEST)
         if instance.seeker == request.user:
