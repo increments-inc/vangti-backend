@@ -18,6 +18,7 @@ from utils.apps.user import default_user_models
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
+
 def send_message_to_channel(request, user, message):
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
@@ -28,6 +29,7 @@ def send_message_to_channel(request, user, message):
         }
     )
     return
+
 
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
@@ -99,7 +101,10 @@ class TransactionViewSet(viewsets.ModelViewSet):
                         'provider': f'{instance.provider.id}'
                     }
                 }
-                send_message_to_channel(request,instance.provider, message )
+                # for i in range(3):
+                send_message_to_channel(request, instance.provider, message)
+                # send_message_to_channel(request, instance.seeker, message)
+
                 return response.Response(serializer.data, status=status.HTTP_200_OK)
             return response.Response({"errors": "data not valid"}, status=status.HTTP_400_BAD_REQUEST)
 

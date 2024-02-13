@@ -259,7 +259,10 @@ class UserDeactivateSerializer(serializers.ModelSerializer):
         user = self.context.get("request").user
         pin = validated_data.pop("pin", None)
         is_active = validated_data.pop("is_active", True)
-        PINValidator().validate(password=pin)
+        try:
+            PINValidator().validate(password=pin)
+        except:
+            return -2
         hasher = PBKDF2PasswordHasher()
         hashed_pin = hasher.encode(pin, settings.SALT)
         print("23234234234234")
@@ -267,6 +270,7 @@ class UserDeactivateSerializer(serializers.ModelSerializer):
             return -1
         user.is_active = is_active
         user.save()
+
         return user
 
 

@@ -328,6 +328,22 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         cache.delete(
             f'{receive_dict["data"]["seeker"]}-request'
         )
+        await self.send_location(receive_dict)
+
+    async def send_location(self, receive_dict):
+        transaction_id = receive_dict["data"]["transaction_id"]
+        receive_dict = {
+            "request": "LOCATION",
+            "status": "ON_GOING_TRANSACTION",
+            "data": {
+                "transaction_id": transaction_id,
+                "location": {
+                    "latitude": 0.0,
+                    "longitude": 0.0
+                }
+            }
+        }
+        await self.receive_location(receive_dict)
 
     async def receive_location(self, receive_dict):
         user = self.user.id
@@ -341,8 +357,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     receive_dict["data"]["location"]["latitude"] == 0 or
                     receive_dict["data"]["location"]["longitude"] == 0
             ):
-                receive_dict["data"]["location"] = await self.get_user_location(
-                    receive_dict["data"]["provider"])
+                receive_dict["data"]["location"] = await self.get_user_location(self.user.id)
 
         print(receive_dict["data"]["location"])
 

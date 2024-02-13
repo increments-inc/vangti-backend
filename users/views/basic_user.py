@@ -291,6 +291,11 @@ class UserViewSet(viewsets.ModelViewSet):
                     {"message": "PIN is not valid"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            if user == -2:
+                return response.Response(
+                    {"message": "PIN could not be validated"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             return response.Response(
                 "User Deactivated",
                 status=status.HTTP_200_OK
@@ -303,8 +308,13 @@ class UserViewSet(viewsets.ModelViewSet):
     def delete_user(self, request, *args, **kwargs):
         serializer = self.get_serializer_class()(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
-            return response.Response(serializer.data, status=status.HTTP_200_OK)
+            user = serializer.save()
+            if user == -2:
+                return response.Response({"errors": "pin not verified"}, status=status.HTTP_400_BAD_REQUEST)
+            if user == -3:
+                return response.Response({"errors": "pin could not be validated"}, status=status.HTTP_400_BAD_REQUEST)
+
+            return response.Response("User to be deleted in 30 days", status=status.HTTP_200_OK)
         return response.Response(
             {"message": "User Deletion failed"},
             status=status.HTTP_400_BAD_REQUEST

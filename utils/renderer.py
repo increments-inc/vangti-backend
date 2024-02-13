@@ -28,7 +28,8 @@ class CustomJSONRenderer(JSONRenderer):
         errors = []
 
         if stats_code >= 400:
-            errors.append(detail)
+            if detail not in ["", None]:
+                errors.append(detail)
             if len(messages) != 0:
                 if "message" in messages[0]:
                     errors.append(messages[0]["message"])
