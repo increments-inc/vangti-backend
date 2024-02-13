@@ -13,8 +13,8 @@ def get_hash(picture_url):
 
 
 class HashPictureSerializer(serializers.Serializer):
-    url = serializers.CharField()
-    hash = serializers.CharField()
+    url = serializers.CharField(allow_null=True)
+    hash = serializers.CharField(allow_null=True)
 
 
 class InfoSerializer(serializers.Serializer):
@@ -58,8 +58,8 @@ class TransactionSerializer(serializers.ModelSerializer):
             image = request.build_absolute_uri(obj.qr_image.url)
             hash = get_hash(obj.qr_image.url)
         except:
-            image = ""
-            hash = ""
+            image = None
+            hash = None
 
         return {
             "url": image,
@@ -71,13 +71,13 @@ class TransactionSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
 
         name = obj.seeker.user_info.person_name
-        picture = obj.seeker.user_info.profile_pic
         try:
+            picture = obj.seeker.user_info.profile_pic
             url = request.build_absolute_uri(picture.url)
             hash = get_hash(picture.url)
         except:
-            url = ""
-            hash = ""
+            url = None
+            hash = None
         rating = obj.seeker.userrating_user.rating
         deals = obj.seeker.userrating_user.no_of_transaction
         deal_amounts = obj.seeker.userrating_user.total_amount_of_transaction
@@ -106,13 +106,13 @@ class TransactionSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
 
         name = obj.provider.user_info.person_name
-        picture = obj.provider.user_info.profile_pic
         try:
+            picture = obj.provider.user_info.profile_pic
             url = request.build_absolute_uri(picture.url)
             hash = get_hash(picture.url)
         except:
-            url = ""
-            hash = ""
+            url = None
+            hash =None
         rating = obj.provider.userrating_user.rating
         deals = obj.provider.userrating_user.no_of_transaction
         deal_amounts = obj.provider.userrating_user.total_amount_of_transaction
@@ -218,15 +218,16 @@ class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
     @extend_schema_field(HashPictureSerializer)
     def get_provider_picture(self, obj):
         request = self.context.get("request")
-        hash = ""
-        provider_pic = obj.provider.user_info.profile_pic
-        if provider_pic is not None:
-            with open(provider_pic.url[1:], 'rb') as image_file:
-                hash = blurhash.encode(image_file, x_components=4, y_components=3)
-        else:
-            hash = ""
+        try:
+            provider_pic = obj.provider.user_info.profile_pic
+            url = request.build_absolute_uri(provider_pic.url)
+            hash = get_hash(provider_pic.url)
+        except:
+            url = None
+            hash = None
+
         return {
-            "url": request.build_absolute_uri(provider_pic.url),
+            "url": url,
             "hash": hash
         }
 
@@ -240,8 +241,8 @@ class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
             ret['dislikes'] = 0
         if ret["deal_success_rate"] is None:
             ret['deal_success_rate'] = float(0)
-        if ret["provider_picture"] is None:
-            ret['provider_picture'] = ""
+        # if ret["provider_picture"] is None:
+        #     ret['provider_picture'] = ""
         return ret
 
 
@@ -267,16 +268,16 @@ class TransactionProviderHistorySerializer(serializers.ModelSerializer):
     @extend_schema_field(HashPictureSerializer)
     def get_seeker_picture(self, obj):
         request = self.context.get("request")
-        hash = ""
-        seeker_pic = obj.seeker.user_info.profile_pic
-        if seeker_pic is not None:
-            print(seeker_pic)
-            with open(seeker_pic.url[1:], 'rb') as image_file:
-                hash = blurhash.encode(image_file, x_components=4, y_components=3)
-        else:
-            hash = ""
+        try:
+            seeker_pic = obj.seeker.user_info.profile_pic
+            url = request.build_absolute_uri(seeker_pic.url)
+            hash = get_hash(seeker_pic.url)
+        except:
+            url = None
+            hash = None
+
         return {
-            "url": request.build_absolute_uri(seeker_pic.url),
+            "url": url,
             "hash": hash
         }
 
@@ -286,6 +287,6 @@ class TransactionProviderHistorySerializer(serializers.ModelSerializer):
             ret['total_deals'] = 0
         if ret["rating"] is None:
             ret['rating'] = float(0)
-        if ret["seeker_picture"] is None:
-            ret['seeker_picture'] = ""
+        # if ret["seeker_picture"] is None:
+        #     ret['seeker_picture'] = ""
         return ret

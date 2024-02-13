@@ -129,7 +129,7 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
     user_id = serializers.CharField(source="user.id", read_only=True)
     is_provider = serializers.BooleanField(source="user.user_mode.is_provider", read_only=True)
     # rating = serializers.FloatField(source="user.rating")
-    profile_pic = Base64ImageField(required=False)
+    profile_pic = Base64ImageField(required=False, allow_null=True)
     class Meta:
         model = models.UserInformation
         fields = (

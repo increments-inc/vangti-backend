@@ -114,7 +114,7 @@ def get_directions(transaction_id, source_dict, destination_dict):
         response_json = {
             # "distance": response["routes"][0]["legs"][0]["distance"]["text"],
             # "duration": response["routes"][0]["legs"][0]["duration"]["text"],
-            "distance": "hajgsdjm",
+            "distance": "less ",
             "duration": "ajsdhah",
             "polyline": empty_point_list
         }

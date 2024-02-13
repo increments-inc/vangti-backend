@@ -148,7 +148,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 await self.receive_message(receive_dict)
 
     async def send_to_receiver_data(self, event):
-        print("all send sata !!!!\n", event)
+        print("all send sata !!!!\n", event, self.user)
         receive_dict = event['receive_dict']
         if type(receive_dict) == str:
             receive_dict = json.loads(receive_dict)
