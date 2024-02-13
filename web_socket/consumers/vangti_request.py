@@ -266,9 +266,10 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     async def receive_reject(self, receive_dict):
         user_list = cache.get(receive_dict["data"]["seeker"])
         print(user_list)
-        if user_list[0] == receive_dict["data"]["provider"]:
-            user_list.pop(0)
-            cache.set(receive_dict["data"]["seeker"], user_list)
+        if len(user_list) != 0:
+            if user_list[0] == receive_dict["data"]["provider"]:
+                user_list.pop(0)
+                cache.set(receive_dict["data"]["seeker"], user_list)
         if len(user_list) != 0:
             send_user = user_list[0]
             receive_dict["data"]["provider"] = user_list[0]
@@ -345,7 +346,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
         print(receive_dict["data"]["location"])
 
-
         # directions
         # modify data
         receive_dict["data"] = await self.get_direction_data(
@@ -353,7 +353,15 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         )
         if receive_dict["data"] == -1:
             receive_dict["status"] = "INVALID_TRANSACTION"
-            receive_dict["data"] = {}
+            receive_dict["data"] = None
+            await self.send(text_data=json.dumps({
+                'message': receive_dict,
+                'user': str(self.user.id)
+            }))
+            return
+        if receive_dict["data"] == -2:
+            receive_dict["status"] = "COMPLETED_TRANSACTION"
+            receive_dict["data"] = None
             await self.send(text_data=json.dumps({
                 'message': receive_dict,
                 'user': str(self.user.id)
@@ -375,7 +383,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 'receive_dict': receive_dict,
             }
         )
-
 
     async def receive_message(self, receive_dict):
         room_seeker = receive_dict["data"]["seeker"]
@@ -483,29 +490,40 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         # employ cache
         try:
             transaction = Transaction.objects.get(id=transaction_id)
-            data["seeker"] =str( transaction.seeker.id)
+            data["seeker"] = str(transaction.seeker.id)
             data["provider"] = str(transaction.provider.id)
-            if transaction.seeker==self.user:
-                data["seeker_location"]=data["location"]
+
+            if transaction.seeker == self.user:
+                data["seeker_location"] = data["location"]
+                seek = UserLocation.objects.using("location").filter(user=transaction.seeker.id).last()
+                seek.latitude = data["location"]["latitude"]
+                seek.longitude = data["location"]["longitude"]
+                seek.save()
                 prov = UserLocation.objects.using("location").filter(user=transaction.provider.id).last()
                 data["provider_location"] = {
                     "latitude": prov.latitude,
                     "longitude": prov.longitude
                 }
-            if transaction.provider==self.user:
+            if transaction.provider == self.user:
                 seek = UserLocation.objects.using("location").filter(user=transaction.seeker.id).last()
-                data["seeker_location"]={
+                data["seeker_location"] = {
                     "latitude": seek.latitude,
                     "longitude": seek.longitude
                 }
-                data["provider_location"]=data["location"]
+                data["provider_location"] = data["location"]
+                prov = UserLocation.objects.using("location").filter(user=transaction.provider.id).last()
+                prov.latitude = data["location"]["latitude"]
+                prov.longitude = data["location"]["longitude"]
+                prov.save()
             del data["location"]
         except:
             return -1
+        if transaction.is_completed:
+            return -2
+
         try:
             # get_directions(seeker_location, provider_location)
-            data["direction"]= get_directions(transaction_id, data["seeker_location"], data["provider_location"])
-
+            data["direction"] = get_directions(transaction_id, data["seeker_location"], data["provider_location"])
         except:
             return -1
         return data
