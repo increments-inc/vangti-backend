@@ -6,9 +6,9 @@ from channels.generic.websocket import WebsocketConsumer, AsyncWebsocketConsumer
 from locations.models import UserLocation, LocationRadius
 from ..fcm import send_push
 from transactions.models import Transaction
-from ..models import *
 
 """transaction_id-message-room"""
+
 
 """
 {

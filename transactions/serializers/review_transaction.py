@@ -49,3 +49,24 @@ class TransactionReviewRetrieveSerializer(serializers.ModelSerializer):
     class Meta:
         model = TransactionReview
         fields = ("transaction",)
+
+
+class TransactionMessagesSerializer(serializers.ModelSerializer):
+    user_role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = TransactionMessages
+        fields = (
+            "created_at",
+            "message",
+            "user",
+            "user_role"
+        )
+
+    def get_user_role(self, obj):
+        role = None
+        if obj.transaction.seeker == obj.user:
+            role = "seeker"
+        if obj.transaction.provider == obj.user:
+            role = "provider"
+        return role

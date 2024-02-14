@@ -10,11 +10,10 @@ from django.db import transaction
 from asgiref.sync import async_to_sync, sync_to_async
 from datetime import datetime, timedelta
 from locations.models import UserLocation, LocationRadius
-from transactions.models import TransactionRequest, Transaction
+from transactions.models import TransactionRequest, Transaction, TransactionMessages
 from users.models import User
 from ..fcm import send_push
 from ..tasks import *
-from ..models import TransactionMessages
 from django.conf import settings
 import blurhash
 from utils.apps.location import get_directions
@@ -23,8 +22,8 @@ from utils.apps.transaction import get_transaction_id
 
 def get_hash(picture_url):
     with open(picture_url[1:], 'rb') as image_file:
-        hash = blurhash.encode(image_file, x_components=4, y_components=3)
-    return hash
+        url_hash = blurhash.encode(image_file, x_components=4, y_components=3)
+    return url_hash
 
 
 class VangtiRequestConsumer(AsyncWebsocketConsumer):
