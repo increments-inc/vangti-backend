@@ -366,6 +366,14 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         receive_dict["data"] = await self.get_direction_data(
             receive_dict["data"]
         )
+        # if receive_dict["status"] == "COMPLETED_TRANSACTION":
+        #     receive_dict["data"] = None
+        #     await self.send(text_data=json.dumps({
+        #         'message': receive_dict,
+        #         'user': str(self.user.id)
+        #     }))
+        #     return
+        print("gsdgsdf rev",receive_dict)
         if receive_dict["data"] == -1:
             receive_dict["status"] = "INVALID_TRANSACTION"
             receive_dict["data"] = None
@@ -381,9 +389,26 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 'message': receive_dict,
                 'user': str(self.user.id)
             }))
+            # await self.channel_layer.group_send(
+            #     f"{receive_dict['data']['seeker']}-room",
+            #     {
+            #         'type': 'send_to_receiver_data',
+            #         'receive_dict': receive_dict,
+            #     }
+            # )
+            # await self.channel_layer.group_send(
+            #     f"{receive_dict['data']['provider']}-room",
+            #     {
+            #         'type': 'send_to_receiver_data',
+            #         'receive_dict': receive_dict,
+            #     }
+            # )
             return
 
         # send location to seeker, provider
+        cache.set(
+            f"transaction-{receive_dict['data']['transaction_id']}", receive_dict, timeout=None
+        )
         await self.channel_layer.group_send(
             f"{receive_dict['data']['seeker']}-room",
             {

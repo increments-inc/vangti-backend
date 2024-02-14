@@ -66,8 +66,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     def update_seeker(self, request, *args, **kwargs):
         print(request.data)
-        transaction_id = get_transaction_id(request.data["transaction_no"])
         try:
+            transaction_id = get_transaction_id(request.data["transaction_no"])
             instance = self.queryset.get(id=int(transaction_id))
         except:
             return response.Response({"errors": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
@@ -84,6 +84,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 if instance == -1:
                     return response.Response({"errors": "transaction pin not valid"},
                                              status=status.HTTP_400_BAD_REQUEST)
+
+                # transaction
                 message = {
                     'request': 'TRANSACTION',
                     'status': 'COMPLETED_TRANSACTION',
@@ -104,6 +106,50 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 # for i in range(3):
                 send_message_to_channel(request, instance.provider, message)
                 # send_message_to_channel(request, instance.seeker, message)
+                # Location
+                receive_dict = cache.get(
+                    f"transaction-{instance.get_transaction_unique_no}"
+                )
+                print(receive_dict)
+                if receive_dict is None:
+                    message = {
+                        'request': 'LOCATION',
+                        'status': 'COMPLETED_TRANSACTION',
+                        'data': {
+                            'transaction_id': instance.get_transaction_unique_no,
+                            "seeker": f'{instance.seeker.id}',
+                            "provider": f'{instance.provider.id}',
+                            "seeker_location": {
+                                "latitude": 0.0,
+                                "longitude": 0.0
+                            },
+                            "provider_location": {
+                                "latitude": 0.0,
+                                "longitude": 0.0
+                            },
+                            "direction": None
+                        }
+                    }
+                else:
+                    message = {
+                        'request': 'LOCATION',
+                        'status': 'COMPLETED_TRANSACTION',
+                        'data': {
+                            'transaction_id': instance.get_transaction_unique_no,
+                            "seeker": f'{instance.seeker.id}',
+                            "provider": f'{instance.provider.id}',
+                            "seeker_location": receive_dict["data"]["seeker_location"],
+                            "provider_location": receive_dict["data"]["provider_location"],
+                            "direction": None
+                        }
+                    }
+                message = {
+                    'request': 'LOCATION',
+                    'status': 'COMPLETED_TRANSACTION',
+                    'data': None
+                }
+                send_message_to_channel(request, instance.provider, message)
+                send_message_to_channel(request, instance.seeker, message)
 
                 return response.Response(serializer.data, status=status.HTTP_200_OK)
             return response.Response({"errors": "data not valid"}, status=status.HTTP_400_BAD_REQUEST)
