@@ -1,5 +1,6 @@
 from rest_framework import exceptions, serializers, validators
 from .. import models
+from drf_extra_fields.fields import Base64ImageField
 
 
 class AddNidSerializer(serializers.ModelSerializer):
@@ -125,17 +126,21 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(source="user.phone_number", read_only=True)
     transactions = serializers.IntegerField(source="user.userrating_user.no_of_transaction", read_only=True)
     rating = serializers.FloatField(source="user.userrating_user.rating", read_only=True)
-
+    user_id = serializers.CharField(source="user.id", read_only=True)
+    is_provider = serializers.BooleanField(source="user.user_mode.is_provider", read_only=True)
     # rating = serializers.FloatField(source="user.rating")
+    profile_pic = Base64ImageField(required=False, allow_null=True)
     class Meta:
         model = models.UserInformation
         fields = (
+            "user_id",
             "person_name",
             "acc_type",
             "profile_pic",
             "phone_number",
             "transactions",
-            "rating"
+            "rating",
+            "is_provider",
         )
         # exclude = ("user","device_id")
         read_only_fields = ("acc_type",)
@@ -146,6 +151,8 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
             rep['transactions'] = 0
         if rep.get('rating') is None:
             rep['rating'] = 0
+        if rep.get('is_provider') is None:
+            rep['is_provider'] = False
         return rep
 
 

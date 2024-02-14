@@ -28,10 +28,17 @@ class UserInformationViewSet(viewsets.ModelViewSet):
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
     def change_profile(self, request, *args, **kwargs):
+        print(request.data)
+        data=request.data
+        if data:
+            for key in data.copy():
+                if data[key] in ['', "", " ", None]:
+                    del data[key]
+        print(request.data)
         user = request.user
         serializer = self.serializer_class(
             instance=user.user_info,
-            data=request.data,
+            data=data,
             context={"request": request}
         )
         serializer.is_valid(raise_exception=True)
@@ -44,7 +51,7 @@ class UserInformationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         return response.Response(
-            "Profile changed Successfully",
+            serializer.data,
             status=status.HTTP_200_OK
         )
 

@@ -8,7 +8,7 @@ from django.contrib.sites.models import Site
 from django.core.files import File
 from datetime import datetime
 from utils.helper import content_file_path, ImageCompress
-
+from utils.apps.transaction import get_transaction_no, generate_transaction_pin
 User = get_user_model()
 
 
@@ -28,25 +28,23 @@ class Transaction(BaseModel):
     charge = models.FloatField(default=0.0)
     is_completed = models.BooleanField(default=False)
     qr_image = models.ImageField(upload_to=content_file_path, null=True, blank=True)
+    transaction_pin = models.CharField(default="", blank=True, max_length=10)
 
     class Meta:
         ordering = ("-created_at", "-id",)
 
     @property
     def get_transaction_unique_no(self):
-        return f"{self.created_at.date().strftime('%Y%m%d')}{self.id}"
+        return get_transaction_no(self.id, self.created_at)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        if  not self.qr_image and self._state.adding==False:
-            # self.created_at.date().strftime('%Y%m%d') + self.id
-            current_site = Site.objects.get_current()
-
-            # url = f"http://{current_site.domain}/api/transaction/{self.get_transaction_unique_no}/?status=completed"
-            url = f"{self.get_transaction_unique_no}"
+        if not self.qr_image and self._state.adding==False:
+            self.transaction_pin = generate_transaction_pin()
+            url = f"{self.transaction_pin}"
             image_stream = qr.generate(url)
             self.qr_image = File(image_stream, name=f"qr.png")
-            self.save(update_fields=["qr_image"])
+            self.save(update_fields=["qr_image", "transaction_pin"])
 
 
 class TransactionHistory(BaseModel):

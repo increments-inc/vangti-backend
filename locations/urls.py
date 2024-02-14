@@ -17,4 +17,7 @@ urlpatterns = [
                       {"patch": "update_location"}
                   ), name='user_set_location'),
 
+                  path('get-reverse-geocode/', LocationViewSet.as_view(
+                      {"get": "get_reverse_geocode"}
+                  ), name='user_reverse_geocode'),
               ] + router.urls

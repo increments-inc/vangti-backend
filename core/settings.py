@@ -80,7 +80,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=15),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=30),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
@@ -265,7 +265,7 @@ CACHES = {
 }
 
 # location
-LOCATION_RADIUS = 50000
+LOCATION_RADIUS = 500
 
 CHANNEL_LAYERS = {
     "default": {
@@ -296,4 +296,18 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(minute='*/5'),
     },
 }
+
+
+# DOMAIN
+DOMAIN_NAME = config("DOMAIN")
+
+
+# SMS
+SMS_URL = config("SMS_URL")
+SMS_API_KEY = config("SMS_API_KEY")
+
+
+# GOOGLE MAPS API
+GOOGLE_MAPS_API_KEY = config("GOOGLE_MAPS_API_KEY")
+
 

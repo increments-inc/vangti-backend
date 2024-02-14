@@ -1,7 +1,7 @@
 from django.contrib.gis.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.fields import ArrayField
-from django.contrib.gis.geos import Point
+from django.contrib.gis.geos import Point, LineString
 
 import uuid
 
@@ -12,8 +12,10 @@ class UserLocation(models.Model):
     # user = models.CharField(max_length=256, null=True, blank=True)
     user = models.UUIDField(unique=True)
     user_phone_number = models.CharField(max_length=15, blank=True, null=True)
-    latitude = models.CharField(max_length=10, default="0")
-    longitude = models.CharField(max_length=10, default="0")
+    # latitude = models.CharField(max_length=10, default="0")
+    # longitude = models.CharField(max_length=10, default="0")
+    latitude = models.FloatField(default=0.0)
+    longitude = models.FloatField(default=0.0)
     centre = models.PointField()
 
     def __str__(self):
@@ -43,8 +45,24 @@ class LocationRadius(models.Model):
             return "None"
 
     class Meta:
-        abstract=True
+        abstract = True
         ordering = ("location",)
+
+
+class PolyLine(models.Model):
+    # seeker = models.UUIDField(null=True, blank=True)
+    # provider = models.UUIDField(null=True, blank=True)
+    transaction = models.IntegerField(null=True, blank=True)
+    linestring = models.LineStringField(null=True, blank=True)
+
+    # point = models.PointField(null=True, blank=True)
+
+    def __str__(self):
+        return "one line string"
+
+    class Meta:
+        # abstract = True
+        ordering = ("transaction",)
 
 # abstract models
 # class UserLocation(models.Model):

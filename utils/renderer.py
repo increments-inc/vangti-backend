@@ -7,6 +7,7 @@ from rest_framework.views import exception_handler
 class CustomJSONRenderer(JSONRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         messages = detail = errors = links = count = total_pages = None
+        print(data)
         if data is not None:
             detail = (
                 data.pop("detail")
@@ -16,8 +17,7 @@ class CustomJSONRenderer(JSONRenderer):
             messages = (
                 data.pop("messages") if "messages" in data else ""
             )
-            print(data)
-            errors = data.pop("errors") if "errors" in data else None
+            # errors = data.pop("errors") if "errors" in data else None
             data = data.pop("data") if "data" in data else data
             links = data.pop("links") if "links" in data else {}
             count = data.pop("count") if "count" in data else 0
@@ -25,6 +25,18 @@ class CustomJSONRenderer(JSONRenderer):
             data = data.pop("results") if "results" in data else data
 
         stats_code = renderer_context["response"].status_code
+        errors = []
+
+        if stats_code >= 400:
+            if detail not in ["", None]:
+                errors.append(detail)
+            if len(messages) != 0:
+                if "message" in messages[0]:
+                    errors.append(messages[0]["message"])
+            if "errors" in data:
+                errors.append(data.pop("errors"))
+            detail = ""
+            messages = ""
 
         response_data = {
             # "detail": errors[0].split(":")[1].strip() if errors else detail,
@@ -35,7 +47,7 @@ class CustomJSONRenderer(JSONRenderer):
             "links": links,
             "count": count,
             "total_pages": total_pages,
-            "data": data or [],
+            "data": data if data else (None if data == {} else []),
         }
 
         with contextlib.suppress(Exception):

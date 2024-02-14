@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from ..pin_validator import PINValidator
 from django.contrib.auth.hashers import PBKDF2PasswordHasher
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
-
+import requests
 from django.utils.text import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
@@ -86,13 +86,20 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
             host_user = settings.EMAIL_HOST_USER
             # insert sms service here
             # include this in celery
-            send_mail(
-                "Vangti OTP",
-                f"Dear Customer,\nYour One-Time-Password for Vangti app is {base_otp}\nRegards,\nVangti Team",
-                host_user,
-                [host_user],
-                fail_silently=False,
+            code = 0
+            response = requests.post(
+                settings.SMS_URL,
+                headers={
+                    "Authorization": settings.SMS_API_KEY
+                },
+                json={
+                    "sender_id": "8809617613332",
+                    "receiver": f"{phone_number}",
+                    "message": f"One Time Password (OTP) for Vangti App is {base_otp}",
+                    "remove_duplicate": True
+                }
             )
+            print(response.json(), response.status_code)
             return reg_phone, base_otp
         else:
             if not models.User.objects.filter(
@@ -112,6 +119,19 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
             host_user = settings.EMAIL_HOST_USER
             # insert sms service here
             # include this in celery
+            response = requests.post(
+                settings.SMS_URL,
+                headers={
+                    "Authorization": settings.SMS_API_KEY
+                },
+                json={
+                    "sender_id": "8809617613332",
+                    "receiver": f"{phone_number}",
+                    "message": f"One Time Password (OTP) for Vangti App is {base_otp}",
+                    "remove_duplicate": True
+                }
+            )
+            print(response.json(), response.status_code)
             return reg_phone, base_otp
 
 
@@ -127,10 +147,10 @@ class RegistrationSerializer(serializers.ModelSerializer):
         otp = validated_data.pop("otp", None)
         time_now = datetime.now()
         try:
-            reg = models.RegistrationOTPModel.objects.get(
+            reg = models.RegistrationOTPModel.objects.filter(
                 phone_number=phone_number,
                 expires_at__gte=time_now
-            )
+            ).last()
             if str(reg.key) != otp:
                 return -1
             user = models.User.objects.create(
@@ -239,7 +259,10 @@ class UserDeactivateSerializer(serializers.ModelSerializer):
         user = self.context.get("request").user
         pin = validated_data.pop("pin", None)
         is_active = validated_data.pop("is_active", True)
-        PINValidator().validate(password=pin)
+        try:
+            PINValidator().validate(password=pin)
+        except:
+            return -2
         hasher = PBKDF2PasswordHasher()
         hashed_pin = hasher.encode(pin, settings.SALT)
         print("23234234234234")
@@ -247,6 +270,7 @@ class UserDeactivateSerializer(serializers.ModelSerializer):
             return -1
         user.is_active = is_active
         user.save()
+
         return user
 
 

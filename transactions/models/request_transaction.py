@@ -25,4 +25,5 @@ class TransactionRequest(BaseModel):
     )
 
     class Meta:
+        abstract = True
         ordering = ("seeker",)
