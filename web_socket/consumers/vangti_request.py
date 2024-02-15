@@ -260,6 +260,10 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         await self.delayed_message_seeker(receive_dict)
 
     async def receive_reject(self, receive_dict):
+        await self.send(text_data=json.dumps({
+            'message': receive_dict,
+            "user": str(self.user.id)
+        }))
         user_list = cache.get(receive_dict["data"]["seeker"])
         print(user_list)
         if len(user_list) != 0:
@@ -268,6 +272,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 cache.set(receive_dict["data"]["seeker"], user_list)
         if len(user_list) != 0:
             send_user = user_list[0]
+
             receive_dict["data"]["provider"] = user_list[0]
             receive_dict["status"] = "PENDING"
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:

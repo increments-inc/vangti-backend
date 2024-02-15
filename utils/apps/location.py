@@ -65,7 +65,7 @@ def latlong_to_address(latlong):
 
 def get_directions(transaction_id, source_dict, destination_dict):
     response_json={}
-    # transaction_id=787
+    transaction_id=787
     print(source_dict, destination_dict, transaction_id)
     source = f"{source_dict['latitude']}, {source_dict['longitude']}"
     destination = f"{destination_dict['latitude']}, {destination_dict['longitude']}"
