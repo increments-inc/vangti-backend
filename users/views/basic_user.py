@@ -36,6 +36,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         #         settings.JWT_AUTH_REFRESH_COOKIE
         #     ),
         # )
+        # print("cookies", resp.cookies, request.cookies)
         resp.set_cookie('access',
                         str(serializer.validated_data.get(settings.JWT_AUTH_COOKIE)),
                         httponly=True)
@@ -239,12 +240,12 @@ class GetNumberViewSet(viewsets.ModelViewSet):
             user = serializer.save()
             if user == -1:
                 return response.Response(
-                    "User exists!",
+                    {"errors": "User exists!"},
                     status=status.HTTP_302_FOUND
                 )
             if user == -2:
                 return response.Response(
-                    "User does not exist!",
+                    {"errors": "User does not exist!"},
                     status=status.HTTP_404_NOT_FOUND
                 )
             print(user[-1])

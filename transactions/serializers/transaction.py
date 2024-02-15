@@ -67,6 +67,8 @@ class TransactionSerializer(serializers.ModelSerializer):
             picture = obj.seeker.user_info.profile_pic
             url = self.context.get('request').build_absolute_uri(picture.url)
             url_hash = get_hash(picture.url)
+            print("url", url)
+
         except:
             url = None
             url_hash = None

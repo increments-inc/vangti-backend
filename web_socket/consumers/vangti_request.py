@@ -193,6 +193,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             print("provider ", own_provider, cache_provider)
             if cache_provider == own_provider:
                 receive_dict["status"] = "TIMEOUT"
+                print("time ", receive_dict)
                 await self.channel_layer.group_send(
                     f"{cache_provider}-room",
                     {

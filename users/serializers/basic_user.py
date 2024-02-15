@@ -22,29 +22,27 @@ from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, Bl
 import requests
 from django.utils.text import gettext_lazy as _
 from rest_framework import serializers
-from rest_framework_simplejwt.tokens import RefreshToken, TokenError
+from rest_framework_simplejwt.tokens import Token, RefreshToken, AccessToken
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         for token in OutstandingToken.objects.filter(user=user):
-            print("here")
-            print(token)
             if not hasattr(token, 'blacklistedtoken'):
-                print("hrhfg", token)
+                print("hrhfg", token.token)
                 BlacklistedToken.objects.create(token=token)
                 print("blacklist", token)
+            # toke = RefreshToken(token)
+            # print(type(toke), toke.token_type)
+        print(OutstandingToken.objects.all().count())
         token = super().get_token(user)
-
+        print(OutstandingToken.objects.all().count())
 
         # Add custom claims
         token["email"] = user.email
         token["is_superuser"] = user.is_superuser
         token["is_staff"] = user.is_staff
-        all_token = OutstandingToken.objects.all().count()
-        print("fsjhgdjhs",all_token)
-
         return token
 
 

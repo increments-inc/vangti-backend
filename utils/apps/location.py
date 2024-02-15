@@ -65,7 +65,7 @@ def latlong_to_address(latlong):
 
 def get_directions(transaction_id, source_dict, destination_dict):
     response_json={}
-    transaction_id=774
+    # transaction_id=787
     print(source_dict, destination_dict, transaction_id)
     source = f"{source_dict['latitude']}, {source_dict['longitude']}"
     destination = f"{destination_dict['latitude']}, {destination_dict['longitude']}"
@@ -139,22 +139,24 @@ def get_directions(transaction_id, source_dict, destination_dict):
         new_destination_point = Point(destination_point_in_ls.y, destination_point_in_ls.x, srid=4326)
         new_dcoords = ls.coords.index(tuple(destination_point_in_ls))
         print("new  cosjdhfjsdhf", new_dcoords, new_destination_point)
+        list_ls = []
         if new_dcoords>new_scoords:
             print("in try")
             list_ls = ls[new_scoords: new_dcoords+1]
             list_ls.insert(0, new_source_point)
             list_ls.append(new_destination_point)
-        else:
+        if new_dcoords<new_scoords:
             print("in except")
             list_ls = ls[new_dcoords: new_scoords+1]
             list_ls.insert(0, new_destination_point)
             list_ls.append(new_source_point)
-
+        if new_dcoords==new_scoords:
+            list_ls = ls
         empty_point_list = []
         for point in list_ls:
             empty_point_list.append({
-                "latitude": point[1],
-                "longitude": point[0]
+                "latitude": point[0],
+                "longitude": point[1]
             })
         response_json = {
             "distance": "hajgsdjm",
