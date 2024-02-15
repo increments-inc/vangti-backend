@@ -12,6 +12,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from ..models import *
 from ..serializers import *
 from utils.apps.transaction import get_transaction_id
+from drf_spectacular.utils import extend_schema
 
 
 class TransactionRatingViewSet(viewsets.ModelViewSet):
@@ -29,7 +30,8 @@ class TransactionRatingViewSet(viewsets.ModelViewSet):
             if review == -1:
                 return response.Response({"error": "No valid transaction found"}, status=status.HTTP_400_BAD_REQUEST)
             if review == -2:
-                return response.Response({"error": "User not authorised to rate this transaction"}, status=status.HTTP_403_FORBIDDEN)
+                return response.Response({"error": "User not authorised to rate this transaction"},
+                                         status=status.HTTP_403_FORBIDDEN)
             return response.Response(serializer.data, status=status.HTTP_201_CREATED)
         return response.Response("", status=status.HTTP_400_BAD_REQUEST)
 
@@ -49,6 +51,17 @@ class TransactionMessagesViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         transaction_no = kwargs.get("transaction_no")
         transaction_id = get_transaction_id(transaction_no)
+        print(transaction_id)
+        transaction_obj = Transaction.objects.get(id=transaction_id)
+        if request.user not in [transaction_obj.seeker, transaction_obj.provider]:
+            return response.Response(
+                {"errors": "User not allowed to view this transaction messages"}, status=status.HTTP_403_FORBIDDEN
+            )
+
         queryset = self.queryset.filter(transaction=transaction_id).order_by("-created_at")
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
         serializer = self.serializer_class(queryset, many=True)
         return response.Response(serializer.data, status=status.HTTP_200_OK)

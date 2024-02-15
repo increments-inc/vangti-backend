@@ -372,4 +372,7 @@ class LogoutView(APIView):
             access_token_blacklist = JWTAccessToken(token).blacklist()
             return response.Response("Logout successful", status=status.HTTP_200_OK)
         except:
-            return response.Response("Logout not successful, check refresh token", status=status.HTTP_400_BAD_REQUEST)
+            return response.Response(
+                {"errors": "Logout not successful, check refresh token"},
+                status=status.HTTP_400_BAD_REQUEST
+            )

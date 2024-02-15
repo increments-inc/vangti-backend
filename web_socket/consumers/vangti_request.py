@@ -138,10 +138,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             # message
         if receive_dict["request"] == "MESSAGE":
             if (
-                    (receive_dict["data"]["seeker"] == str(self.user.id)
-                     or receive_dict["data"]["provider"] == str(self.user.id))
-                    and
-                    receive_dict["request"] == "MESSAGE" and
                     receive_dict["status"] == "ON_GOING_TRANSACTION"
             ):
                 await self.receive_message(receive_dict)
@@ -372,7 +368,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         #         'user': str(self.user.id)
         #     }))
         #     return
-        print("gsdgsdf rev",receive_dict)
+        print("gsdgsdf rev", receive_dict)
         if receive_dict["data"] == -1:
             receive_dict["status"] = "INVALID_TRANSACTION"
             receive_dict["data"] = None
@@ -424,26 +420,48 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive_message(self, receive_dict):
-        room_seeker = receive_dict["data"]["seeker"]
-        room_provider = receive_dict["data"]["provider"]
-        receive_dict["data"]["provider_msg"] = await self.get_previous_messages(
-            receive_dict["data"]["transaction_id"])
-        receive_dict["data"]["user_msg"] = "qwerty"
-        if receive_dict["data"]["provider"]:
+        if "transaction_id" in receive_dict["data"]:
+            transaction_obj_user = await self.get_transaction_obj(receive_dict["data"]["transaction_id"], self.user)
+            if transaction_obj_user == -1:
+                receive_dict["status"] = "INVALID_TRANSACTION"
+                receive_dict["data"] = None
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    'user': str(self.user.id)
+                }))
+                return
+            if transaction_obj_user == -2:
+                receive_dict["status"] = "COMPLETED_TRANSACTION"
+                receive_dict["data"] = None
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    'user': str(self.user.id)
+                }))
+                return
+            # transaction_obj
+            if "message" in receive_dict["data"]:
+                msg_obj = await self.post_transaction_messages(
+                    receive_dict["data"]["transaction_id"],
+                    self.user,
+                    receive_dict["data"]["message"]
+                )
+                if msg_obj is None:
+                    receive_dict["status"] = "SEND_FAILED"
+                    receive_dict["data"] = None
+                    await self.send(text_data=json.dumps({
+                        'message': receive_dict,
+                        'user': str(self.user.id)
+                    }))
+                    return
+            # transaction_obj
             await self.channel_layer.group_send(
-                f"{room_seeker}-room",
+                f"{transaction_obj_user}-room",
                 {
                     'type': 'send_to_receiver_data',
                     'receive_dict': receive_dict,
                 }
             )
-            await self.channel_layer.group_send(
-                f"{room_provider}-room",
-                {
-                    'type': 'send_to_receiver_data',
-                    'receive_dict': receive_dict,
-                }
-            )
+
 
     @database_sync_to_async
     def get_user_list(self, room_name):
@@ -568,16 +586,32 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         return data
 
     @database_sync_to_async
-    def get_previous_messages(self, transaction_id):
+    def get_transaction_obj(self, transaction_id, user):
+        transaction_id = get_transaction_id(transaction_id)
         try:
-            messages = list(TransactionMessages.objects.filter(transaction_id=transaction_id).values(
-                "created_at",
-                "user",
-                "message"
-            ))
+            transaction_obj = Transaction.objects.get(id=transaction_id)
+        except Transaction.DoesNotExist:
+            return -1
+        if transaction_obj.is_completed:
+            return -2
+        if user == transaction_obj.seeker:
+            return str(transaction_obj.provider.id)
+
+        if user == transaction_obj.provider:
+            return str(transaction_obj.seeker.id)
+
+    @database_sync_to_async
+    def post_transaction_messages(self, transaction_id, user, message):
+        try:
+            transaction_id_no = get_transaction_id(transaction_id)
+            messages = TransactionMessages.objects.create(
+                transaction_id=transaction_id_no,
+                user=user,
+                message=message
+            )
             return messages
         except:
-            return []
+            return None
 
     @database_sync_to_async
     def get_seeker_info(self, seeker):
