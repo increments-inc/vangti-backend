@@ -2,10 +2,18 @@ import polyline
 from django.conf import settings
 import requests
 # from django.contrib.gis.measure import D, Distance
-from locations.models import PolyLine
+from locations.models import PolyLine, UserLocation
 from django.contrib.gis.geos import Point, LineString
 from django.contrib.gis.db.models.functions import Distance
 
+def get_user_distance(from_user, to_user):
+    to_point = UserLocation.objects.get(user=to_user.id).centre
+    distance = (
+        UserLocation.objects.filter(user=from_user.id).annotate(
+            distance=Distance("centre", to_point)
+        ).values("distance").first()["distance"].km
+    )
+    return distance
 
 def polyline_to_latlong(poly_str):
     res = polyline.decode(poly_str, 5)
@@ -189,6 +197,4 @@ def process_polyline():
     # )
     # )
 
-# process_polyline()
-# polyline_to_latlong(
-#         'y{upCemufP}@?AWP?rACnDClFE|JGvA?CiB?kBAsACeGnJ?t@ETGLKNAtABnB?hECnEItB?jHMdBAZ}EtAqTB}@@Q')
+

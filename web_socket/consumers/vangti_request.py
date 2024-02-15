@@ -462,7 +462,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 }
             )
 
-
     @database_sync_to_async
     def get_user_list(self, room_name):
         user = self.user
@@ -546,36 +545,36 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         print("tr", transaction_id)
         # employ cache
         try:
-            transaction = Transaction.objects.get(id=transaction_id)
-            data["seeker"] = str(transaction.seeker.id)
-            data["provider"] = str(transaction.provider.id)
+            transaction_obj = Transaction.objects.get(id=transaction_id)
+            data["seeker"] = str(transaction_obj.seeker.id)
+            data["provider"] = str(transaction_obj.provider.id)
 
-            if transaction.seeker == self.user:
+            if transaction_obj.seeker == self.user:
                 data["seeker_location"] = data["location"]
-                seek = UserLocation.objects.using("location").filter(user=transaction.seeker.id).last()
+                seek = UserLocation.objects.using("location").filter(user=transaction_obj.seeker.id).last()
                 seek.latitude = data["location"]["latitude"]
                 seek.longitude = data["location"]["longitude"]
                 seek.save()
-                prov = UserLocation.objects.using("location").filter(user=transaction.provider.id).last()
+                prov = UserLocation.objects.using("location").filter(user=transaction_obj.provider.id).last()
                 data["provider_location"] = {
                     "latitude": prov.latitude,
                     "longitude": prov.longitude
                 }
-            if transaction.provider == self.user:
-                seek = UserLocation.objects.using("location").filter(user=transaction.seeker.id).last()
+            if transaction_obj.provider == self.user:
+                seek = UserLocation.objects.using("location").filter(user=transaction_obj.seeker.id).last()
                 data["seeker_location"] = {
                     "latitude": seek.latitude,
                     "longitude": seek.longitude
                 }
                 data["provider_location"] = data["location"]
-                prov = UserLocation.objects.using("location").filter(user=transaction.provider.id).last()
+                prov = UserLocation.objects.using("location").filter(user=transaction_obj.provider.id).last()
                 prov.latitude = data["location"]["latitude"]
                 prov.longitude = data["location"]["longitude"]
                 prov.save()
             del data["location"]
         except:
             return -1
-        if transaction.is_completed:
+        if transaction_obj.is_completed:
             return -2
 
         try:

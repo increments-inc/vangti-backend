@@ -29,8 +29,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         for token in OutstandingToken.objects.filter(user=user):
+            print("here")
+            print(token)
             if not hasattr(token, 'blacklistedtoken'):
-                print("hrhfg")
+                print("hrhfg", token)
                 BlacklistedToken.objects.create(token=token)
                 print("blacklist", token)
         token = super().get_token(user)
