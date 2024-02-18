@@ -43,6 +43,7 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         resp.set_cookie('refresh',
                         str(serializer.validated_data.get(settings.JWT_AUTH_REFRESH_COOKIE)),
                         httponly=True)
+        print("here!", request.COOKIES, request)
 
         resp.status_code = status.HTTP_200_OK
         resp.data = {
@@ -73,12 +74,15 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             data=request.data,
             context={"request": request}
         )
+        print("here!", request.COOKIES, request)
+
         # serializer.is_valid(raise_exception=True)
         if serializer.is_valid():
             return self._otp_login(
                 request=request,
                 serializer=serializer
             )
+
             # try:
             #     return self._otp_login(
             #         request=request,
@@ -128,7 +132,7 @@ class RegistrationViewSet(viewsets.ModelViewSet):
             data=request.data,
             context={"request": request}
         )
-        print(serializer)
+        print(serializer, "serializer")
         # serializer.is_valid(raise_exception=True)
         if serializer.is_valid():
             user = serializer.save()

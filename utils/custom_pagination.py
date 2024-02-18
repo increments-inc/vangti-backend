@@ -22,7 +22,7 @@ class NotFoundExtended(APIException):
 
 class ButFound(APIException):
     status_code = status.HTTP_200_OK
-    default_detail = _('Force found.')
+    default_detail = "No data found"
     default_code = 'ok'
 
 
@@ -44,7 +44,9 @@ class CustomPagination(pagination.PageNumberPagination):
             msg = self.invalid_page_message.format(
                 page_number=page_number, message=str(exc)
             )
-            raise ButFound(msg)
+            raise ButFound()
+            # raise ButFound()
+
 
         if paginator.num_pages > 1 and self.template is not None:
             # The browsable API should display pagination controls.
