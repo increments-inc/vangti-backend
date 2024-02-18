@@ -22,8 +22,6 @@ class UserServiceModeSerializer(serializers.ModelSerializer):
         # disabled kyc dependency
         return True
 
-
-
 # class UserServiceModeChangeSerializer(serializers.ModelSerializer):
 #     class Meta:
 #         model = UserServiceMode

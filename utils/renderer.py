@@ -17,7 +17,6 @@ class CustomJSONRenderer(JSONRenderer):
             messages = (
                 data.pop("messages") if "messages" in data else ""
             )
-            # errors = data.pop("errors") if "errors" in data else None
             data = data.pop("data") if "data" in data else data
             links = data.pop("links") if "links" in data else {}
             count = data.pop("count") if "count" in data else 0
@@ -35,8 +34,17 @@ class CustomJSONRenderer(JSONRenderer):
                     errors.append(messages[0]["message"])
             if "errors" in data:
                 errors.append(data.pop("errors"))
+            if type(data) == dict:
+                for dat in data.values():
+                    errors.append(dat)
+            if type(data) == list:
+                for dat in data:
+                    errors.append(dat)
+            data = None
             detail = ""
             messages = ""
+        else:
+            errors = [data.pop("errors")] if "errors" in data else []
 
         response_data = {
             # "detail": errors[0].split(":")[1].strip() if errors else detail,
@@ -65,22 +73,14 @@ class CustomJSONRenderer(JSONRenderer):
 # # custom_exception_handler.py
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
+    print(response.data)
     if response is not None:
-        if message := response.data.get("detail"):
-            response.data = {
-                "data": [],
-                "message": message,
-                "error": [message],
-                "success": "failure",
-            }
-        else:
-            errors = [
-                f'{field} : {" ".join(value)}' for field, value in response.data.items()
-            ]
-            response.data = {
-                "data": [],
-                "message": "Validation Error",
-                "errors": errors,
-                "status": "failure",
-            }
+        data = []
+        for err in response.data.values():
+            if type(err) == list:
+                err = err[0]
+            data.append(err)
+        response.data = {
+            "data": data,
+        }
     return response

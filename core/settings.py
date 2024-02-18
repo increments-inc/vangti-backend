@@ -53,7 +53,6 @@ INSTALLED_APPS = [
 
 SITE_ID = 1
 
-
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.BasicAuthentication',
@@ -69,7 +68,7 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
     ),
-    # "EXCEPTION_HANDLER": "utils.renderer.custom_exception_handler",
+    "EXCEPTION_HANDLER": "utils.renderer.custom_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "utils.custom_pagination.CustomPagination",
     # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
 
@@ -80,7 +79,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=30),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
@@ -297,17 +296,16 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-
 # DOMAIN
 DOMAIN_NAME = config("DOMAIN")
-
 
 # SMS
 SMS_URL = config("SMS_URL")
 SMS_API_KEY = config("SMS_API_KEY")
 
-
 # GOOGLE MAPS API
 GOOGLE_MAPS_API_KEY = config("GOOGLE_MAPS_API_KEY")
 
-
+# APP STORE DEFAULTS
+APP_STORE_DEFAULT_PHONE = "+8801712345678"
+APP_STORE_DEFAULT_OTP = "123456"

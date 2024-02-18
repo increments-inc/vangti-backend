@@ -49,7 +49,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             "detail": "Login successful",
             "data": serializer.validated_data,
         }
-
         return resp
 
     @extend_schema(
@@ -104,8 +103,8 @@ class RegistrationViewSet(viewsets.ModelViewSet):
     def get_serializer_class(self):
         if self.action == "set_pin":
             return UserPINSerializer
-        if self.action == "reset_pin":
-            return UserPINResetSerializer
+        # if self.action == "reset_pin":
+        #     return UserPINResetSerializer
         return self.serializer_class
 
     @staticmethod
@@ -124,38 +123,35 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         return resp
 
     def post(self, request, *args, **kwargs):
+        resp = response.Response()
         serializer = self.serializer_class(
             data=request.data,
             context={"request": request}
         )
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        if user == -1:
+        print(serializer)
+        # serializer.is_valid(raise_exception=True)
+        if serializer.is_valid():
+            user = serializer.save()
+            if user == -1:
+                return response.Response({
+                    "message": "OTP Expired",
+                    "data": serializer.validated_data,
+                }, status=status.HTTP_404_NOT_FOUND)
+            if user == -2:
+                return response.Response({
+                    "message": "OTP doesnt match",
+                    "data": serializer.validated_data,
+                }, status=status.HTTP_404_NOT_FOUND)
+
             return response.Response({
-                "message": "OTP doesnt match",
-                "data": serializer.validated_data,
-            },
-                status=status.HTTP_404_NOT_FOUND
-            )
-        resp = response.Response()
-        try:
-            try:
-                return self._otp_reg(
-                    request=request,
-                    user=user,
-                    serializer=serializer
-                )
+                "detail": "Successful",
+                # "reg_access_token": reg_token,
+            }, status=status.HTTP_200_OK)
 
-            except Exception as e:
-                # raise InvalidToken(e.args[0]) from e
-                return response.Response(e.args[0], status=status.HTTP_400_BAD_REQUEST)
-
-        except Exception:
-            resp.data = {
-                "message": "Registration Error",
-                "data": serializer.validated_data,
-            }
-            return response.Response(resp, status=status.HTTP_404_NOT_FOUND)
+        return response.Response({
+            "message": "Registration Error",
+            # "reg_access_token": reg_token,
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     def set_pin(self, request, *args, **kwargs):
         serializer = self.get_serializer_class()(
@@ -167,7 +163,14 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         if user == -1:
             return response.Response({
                 "message": "Invalid PIN or invalid device",
-                "data": serializer.validated_data,
+                # "data": serializer.validated_data,
+            },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if user == -2:
+            return response.Response({
+                "message": "PIN already set!",
+                # "data": serializer.validated_data,
             },
                 status=status.HTTP_400_BAD_REQUEST
             )

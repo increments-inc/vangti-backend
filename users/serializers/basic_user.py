@@ -73,52 +73,40 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
                     phone_number=phone_number
             ).exists():
                 return -1
-            time_now = datetime.now()
-            expires = time_now + timedelta(seconds=310)
-            base_otp = pyotp.TOTP('base32secret3232').now()
-
-            reg_phone = models.RegistrationOTPModel.objects.create(
-                phone_number=phone_number,
-                device_token=device_id,
-                key=base_otp,
-                expires_at=expires
-            )
-            host_user = settings.EMAIL_HOST_USER
-            # insert sms service here
-            # include this in celery
-            code = 0
-            response = requests.post(
-                settings.SMS_URL,
-                headers={
-                    "Authorization": settings.SMS_API_KEY
-                },
-                json={
-                    "sender_id": "8809617613332",
-                    "receiver": f"{phone_number}",
-                    "message": f"One Time Password (OTP) for Vangti App is {base_otp}",
-                    "remove_duplicate": True
-                }
-            )
-            print(response.json(), response.status_code)
-            return reg_phone, base_otp
         else:
             if not models.User.objects.filter(
                     phone_number=phone_number
             ).exists():
                 return -2
-            time_now = datetime.now()
-            expires = time_now + timedelta(seconds=310)
-            base_otp = pyotp.TOTP('base32secret3232').now()
+        time_now = datetime.now()
+        expires = time_now + timedelta(seconds=61)
+        base_otp = pyotp.TOTP('base32secret3232').now()
 
+        # default otp ---- for google, use a default phone condition
+        if phone_number == settings.APP_STORE_DEFAULT_PHONE:
+            base_otp = settings.APP_STORE_DEFAULT_OTP
+
+        try:
+            reg_phone = models.RegistrationOTPModel.objects.get(
+                phone_number=phone_number,
+                device_token=device_id
+                # key=base_otp,
+                # expires_at=expires
+            )
+            reg_phone.key = base_otp
+            reg_phone.expires_at = expires
+            reg_phone.save()
+        except models.RegistrationOTPModel.DoesNotExist:
             reg_phone = models.RegistrationOTPModel.objects.create(
                 phone_number=phone_number,
                 device_token=device_id,
                 key=base_otp,
                 expires_at=expires
             )
-            host_user = settings.EMAIL_HOST_USER
-            # insert sms service here
-            # include this in celery
+        # host_user = settings.EMAIL_HOST_USER
+        # insert sms service here
+        # include this in celery
+        if phone_number != settings.APP_STORE_DEFAULT_PHONE:
             response = requests.post(
                 settings.SMS_URL,
                 headers={
@@ -132,36 +120,79 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
                 }
             )
             print(response.json(), response.status_code)
-            return reg_phone, base_otp
+        return reg_phone, base_otp
+
+        # time_now = datetime.now()
+        # expires = time_now + timedelta(seconds=310)
+        # base_otp = pyotp.TOTP('base32secret3232').now()
+        #
+        # reg_phone = models.RegistrationOTPModel.objects.create(
+        #     phone_number=phone_number,
+        #     device_token=device_id,
+        #     key=base_otp,
+        #     expires_at=expires
+        # )
+        # host_user = settings.EMAIL_HOST_USER
+        # # insert sms service here
+        # # include this in celery
+        # response = requests.post(
+        #     settings.SMS_URL,
+        #     headers={
+        #         "Authorization": settings.SMS_API_KEY
+        #     },
+        #     json={
+        #         "sender_id": "8809617613332",
+        #         "receiver": f"{phone_number}",
+        #         "message": f"One Time Password (OTP) for Vangti App is {base_otp}",
+        #         "remove_duplicate": True
+        #     }
+        # )
+        # print(response.json(), response.status_code)
+        # return reg_phone, base_otp
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
     otp = serializers.CharField(allow_null=True)
+    phone_number = serializers.CharField()
 
     class Meta:
         model = models.User
         fields = ("phone_number", "otp",)
 
+    # def validate(self, data):
+    #     print("sdasda",data)
+    #     if "phone_number" in data:
+    #         data["phone_number"] = data["phone_number"]
+    #
+    #     return data
+
     def create(self, validated_data):
         phone_number = validated_data.pop("phone_number", None)
         otp = validated_data.pop("otp", None)
         time_now = datetime.now()
+        reg = models.RegistrationOTPModel.objects.filter(
+            phone_number=phone_number,
+            expires_at__gte=time_now
+        )
+        if not reg.exists():
+            return -1
+        reg = reg.last()
+        if str(reg.key) != otp:
+            return -2
+
         try:
-            reg = models.RegistrationOTPModel.objects.filter(
-                phone_number=phone_number,
-                expires_at__gte=time_now
-            ).last()
-            if str(reg.key) != otp:
-                return -1
+            user = models.User.objects.get(
+                phone_number=phone_number
+            )
+            user.pin = None
+            user.save()
+        except models.User.DoesNotExist:
             user = models.User.objects.create(
                 phone_number=phone_number,
                 pin=None
             )
-            user.user_info.device_token = reg.device_token
-            user.user_info.save()
-
-        except models.RegistrationOTPModel.DoesNotExist:
-            return -1
+        user.user_info.device_token = reg.device_token
+        user.user_info.save()
         return user
 
 
@@ -212,42 +243,47 @@ class UserPINSerializer(serializers.Serializer):
         except:
             return -1
 
+        # pin can only be set once
+        if user.pin is not None:
+            return -2
+
         try:
-            PINValidator().validate(password=pin)
-            hasher = PBKDF2PasswordHasher()
-            hashed_pin = hasher.encode(pin, settings.SALT)
-            user.pin = hashed_pin
-            user.save()
+            if user.pin is None:
+                PINValidator().validate(password=pin)
+                hasher = PBKDF2PasswordHasher()
+                hashed_pin = hasher.encode(pin, settings.SALT)
+                user.pin = hashed_pin
+                user.save()
         except:
             return -1
         return user
 
 
 #
-class UserPINResetSerializer(serializers.Serializer):
-    phone_number = serializers.CharField()
-    pin = serializers.CharField()
-
-    def create(self, validated_data):
-        phone_number = validated_data.pop("phone_number", None)
-        pin = validated_data.pop("pin", None)
-
-        try:
-            user = models.User.objects.get(
-                phone_number=phone_number,
-            )
-        except:
-            return -1
-        """send message to user via otp"""
-        try:
-            PINValidator().validate(password=pin)
-            hasher = PBKDF2PasswordHasher()
-            hashed_pin = hasher.encode(pin, settings.SALT)
-            user.pin = hashed_pin
-            user.save()
-        except:
-            return -1
-        return user
+# class UserPINResetSerializer(serializers.Serializer):
+#     phone_number = serializers.CharField()
+#     pin = serializers.CharField()
+#
+#     def create(self, validated_data):
+#         phone_number = validated_data.pop("phone_number", None)
+#         pin = validated_data.pop("pin", None)
+#
+#         try:
+#             user = models.User.objects.get(
+#                 phone_number=phone_number,
+#             )
+#         except:
+#             return -1
+#         """send message to user via otp"""
+#         try:
+#             PINValidator().validate(password=pin)
+#             hasher = PBKDF2PasswordHasher()
+#             hashed_pin = hasher.encode(pin, settings.SALT)
+#             user.pin = hashed_pin
+#             user.save()
+#         except:
+#             return -1
+#         return user
 
 
 class UserDeactivateSerializer(serializers.ModelSerializer):
