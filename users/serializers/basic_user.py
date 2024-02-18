@@ -75,7 +75,8 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
                 return -1
         else:
             if not models.User.objects.filter(
-                    phone_number=phone_number
+                    phone_number=phone_number,
+                    # user_info__device_token=device_id
             ).exists():
                 return -2
         time_now = datetime.now()
