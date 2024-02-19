@@ -11,11 +11,8 @@ from ..serializers import *
 from ..app_utils import get_reg_token
 from django.conf import settings
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
-from rest_framework import viewsets
-from rest_framework.views import APIView
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from django.contrib.auth import logout
 from ..auth_jwt import JWTAccessToken
 
 
@@ -43,8 +40,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         resp.set_cookie('refresh',
                         str(serializer.validated_data.get(settings.JWT_AUTH_REFRESH_COOKIE)),
                         httponly=True)
-        print("here!", request.COOKIES, request)
-
         resp.status_code = status.HTTP_200_OK
         resp.data = {
             "detail": "Login successful",
@@ -74,15 +69,12 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             data=request.data,
             context={"request": request}
         )
-        print("here!", request.COOKIES, request)
-
         # serializer.is_valid(raise_exception=True)
         if serializer.is_valid():
             return self._otp_login(
                 request=request,
                 serializer=serializer
             )
-
             # try:
             #     return self._otp_login(
             #         request=request,
@@ -368,7 +360,7 @@ class PhoneUserViewSet(viewsets.ModelViewSet):
         )
 
 
-class LogoutView(APIView):
+class LogoutView(views.APIView):
     serializer_class = LogoutSerializer
     permission_classes = (permissions.IsAuthenticated,)
 

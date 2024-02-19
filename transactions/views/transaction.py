@@ -77,7 +77,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         try:
             print("del")
             message = {
-                "request": "CANCEL_TRANSACTION",
+                "request": "TRANSACTION",
                 "status": "CANCELLED",
                 'data': {
                     'amount': int(instance.total_amount),

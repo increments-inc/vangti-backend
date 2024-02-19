@@ -40,9 +40,9 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         print(OutstandingToken.objects.all().count())
 
         # Add custom claims
-        token["email"] = user.email
-        token["is_superuser"] = user.is_superuser
-        token["is_staff"] = user.is_staff
+        token["is_active"] = user.is_active
+        # token["is_to_be_deleted"] = user.user_delettion_schedule_user.is_to_be_deleted
+        token["time"] = str(datetime.now())
         return token
 
 
@@ -80,13 +80,12 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
             ).exists():
                 return -2
         time_now = datetime.now()
-        expires = time_now + timedelta(seconds=61)
+        expires = time_now + timedelta(seconds=120)
         base_otp = pyotp.TOTP('base32secret3232').now()
 
         # default otp ---- for google, use a default phone condition
         if phone_number == settings.APP_STORE_DEFAULT_PHONE:
             base_otp = settings.APP_STORE_DEFAULT_OTP
-
         try:
             reg_phone = models.RegistrationOTPModel.objects.get(
                 phone_number=phone_number,
