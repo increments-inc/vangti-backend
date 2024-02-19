@@ -15,6 +15,7 @@ from ..serializers import *
 from django.db.models import Q
 from utils.apps.transaction import get_transaction_id
 from utils.apps.web_socket import send_message_to_channel
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 
 
 
@@ -56,9 +57,15 @@ class TransactionViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         return response.Response("", status=status.HTTP_200_OK)
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(
+                examples=[
+                ],
+            ),
+        }
+    )
     def destroy(self, request, *args, **kwargs):
-        # print(kwargs)
-        print("here")
         transaction_id = get_transaction_id(kwargs[self.lookup_field])
         try:
             instance = self.queryset.get(id=int(transaction_id))
@@ -68,9 +75,29 @@ class TransactionViewSet(viewsets.ModelViewSet):
         if request.user not in [instance.provider, instance.seeker]:
             return response.Response({"errors": "User not authorised"}, status=status.HTTP_403_FORBIDDEN)
         try:
-            self.perform_destroy(instance)
             print("del")
-            return response.Response("", status=status.HTTP_204_NO_CONTENT)
+            message = {
+                "request": "CANCEL_TRANSACTION",
+                "status": "CANCELLED",
+                'data': {
+                    'amount': int(instance.total_amount),
+                    'preferred': instance.preferred_notes,
+                    'transaction_id': instance.get_transaction_unique_no,
+                    'seeker': f'{instance.seeker.id}',
+                    'seeker_info': {
+                        'name': '',
+                        'picture': {'url': '', 'hash': ''},
+                        'rating': 0.0,
+                        'total_deals': 0
+                    },
+                    'provider': f'{instance.provider.id}'
+                }
+            }
+            # for i in range(3):
+            send_message_to_channel(request, instance.seeker, message)
+            send_message_to_channel(request, instance.provider, message)
+            self.perform_destroy(instance)
+            return response.Response({"detail": "transaction instance deleted"}, status=status.HTTP_200_OK)
         except Exception as e:
             return response.Response({"errors": f"{e}, transaction could not be deleted"}, status=status.HTTP_400_BAD_REQUEST)
 

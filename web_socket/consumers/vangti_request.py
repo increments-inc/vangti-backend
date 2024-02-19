@@ -175,6 +175,21 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             print("cache value ", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
+            if cache.get(f'{receive_dict["data"]["seeker"]}') is None:
+                receive_dict["request"]= "CANCEL_TRANSACTION"
+                receive_dict["status"]= "CANCELLED"
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    "user": str(self.user.id)
+                }))
+                await self.channel_layer.group_send(
+                    f"{provider}-room",
+                    {
+                        'type': 'send_to_receiver_data',
+                        'receive_dict': receive_dict,
+                    }
+                )
+                return
         receive_dict["data"]["provider"] = provider
         receive_dict["data"]["status"] = 'PENDING'
 
@@ -190,6 +205,21 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             print("cache value ", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
+            if cache.get(f'{receive_dict["data"]["seeker"]}') is None:
+                receive_dict["request"]= "CANCEL_TRANSACTION"
+                receive_dict["status"]= "CANCELLED"
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    "user": str(self.user.id)
+                }))
+                await self.channel_layer.group_send(
+                    f"{receive_dict['data']['provider']}-room",
+                    {
+                        'type': 'send_to_receiver_data',
+                        'receive_dict': receive_dict,
+                    }
+                )
+                return
 
         if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
             print("here")

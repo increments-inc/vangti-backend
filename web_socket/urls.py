@@ -10,6 +10,5 @@ router = DefaultRouter()
 
 urlpatterns = [
         path('cancel-request/', CancelSearch.as_view(
-
         ))
               ] + router.urls
