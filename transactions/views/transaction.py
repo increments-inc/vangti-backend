@@ -14,21 +14,11 @@ from ..models import *
 from ..serializers import *
 from django.db.models import Q
 from utils.apps.transaction import get_transaction_id
-from utils.apps.user import default_user_models
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
+from utils.apps.web_socket import send_message_to_channel
 
 
-def send_message_to_channel(request, user, message):
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        f"{user.id}-room",
-        {
-            "type": "send_to_receiver_data",
-            'receive_dict': message
-        }
-    )
-    return
+
+
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
@@ -36,7 +26,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'transaction_no'
-    http_method_names = ["get", "patch"]
+    http_method_names = ["get", "patch", "delete"]
 
     def get_serializer_class(self):
         if self.action == "update_provider":
@@ -58,11 +48,31 @@ class TransactionViewSet(viewsets.ModelViewSet):
             instance = self.queryset.get(id=int(transaction_id))
         except:
             return response.Response({"errors": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
+        if request.user not in [instance.provider, instance.seeker]:
+            return response.Response({"errors": "User not authorised"}, status=status.HTTP_403_FORBIDDEN)
         serializer = self.serializer_class(instance, context={"request": request})
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
     def update(self, request, *args, **kwargs):
         return response.Response("", status=status.HTTP_200_OK)
+
+    def destroy(self, request, *args, **kwargs):
+        # print(kwargs)
+        print("here")
+        transaction_id = get_transaction_id(kwargs[self.lookup_field])
+        try:
+            instance = self.queryset.get(id=int(transaction_id))
+        except:
+            return response.Response({"errors": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
+        # serializer = self.serializer_class(instance, context={"request": request})
+        if request.user not in [instance.provider, instance.seeker]:
+            return response.Response({"errors": "User not authorised"}, status=status.HTTP_403_FORBIDDEN)
+        try:
+            self.perform_destroy(instance)
+            print("del")
+            return response.Response("", status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return response.Response({"errors": f"{e}, transaction could not be deleted"}, status=status.HTTP_400_BAD_REQUEST)
 
     def update_seeker(self, request, *args, **kwargs):
         print(request.data)

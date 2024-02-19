@@ -100,6 +100,15 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         await self.condition_gate(receive_dict)
 
     async def condition_gate(self, receive_dict):
+        # cancel transaction
+        # if receive_dict["request"] == "CANCEL_TRANSACTION":
+        #     if (
+        #             receive_dict["status"] == "CANCELLED"
+        #             # and "transaction_id" in receive_dict["data"]
+        #     ):
+        #         print("cancel")
+        #         cache.delete(str(self.user.id))
+                # await self.cancel_request(receive_dict)
         # send out request
         if receive_dict["request"] == "TRANSACTION":
             if (
@@ -116,6 +125,11 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     receive_dict["request"] == "TRANSACTION" and
                     receive_dict["status"] == "REJECTED"
             ):
+                # self reject message
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    "user": str(self.user.id)
+                }))
                 await self.receive_reject(receive_dict)
 
             # accept request
@@ -260,14 +274,21 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         await self.delayed_message_seeker(receive_dict)
 
     async def receive_reject(self, receive_dict):
-        await self.send(text_data=json.dumps({
-            'message': receive_dict,
-            "user": str(self.user.id)
-        }))
+        # await self.send(text_data=json.dumps({
+        #     'message': receive_dict,
+        #     "user": str(self.user.id)
+        # }))
         user_list = cache.get(receive_dict["data"]["seeker"])
         print(user_list)
         if len(user_list) != 0:
             if user_list[0] == receive_dict["data"]["provider"]:
+                # await self.channel_layer.group_send(
+                #     f"{receive_dict['data']['provider']}-room",
+                #     {
+                #         'type': 'send_to_receiver_data',
+                #         'receive_dict': receive_dict,
+                #     }
+                # )
                 user_list.pop(0)
                 cache.set(receive_dict["data"]["seeker"], user_list)
         if len(user_list) != 0:
@@ -328,6 +349,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             )
         cache.delete(
             f'{receive_dict["data"]["seeker"]}-request'
+        )
+        cache.delete(
+            f'{receive_dict["data"]["seeker"]}'
         )
         await self.send_location(receive_dict)
 
@@ -427,7 +451,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
     async def receive_message(self, receive_dict):
         if "transaction_id" in receive_dict["data"]:
-            transaction_obj_user = await self.get_transaction_obj(receive_dict["data"]["transaction_id"], self.user)
+            transaction_obj_user = await self.get_transaction_obj_party(receive_dict["data"]["transaction_id"], self.user)
             if transaction_obj_user == -1:
                 receive_dict["status"] = "INVALID_TRANSACTION"
                 receive_dict["data"] = None
@@ -467,6 +491,47 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     'receive_dict': receive_dict,
                 }
             )
+
+    async def cancel_request(self, receive_dict):
+        # transaction_ins = await self.get_transaction_instance(receive_dict["data"]["transaction_id"], self.user)
+        print(" iam in cancelled")
+        user_list = cache.get(
+            str(self.user.id)
+        )
+        print(user_list)
+        if user_list is not None:
+            if len(user_list) != 0:
+                provider = user_list[0]
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    'user': str(self.user.id)
+                }))
+                await self.channel_layer.group_send(
+                    f"{provider}-room",
+                    {
+                        'type': 'send_to_receiver_data',
+                        'receive_dict': receive_dict,
+                    }
+                )
+                # delete cache
+                cache.delete(str(self.user.id))
+
+
+
+        # user_list =
+
+        # receive_dict = {
+        #     "request": "LOCATION",
+        #     "status": "ON_GOING_TRANSACTION",
+        #     "data": {
+        #         "transaction_id": transaction_id,
+        #         "location": {
+        #             "latitude": 0.0,
+        #             "longitude": 0.0
+        #         }
+        #     }
+        # }
+        # await self.receive_location(receive_dict)
 
     @database_sync_to_async
     def get_user_list(self, room_name):
@@ -591,7 +656,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         return data
 
     @database_sync_to_async
-    def get_transaction_obj(self, transaction_id, user):
+    def get_transaction_obj_party(self, transaction_id, user):
         transaction_id = get_transaction_id(transaction_id)
         try:
             transaction_obj = Transaction.objects.get(id=transaction_id)
@@ -604,6 +669,23 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
         if user == transaction_obj.provider:
             return str(transaction_obj.seeker.id)
+
+    @database_sync_to_async
+    def get_transaction_instance(self, transaction_id, user):
+        transaction_id = get_transaction_id(transaction_id)
+        try:
+            transaction_obj = Transaction.objects.get(id=transaction_id)
+        except Transaction.DoesNotExist:
+            return -1
+        if transaction_obj.is_completed:
+            return -2
+        if user != transaction_obj.seeker:
+            return -3
+
+        return {
+            "seeker":str(transaction_obj.seeker.id),
+            "provider":str(transaction_obj.provider.id)
+        }
 
     @database_sync_to_async
     def post_transaction_messages(self, transaction_id, user, message):
