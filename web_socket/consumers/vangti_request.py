@@ -176,7 +176,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
             if cache.get(f'{receive_dict["data"]["seeker"]}') is None:
-                receive_dict["request"]= "CANCEL_TRANSACTION"
+                receive_dict["request"]= "TRANSACTION"
                 receive_dict["status"]= "CANCELLED"
                 await self.send(text_data=json.dumps({
                     'message': receive_dict,
@@ -206,7 +206,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
             if cache.get(f'{receive_dict["data"]["seeker"]}') is None:
-                receive_dict["request"]= "CANCEL_TRANSACTION"
+                receive_dict["request"]= "TRANSACTION"
                 receive_dict["status"]= "CANCELLED"
                 await self.send(text_data=json.dumps({
                     'message': receive_dict,
