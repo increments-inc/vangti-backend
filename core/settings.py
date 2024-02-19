@@ -122,6 +122,8 @@ SPECTACULAR_SETTINGS = {
     # OTHER SETTINGS
 }
 
+
+
 AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
@@ -136,6 +138,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # custom
+    'core.custom_middleware.CustomMiddleware'
 ]
 
 # debug toolbar
