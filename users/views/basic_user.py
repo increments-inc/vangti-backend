@@ -23,17 +23,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     @staticmethod
     def _otp_login(request, serializer):
         resp = response.Response()
-        # setting the jwt cookies
-        # set_jwt_cookies(
-        #     response=resp,
-        #     access_token=serializer.validated_data.get(
-        #         settings.JWT_AUTH_COOKIE
-        #     ),
-        #     refresh_token=serializer.validated_data.get(
-        #         settings.JWT_AUTH_REFRESH_COOKIE
-        #     ),
-        # )
-        # print("cookies", resp.cookies, request.cookies)
         resp.set_cookie('access',
                         str(serializer.validated_data.get(settings.JWT_AUTH_COOKIE)),
                         httponly=True)
@@ -75,16 +64,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 request=request,
                 serializer=serializer
             )
-            # try:
-            #     return self._otp_login(
-            #         request=request,
-            #         serializer=serializer
-            #     )
-            #
-            # except Exception as e:
-            #     # raise InvalidToken(e.args[0]) from e
-            #     return response.Response("", status=status.HTTP_400_BAD_REQUEST)
-
         return response.Response({
             "message": "Username or Password error",
             "errors": "invalid username or password",

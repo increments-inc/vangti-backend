@@ -42,7 +42,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         # Add custom claims
         token["is_active"] = user.is_active
         # token["is_to_be_deleted"] = user.user_delettion_schedule_user.is_to_be_deleted
-        token["time"] = str(datetime.now())
+        token["device"] = str(datetime.now())
         return token
 
 
