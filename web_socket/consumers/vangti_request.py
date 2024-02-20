@@ -500,6 +500,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 return
             # transaction_obj
             if "message" in receive_dict["data"]:
+                # edit datetime
+                receive_dict["data"]["created_at"] = str(datetime.now())
                 msg_obj = await self.post_transaction_messages(
                     receive_dict["data"]["transaction_id"],
                     self.user,
