@@ -3,8 +3,11 @@ import jwt
 from django.conf import settings
 from rest_framework_simplejwt.tokens import AccessToken, BlacklistMixin
 
+
 class JWTAccessToken(BlacklistMixin, AccessToken):
     pass
+
+
 class CustomMiddleware(MiddlewareMixin):
 
     def process_request(self, request):

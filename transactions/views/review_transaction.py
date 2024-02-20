@@ -13,7 +13,8 @@ from ..models import *
 from ..serializers import *
 from utils.apps.transaction import get_transaction_id
 from drf_spectacular.utils import extend_schema
-
+from rest_framework.decorators import action
+from utils.custom_pagination import CustomPagination
 
 class TransactionRatingViewSet(viewsets.ModelViewSet):
     queryset = TransactionReview.objects.all()
@@ -48,6 +49,7 @@ class TransactionMessagesViewSet(viewsets.ModelViewSet):
         serializer = self.serializer_class(queryset, many=True)
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
+    # @action(detail=False,pagination_class=CustomPagination)
     def retrieve(self, request, *args, **kwargs):
         transaction_no = kwargs.get("transaction_no")
         transaction_id = get_transaction_id(transaction_no)
@@ -57,7 +59,6 @@ class TransactionMessagesViewSet(viewsets.ModelViewSet):
             return response.Response(
                 {"errors": "User not allowed to view this transaction messages"}, status=status.HTTP_403_FORBIDDEN
             )
-
         queryset = self.queryset.filter(transaction=transaction_id).order_by("-created_at")
         page = self.paginate_queryset(queryset)
         if page is not None:
