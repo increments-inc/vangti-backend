@@ -45,6 +45,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         # print(kwargs)
         transaction_id = get_transaction_id(kwargs[self.lookup_field])
+
+        # transaction_id = self.get_object(pk=transaction_id)
         try:
             instance = self.queryset.get(id=int(transaction_id))
         except:

@@ -11,7 +11,7 @@ import requests
 import asyncio
 import json
 
-async def send_message(path, token, data):
+async def send_message_socket(path, token, data):
     async with websockets.connect(
             "ws://127.0.0.1:8000"+path+"?token="+token
     ) as websocket:
@@ -25,7 +25,7 @@ async def send_celery(path, query_string, data):
     print("helo dummy")
     token = query_string.decode("utf-8").split("=")[-1]
     # asyncio.get_event_loop().run_forever(webs())
-    await send_message(path, token, data)
+    await send_message_socket(path, token, data)
 
     # print(gh)
 

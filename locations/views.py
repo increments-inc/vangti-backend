@@ -26,6 +26,8 @@ class LocationViewSet(viewsets.ModelViewSet):
     def get_location(self, *args, **kwargs):
         serializer = self.serializer_class(
             self.get_queryset().get(user=self.request.user.id)
+        # self.get_object()
+
         )
         return response.Response(serializer.data,status=status.HTTP_200_OK)
 

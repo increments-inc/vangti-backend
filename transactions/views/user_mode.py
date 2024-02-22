@@ -87,9 +87,12 @@ def get_user_list(user):
 def get_user_analytics(user_list):
     ## total total_active_provider
     total_user = len(user_list)
-    rating_queryset = UserRating.objects.filter(
-        user__in=user_list
-    ).annotate(
+    rating_queryset = UserRating.objects.filter(user__in=user_list)
+
+    print(rating_queryset)
+    if not rating_queryset:
+        return None
+    rating_queryset=rating_queryset.annotate(
         avg_success_rate=Avg("deal_success_rate", default=0.0),
         avg_rating=Avg("rating", default=0.0),
         total_dislikes=Count("dislikes"),
@@ -163,12 +166,18 @@ class UserServiceModeViewSet(viewsets.ModelViewSet):
             self.perform_update(serializer)
             user_list = (get_mode_user_list(self.request.user))
             empty = []
-            for usr in user_list:
-                sur_user_list = get_user_list(usr)
-                ana = get_user_analytics(sur_user_list)
-                ana["user"] = str(usr.id)
-                empty.append(ana)
-            send_out_mesg.delay(empty)
+            print(user_list)
+            if len(user_list) > 0:
+                for usr in user_list:
+                    sur_user_list = get_user_list(usr)
+                    ana = get_user_analytics(sur_user_list)
+                    if ana is None:
+                        ana = []
+                    else:
+                        ana["user"] = str(usr.id)
+                        empty.append(ana)
+                        print(ana)
+                send_out_mesg.delay(empty)
 
             return response.Response(
                 serializer.data,
