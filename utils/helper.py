@@ -10,7 +10,7 @@ from cryptography.fernet import Fernet
 from django.conf import settings
 import base64
 from django.core.mail import EmailMessage, send_mass_mail
-
+import blurhash
 # image compression
 from rest_framework.exceptions import ValidationError
 
@@ -125,3 +125,13 @@ def int_to_hex(data):
 
 def hex_to_int(data):
     return int(str(data), 16)
+
+
+def get_hash(picture_url):
+    # with open(picture_url[1:], 'rb') as image_file:
+    #     url_hash = blurhash.encode(image_file, x_components=4, y_components=3)
+    with Image.open(picture_url[1:]) as image_file:
+        image_file.thumbnail((100, 100))
+        url_hash = blurhash.encode(image_file, x_components=4, y_components=3)
+    return url_hash
+

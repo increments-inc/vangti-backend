@@ -9,11 +9,10 @@ from django.db import transaction
 from asgiref.sync import async_to_sync, sync_to_async
 from datetime import datetime, timedelta
 from locations.models import UserLocation, LocationRadius
-from transactions.models import TransactionRequest, Transaction
+from transactions.models import TransactionRequest, Transaction, TransactionMessages
 from users.models import User
 from ..fcm import send_push
 from ..tasks import *
-from ..models import TransactionMessages
 
 
 class InterruptExecution(Exception):

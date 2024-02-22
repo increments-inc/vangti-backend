@@ -17,8 +17,10 @@ class UserServiceModeSerializer(serializers.ModelSerializer):
         user = self.context.get("request").user
         if VerifiedUsers.objects.filter(user=user).exists():
             return True
-        return False
-
+        # real state
+        # return False
+        # disabled kyc dependency
+        return True
 
 # class UserServiceModeChangeSerializer(serializers.ModelSerializer):
 #     class Meta:

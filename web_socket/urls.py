@@ -9,5 +9,6 @@ router = DefaultRouter()
 # router.register("call-history", CallHistoryViewSet, basename="call_history")
 
 urlpatterns = [
-        path('send-channels/', vangti_request)
+        path('cancel-request/', CancelSearch.as_view(
+        ))
               ] + router.urls

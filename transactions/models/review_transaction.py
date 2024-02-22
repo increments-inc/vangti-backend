@@ -18,3 +18,12 @@ class TransactionReview(BaseModel):
 
     class Meta:
         ordering = ("-created_at",)
+
+
+class TransactionMessages(BaseModel):
+    transaction = models.ForeignKey(Transaction, on_delete=models.CASCADE, related_name="transaction_messages")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="transaction_messages_user")
+    message = models.TextField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("transaction", "-created_at",)

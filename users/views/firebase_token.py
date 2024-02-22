@@ -18,6 +18,14 @@ class UserFirebaseTokenViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["post"]
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    # def perform_create(self, serializer):
+    #     serializer.save(user=self.request.user)
+
+    def create(self, *args, **kwargs):
+        serializer = self.serializer_class(data=self.request.data, context={"request": self.request})
+        if serializer.is_valid():
+            serializer.save(user=self.request.user)
+            return response.Response(serializer.data, status=status.HTTP_201_CREATED)
+        return response.Response({"errors": "Invalid data"}, status=status.HTTP_400_BAD_REQUEST)
+
 

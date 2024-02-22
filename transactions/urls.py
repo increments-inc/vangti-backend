@@ -4,8 +4,9 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 # router.register("search-vangti", TransactionRequestViewSet, basename="transaction_request")
+router.register("messages", TransactionMessagesViewSet, basename="transaction_messages")
 router.register("", TransactionViewSet, basename="transaction")
-# router.register("user-mode", UserServiceModeViewSet, basename="user_service_mode")
+
 
 urlpatterns = [
                   path('update-by-provider/', TransactionViewSet.as_view({"patch": "update_provider"}),

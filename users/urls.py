@@ -9,8 +9,9 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 
-router.register('document', UserKYCDocumentViewSet, basename='user_documents')
-router.register('submit-kyc-info', VerifiedUsersViewSet, basename='user_submit_kyc')
+# router.register('document', UserKYCDocumentViewSet, basename='user_documents')
+# kyc submit
+# router.register('submit-kyc-info', VerifiedUsersViewSet, basename='user_submit_kyc')
 router.register('firebase-token', UserFirebaseTokenViewSet, basename='user_firebase_token')
 # router.register('info', UserInformationViewSet, basename='user_information')
 
@@ -45,21 +46,22 @@ urlpatterns = [
 
                   # path('phone-register/', PhoneUserViewSet.as_view({"post": "phone_register"}), name='user_phone_registration'),
 
+                  # KYC/NID
                   # kyc/nid
-                  path('nid-add/', UserNidInformationViewSet.as_view({"post": "add_nid"}), name='user_add_nid'),
-                  path('nid-front-add/', UserNidInformationViewSet.as_view({"patch": "nid_front_add"}), name='user_nid_front_add'),
-                  path('nid-back-add/', UserNidInformationViewSet.as_view({"patch": "nid_back_add"}), name='user_nid_back_add'),
-                  path('nid-photo-add/', UserNidInformationViewSet.as_view({"patch": "nid_photo_add"}), name='user_photo_add'),
-                  path('nid-signature-add/', UserNidInformationViewSet.as_view({"patch": "nid_signature_add"}), name='user_signature_add'),
-
-                  path('nid-update/', UserNidInformationViewSet.as_view({"patch": "update_nid"}),
-                       name='user_update_nid'),
-                  path('nid-get/', UserNidInformationViewSet.as_view({"get": "retrieve"}),
-                       name='user_retrieve_nid'),
-
-                  path('kyc-add/', UserKYCInformationViewSet.as_view({"post": "add_kyc_info"}),
-                       name='user_add_kyc_info'),
-                  path('kyc-update/', UserKYCInformationViewSet.as_view({"patch": "update_kyc_information"}),
-                       name='user_update_kyc_information'),
+                  # path('nid-add/', UserNidInformationViewSet.as_view({"post": "add_nid"}), name='user_add_nid'),
+                  # path('nid-front-add/', UserNidInformationViewSet.as_view({"patch": "nid_front_add"}), name='user_nid_front_add'),
+                  # path('nid-back-add/', UserNidInformationViewSet.as_view({"patch": "nid_back_add"}), name='user_nid_back_add'),
+                  # path('nid-photo-add/', UserNidInformationViewSet.as_view({"patch": "nid_photo_add"}), name='user_photo_add'),
+                  # path('nid-signature-add/', UserNidInformationViewSet.as_view({"patch": "nid_signature_add"}), name='user_signature_add'),
+                  #
+                  # path('nid-update/', UserNidInformationViewSet.as_view({"patch": "update_nid"}),
+                  #      name='user_update_nid'),
+                  # path('nid-get/', UserNidInformationViewSet.as_view({"get": "retrieve"}),
+                  #      name='user_retrieve_nid'),
+                  #
+                  # path('kyc-add/', UserKYCInformationViewSet.as_view({"post": "add_kyc_info"}),
+                  #      name='user_add_kyc_info'),
+                  # path('kyc-update/', UserKYCInformationViewSet.as_view({"patch": "update_kyc_information"}),
+                  #      name='user_update_kyc_information'),
 
               ] + router.urls

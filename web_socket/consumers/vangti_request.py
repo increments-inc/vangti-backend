@@ -10,11 +10,10 @@ from django.db import transaction
 from asgiref.sync import async_to_sync, sync_to_async
 from datetime import datetime, timedelta
 from locations.models import UserLocation, LocationRadius
-from transactions.models import TransactionRequest, Transaction
+from transactions.models import TransactionRequest, Transaction, TransactionMessages
 from users.models import User
 from ..fcm import send_push
 from ..tasks import *
-from ..models import TransactionMessages
 from django.conf import settings
 import blurhash
 from utils.apps.location import get_directions
@@ -23,8 +22,8 @@ from utils.apps.transaction import get_transaction_id
 
 def get_hash(picture_url):
     with open(picture_url[1:], 'rb') as image_file:
-        hash = blurhash.encode(image_file, x_components=4, y_components=3)
-    return hash
+        url_hash = blurhash.encode(image_file, x_components=4, y_components=3)
+    return url_hash
 
 
 class VangtiRequestConsumer(AsyncWebsocketConsumer):
@@ -101,6 +100,15 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         await self.condition_gate(receive_dict)
 
     async def condition_gate(self, receive_dict):
+        # cancel transaction
+        # if receive_dict["request"] == "CANCEL_TRANSACTION":
+        #     if (
+        #             receive_dict["status"] == "CANCELLED"
+        #             # and "transaction_id" in receive_dict["data"]
+        #     ):
+        #         print("cancel")
+        #         cache.delete(str(self.user.id))
+                # await self.cancel_request(receive_dict)
         # send out request
         if receive_dict["request"] == "TRANSACTION":
             if (
@@ -117,6 +125,11 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     receive_dict["request"] == "TRANSACTION" and
                     receive_dict["status"] == "REJECTED"
             ):
+                # self reject message
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    "user": str(self.user.id)
+                }))
                 await self.receive_reject(receive_dict)
 
             # accept request
@@ -139,10 +152,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             # message
         if receive_dict["request"] == "MESSAGE":
             if (
-                    (receive_dict["data"]["seeker"] == str(self.user.id)
-                     or receive_dict["data"]["provider"] == str(self.user.id))
-                    and
-                    receive_dict["request"] == "MESSAGE" and
                     receive_dict["status"] == "ON_GOING_TRANSACTION"
             ):
                 await self.receive_message(receive_dict)
@@ -166,6 +175,21 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             print("cache value ", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
+            if cache.get(f'{receive_dict["data"]["seeker"]}') is None:
+                receive_dict["request"]= "TRANSACTION"
+                receive_dict["status"]= "CANCELLED"
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    "user": str(self.user.id)
+                }))
+                await self.channel_layer.group_send(
+                    f"{provider}-room",
+                    {
+                        'type': 'send_to_receiver_data',
+                        'receive_dict': receive_dict,
+                    }
+                )
+                return
         receive_dict["data"]["provider"] = provider
         receive_dict["data"]["status"] = 'PENDING'
 
@@ -181,6 +205,21 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             print("cache value ", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
+            if cache.get(f'{receive_dict["data"]["seeker"]}') is None:
+                receive_dict["request"]= "TRANSACTION"
+                receive_dict["status"]= "CANCELLED"
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    "user": str(self.user.id)
+                }))
+                await self.channel_layer.group_send(
+                    f"{receive_dict['data']['provider']}-room",
+                    {
+                        'type': 'send_to_receiver_data',
+                        'receive_dict': receive_dict,
+                    }
+                )
+                return
 
         if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
             print("here")
@@ -198,6 +237,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             print("provider ", own_provider, cache_provider)
             if cache_provider == own_provider:
                 receive_dict["status"] = "TIMEOUT"
+                print("time ", receive_dict)
                 await self.channel_layer.group_send(
                     f"{cache_provider}-room",
                     {
@@ -264,14 +304,26 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         await self.delayed_message_seeker(receive_dict)
 
     async def receive_reject(self, receive_dict):
+        # await self.send(text_data=json.dumps({
+        #     'message': receive_dict,
+        #     "user": str(self.user.id)
+        # }))
         user_list = cache.get(receive_dict["data"]["seeker"])
         print(user_list)
         if len(user_list) != 0:
             if user_list[0] == receive_dict["data"]["provider"]:
+                # await self.channel_layer.group_send(
+                #     f"{receive_dict['data']['provider']}-room",
+                #     {
+                #         'type': 'send_to_receiver_data',
+                #         'receive_dict': receive_dict,
+                #     }
+                # )
                 user_list.pop(0)
                 cache.set(receive_dict["data"]["seeker"], user_list)
         if len(user_list) != 0:
             send_user = user_list[0]
+
             receive_dict["data"]["provider"] = user_list[0]
             receive_dict["status"] = "PENDING"
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
@@ -328,6 +380,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         cache.delete(
             f'{receive_dict["data"]["seeker"]}-request'
         )
+        cache.delete(
+            f'{receive_dict["data"]["seeker"]}'
+        )
         await self.send_location(receive_dict)
 
     async def send_location(self, receive_dict):
@@ -373,7 +428,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         #         'user': str(self.user.id)
         #     }))
         #     return
-        print("gsdgsdf rev",receive_dict)
+        print("gsdgsdf rev", receive_dict)
         if receive_dict["data"] == -1:
             receive_dict["status"] = "INVALID_TRANSACTION"
             receive_dict["data"] = None
@@ -425,26 +480,90 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive_message(self, receive_dict):
-        room_seeker = receive_dict["data"]["seeker"]
-        room_provider = receive_dict["data"]["provider"]
-        receive_dict["data"]["provider_msg"] = await self.get_previous_messages(
-            receive_dict["data"]["transaction_id"])
-        receive_dict["data"]["user_msg"] = "qwerty"
-        if receive_dict["data"]["provider"]:
+        if "transaction_id" in receive_dict["data"]:
+            transaction_obj_user = await self.get_transaction_obj_party(receive_dict["data"]["transaction_id"], self.user)
+            if transaction_obj_user == -1:
+                receive_dict["status"] = "INVALID_TRANSACTION"
+                receive_dict["data"] = None
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    'user': str(self.user.id)
+                }))
+                return
+            if transaction_obj_user == -2:
+                receive_dict["status"] = "COMPLETED_TRANSACTION"
+                receive_dict["data"] = None
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    'user': str(self.user.id)
+                }))
+                return
+            # transaction_obj
+            if "message" in receive_dict["data"]:
+                # edit datetime
+                receive_dict["data"]["created_at"] = str(datetime.now())
+                msg_obj = await self.post_transaction_messages(
+                    receive_dict["data"]["transaction_id"],
+                    self.user,
+                    receive_dict["data"]["message"]
+                )
+                if msg_obj is None:
+                    receive_dict["status"] = "SEND_FAILED"
+                    receive_dict["data"] = None
+                    await self.send(text_data=json.dumps({
+                        'message': receive_dict,
+                        'user': str(self.user.id)
+                    }))
+                    return
+            # transaction_obj
             await self.channel_layer.group_send(
-                f"{room_seeker}-room",
+                f"{transaction_obj_user}-room",
                 {
                     'type': 'send_to_receiver_data',
                     'receive_dict': receive_dict,
                 }
             )
-            await self.channel_layer.group_send(
-                f"{room_provider}-room",
-                {
-                    'type': 'send_to_receiver_data',
-                    'receive_dict': receive_dict,
-                }
-            )
+
+    async def cancel_request(self, receive_dict):
+        # transaction_ins = await self.get_transaction_instance(receive_dict["data"]["transaction_id"], self.user)
+        print(" iam in cancelled")
+        user_list = cache.get(
+            str(self.user.id)
+        )
+        print(user_list)
+        if user_list is not None:
+            if len(user_list) != 0:
+                provider = user_list[0]
+                await self.send(text_data=json.dumps({
+                    'message': receive_dict,
+                    'user': str(self.user.id)
+                }))
+                await self.channel_layer.group_send(
+                    f"{provider}-room",
+                    {
+                        'type': 'send_to_receiver_data',
+                        'receive_dict': receive_dict,
+                    }
+                )
+                # delete cache
+                cache.delete(str(self.user.id))
+
+
+
+        # user_list =
+
+        # receive_dict = {
+        #     "request": "LOCATION",
+        #     "status": "ON_GOING_TRANSACTION",
+        #     "data": {
+        #         "transaction_id": transaction_id,
+        #         "location": {
+        #             "latitude": 0.0,
+        #             "longitude": 0.0
+        #         }
+        #     }
+        # }
+        # await self.receive_location(receive_dict)
 
     @database_sync_to_async
     def get_user_list(self, room_name):
@@ -529,36 +648,36 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         print("tr", transaction_id)
         # employ cache
         try:
-            transaction = Transaction.objects.get(id=transaction_id)
-            data["seeker"] = str(transaction.seeker.id)
-            data["provider"] = str(transaction.provider.id)
+            transaction_obj = Transaction.objects.get(id=transaction_id)
+            data["seeker"] = str(transaction_obj.seeker.id)
+            data["provider"] = str(transaction_obj.provider.id)
 
-            if transaction.seeker == self.user:
+            if transaction_obj.seeker == self.user:
                 data["seeker_location"] = data["location"]
-                seek = UserLocation.objects.using("location").filter(user=transaction.seeker.id).last()
+                seek = UserLocation.objects.using("location").filter(user=transaction_obj.seeker.id).last()
                 seek.latitude = data["location"]["latitude"]
                 seek.longitude = data["location"]["longitude"]
                 seek.save()
-                prov = UserLocation.objects.using("location").filter(user=transaction.provider.id).last()
+                prov = UserLocation.objects.using("location").filter(user=transaction_obj.provider.id).last()
                 data["provider_location"] = {
                     "latitude": prov.latitude,
                     "longitude": prov.longitude
                 }
-            if transaction.provider == self.user:
-                seek = UserLocation.objects.using("location").filter(user=transaction.seeker.id).last()
+            if transaction_obj.provider == self.user:
+                seek = UserLocation.objects.using("location").filter(user=transaction_obj.seeker.id).last()
                 data["seeker_location"] = {
                     "latitude": seek.latitude,
                     "longitude": seek.longitude
                 }
                 data["provider_location"] = data["location"]
-                prov = UserLocation.objects.using("location").filter(user=transaction.provider.id).last()
+                prov = UserLocation.objects.using("location").filter(user=transaction_obj.provider.id).last()
                 prov.latitude = data["location"]["latitude"]
                 prov.longitude = data["location"]["longitude"]
                 prov.save()
             del data["location"]
         except:
             return -1
-        if transaction.is_completed:
+        if transaction_obj.is_completed:
             return -2
 
         try:
@@ -569,16 +688,49 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         return data
 
     @database_sync_to_async
-    def get_previous_messages(self, transaction_id):
+    def get_transaction_obj_party(self, transaction_id, user):
+        transaction_id = get_transaction_id(transaction_id)
         try:
-            messages = list(TransactionMessages.objects.filter(transaction_id=transaction_id).values(
-                "created_at",
-                "user",
-                "message"
-            ))
+            transaction_obj = Transaction.objects.get(id=transaction_id)
+        except Transaction.DoesNotExist:
+            return -1
+        if transaction_obj.is_completed:
+            return -2
+        if user == transaction_obj.seeker:
+            return str(transaction_obj.provider.id)
+
+        if user == transaction_obj.provider:
+            return str(transaction_obj.seeker.id)
+
+    @database_sync_to_async
+    def get_transaction_instance(self, transaction_id, user):
+        transaction_id = get_transaction_id(transaction_id)
+        try:
+            transaction_obj = Transaction.objects.get(id=transaction_id)
+        except Transaction.DoesNotExist:
+            return -1
+        if transaction_obj.is_completed:
+            return -2
+        if user != transaction_obj.seeker:
+            return -3
+
+        return {
+            "seeker":str(transaction_obj.seeker.id),
+            "provider":str(transaction_obj.provider.id)
+        }
+
+    @database_sync_to_async
+    def post_transaction_messages(self, transaction_id, user, message):
+        try:
+            transaction_id_no = get_transaction_id(transaction_id)
+            messages = TransactionMessages.objects.create(
+                transaction_id=transaction_id_no,
+                user=user,
+                message=message
+            )
             return messages
         except:
-            return []
+            return None
 
     @database_sync_to_async
     def get_seeker_info(self, seeker):
