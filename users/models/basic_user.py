@@ -152,7 +152,9 @@ class RegistrationOTPModel(BaseModel):
     is_active = models.BooleanField(
         default=False,
     )
+    is_reset = models.BooleanField(
+        default=False,
+    )
     expires_at = models.DateTimeField(null=True, blank=True)
-
     def __str__(self):
         return f"OTP - {self.phone_number}"

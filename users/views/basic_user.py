@@ -83,6 +83,7 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         return self.serializer_class
 
     def post(self, request, *args, **kwargs):
+        print("data", request.data)
         serializer = self.serializer_class(
             data=request.data,
             context={"request": request}
@@ -197,6 +198,7 @@ class GetNumberViewSet(viewsets.ModelViewSet):
         return self.serializer_class
 
     def post(self, request, *args, **kwargs):
+        print("data", request.data)
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             user = serializer.save()

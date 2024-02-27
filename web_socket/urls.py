@@ -9,6 +9,6 @@ router = DefaultRouter()
 # router.register("call-history", CallHistoryViewSet, basename="call_history")
 
 urlpatterns = [
-        path('cancel-request/', CancelSearch.as_view(
-        ))
+        path('cancel-request/', CancelSearch.as_view()),
+        path('preferred-notes/', PreferredSearch.as_view()),
               ] + router.urls
