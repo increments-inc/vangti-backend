@@ -35,24 +35,24 @@ def coin_change(initial_amount, **kwargs):
     twenty = kwargs.get("twenty", 0)
     ten = kwargs.get("ten", 0)
 
-    if five_hundred==two_hundred==one_hundred==fifty==twenty==ten==0:
-        return [x for x in coins if not x>=initial_amount]
+    if five_hundred == two_hundred == one_hundred == fifty == twenty == ten == 0:
+        return [x for x in coins if not x >= initial_amount]
 
     all_combinations = coin_change_combinations(coins, initial_amount)
     print(len(all_combinations))
 
-    sum_note =(
-                (five_hundred * 500) +
-                (two_hundred * 200) +
-                (one_hundred * 100) +
-                (fifty * 50) +
-                (twenty * 20) +
-                (ten * 10)
-        )
-    if sum_note ==initial_amount:
+    sum_note = (
+            (five_hundred * 500) +
+            (two_hundred * 200) +
+            (one_hundred * 100) +
+            (fifty * 50) +
+            (twenty * 20) +
+            (ten * 10)
+    )
+    if sum_note == initial_amount:
         return []
-    for combin in reversed(all_combinations):
-        # print("combin =", combin)
+    remaining_amount = initial_amount-sum_note
+    for combin in all_combinations:
         if (
                 combin.count(500) >= five_hundred and
                 combin.count(200) >= two_hundred and
@@ -61,29 +61,18 @@ def coin_change(initial_amount, **kwargs):
                 combin.count(20) >= twenty and
                 combin.count(10) >= ten
         ):
-
-        # if combin.count(500) >= five_hundred :
-        #     if combin.count(200) >= two_hundred :
-        #         if combin.count(100) >= one_hundred :
-        #             if combin.count(50) >= fifty :
-        #                 if combin.count(20) >= twenty :
-        #                     if combin.count(10) >= ten:
-        #                         sum(combin)
             print("here", combin)
             for x in combin:
-
                 empty_notes.append(x)
             # break
     note_list = []
     empty_notes = sorted(list(set(empty_notes)))
-    # for note in empty_notes:
-    #     print(set(note))
-    #     note_list.append(set(note))
-    #     #     return -1
-    if initial_amount> sum_note:
-        remaining_amount =  initial_amount - sum_note
-        for coin in coins:
-            if coin > remaining_amount:
-                note_list.append(coin)
-    print(remaining_amount, note_list)
-    return empty_notes
+    rem_combinations = coin_change_combinations(empty_notes, remaining_amount
+                                                )
+    for combin in rem_combinations:
+        for x in combin:
+            note_list.append(x)
+
+    note_list = sorted(list(set(note_list)))
+
+    return note_list
