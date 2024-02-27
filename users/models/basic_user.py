@@ -142,6 +142,7 @@ class RegistrationOTPModel(BaseModel):
     phone_regex = RegexValidator(regex=r'^\+?1?\d{9,15}$',
                                  message="Phone number must be entered in the format: '+880XXXX-XXXXXX'. Up to 13 "
                                          "digits allowed.")
+    # change the max digit to 14
     phone_number = models.CharField(validators=[phone_regex], max_length=15)
     device_token = models.CharField(max_length=512, null=True, blank=True)
     key = models.TextField(

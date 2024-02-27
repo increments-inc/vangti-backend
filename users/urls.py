@@ -24,8 +24,11 @@ urlpatterns = [
 
                   # registration
                   path('login/', CustomTokenObtainPairView.as_view(), name='user_login'),
-                  path('enter-otp/', RegistrationViewSet.as_view({"post": "post"}), name='user_registration'),
-                  path('enter-pin/', RegistrationViewSet.as_view({"post": "set_pin"}), name='user_set_pin'),
+                  # path('enter-otp/', RegistrationViewSet.as_view({"post": "post"}), name='user_registration'),
+                    # new
+                  path('enter-otp/', GetNumberViewSet.as_view({"patch": "verify_otp"}), name='user_otp_enter'),
+
+                  path('enter-pin/', RegistrationViewSet.as_view({"post": "post"}), name='user_registration'),
                   # path('set-pin-token/', UserPinViewSet.as_view({"post": "set_pin"}), name='user_set_pin_token'),
                   path('enter-phone-number/', GetNumberViewSet.as_view({"post": "post"}), name='user_number_enter'),
 
