@@ -79,12 +79,12 @@ class InsightsViewSet(viewsets.ModelViewSet):
                 "no_of_transaction": no_of_transaction,
             }
             # dev data
-            data = {
-                "date": str(date),
-                "total_amount_of_transaction": float(random.randint(10000, 500000)),
-                "profit": float(random.randint(100, 5000)),
-                "no_of_transaction": random.randint(100, 5000000),
-            }
+            # data = {
+            #     "date": str(date),
+            #     "total_amount_of_transaction": float(random.randint(10000, 500000)),
+            #     "profit": float(random.randint(100, 5000)),
+            #     "no_of_transaction": random.randint(100, 5000000),
+            # }
             scan_list.append(data)
         return Response(scan_list, status=status.HTTP_200_OK)
 
@@ -111,13 +111,13 @@ class InsightsViewSet(viewsets.ModelViewSet):
                 "num_stat": float(0),
             }
             # dev data
-            data = {
-                "no_of_transaction": 10000,
-                "total_amount_of_transaction": float(200000),
-                "amount_stat": float(10.99),
-                "num_stat": float(-20.999),
-
-            }
+            # data = {
+            #     "no_of_transaction": 10000,
+            #     "total_amount_of_transaction": float(200000),
+            #     "amount_stat": float(10.99),
+            #     "num_stat": float(-20.999),
+            #
+            # }
             return Response(data, status=status.HTTP_200_OK)
 
         this_week_trans_number = this_week_trans.aggregate(
@@ -226,11 +226,11 @@ class InsightsViewSet(viewsets.ModelViewSet):
             }
 
         # dev data
-        data = {
-            "note": "1000",
-            "interval": interval,
-            "stat": float(-10),
-        }
+        # data = {
+        #     "note": "1000",
+        #     "interval": interval,
+        #     "stat": float(-10),
+        # }
         return Response(data, status=status.HTTP_200_OK)
 
 
