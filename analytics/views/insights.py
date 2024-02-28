@@ -47,6 +47,7 @@ class InsightsViewSet(viewsets.ModelViewSet):
             date_list = [today - timedelta(days=x) for x in range(interval_day)]
 
         user_analytics = self.queryset.filter(
+            user=self.request.user,
             created_at__lte=datetime.now(),
             created_at__gte=today - timedelta(days=interval_day),
         ).values("no_of_transaction", "total_amount_of_transaction", "profit", "created_at")
@@ -98,7 +99,8 @@ class InsightsViewSet(viewsets.ModelViewSet):
 
     def transaction_by_week(self, *args, **kwargs):
         user_analytics = (
-            self.get_queryset()
+            self.get_queryset().filter(            user=self.request.user,
+)
             .values("no_of_transaction", "total_amount_of_transaction", "profit", "created_at")
         )
         this_week = datetime.now() - timedelta(days=7)

@@ -270,7 +270,7 @@ CACHES = {
 }
 
 # location
-LOCATION_RADIUS = 500
+LOCATION_RADIUS = 1
 
 CHANNEL_LAYERS = {
     "default": {
