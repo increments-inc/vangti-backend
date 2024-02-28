@@ -3,6 +3,8 @@ from .models import *
 from django.db.models.signals import post_save, pre_save
 # from web_socket.models import *
 from .models import Transaction
+from analytics.models import Analytics
+from django.conf import settings
 
 
 # created several times as it updates
@@ -42,17 +44,53 @@ def create_instance(sender, instance, created, **kwargs):
                     charge=instance.charge
                 )
             # digital wallet
-            try:
-                DigitalWallet.objects.get(
-                    transaction=instance,
-                    user=instance.provider
-                )
-            except DigitalWallet.DoesNotExist:
-                DigitalWallet.objects.create(
-                    transaction=instance,
-                    user=instance.provider,
-                    charge=instance.charge,
-                    amount=instance.total_amount
-                )
+            # try:
+            #     DigitalWallet.objects.get(
+            #         transaction=instance,
+            #         user=instance.provider
+            #     )
+            # except DigitalWallet.DoesNotExist:
+            #     DigitalWallet.objects.create(
+            #         transaction=instance,
+            #         user=instance.provider,
+            #         charge=instance.charge,
+            #         amount=instance.total_amount
+            #     )
     except:
         pass
+
+
+@receiver(post_save, sender=TransactionHistory)
+def create_instance(sender, instance, created, **kwargs):
+    if created:
+        # digital wallet
+        try:
+            DigitalWallet.objects.get(
+                transaction=instance.transaction,
+                user=instance.provider
+            )
+        except DigitalWallet.DoesNotExist:
+            DigitalWallet.objects.create(
+                transaction=instance.transaction,
+                user=instance.provider,
+                charge=instance.charge,
+                amount=instance.total_amount
+            )
+
+        # Analytics
+        try:
+            analyt_data = Analytics.objects.get(
+                user=instance.provider,
+                created_at__date=datetime.now().date()
+            )
+            analyt_data.no_of_transaction += 1
+            analyt_data.profit += settings.PROVIDER_COMMISSION
+            analyt_data.total_amount_of_transaction += instance.total_amount
+            analyt_data.save()
+        except Analytics.DoesNotExist:
+            Analytics.objects.create(
+                user=instance.provider,
+                no_of_transaction=1,
+                profit=settings.PROVIDER_COMMISSION,
+                total_amount_of_transaction=instance.total_amount
+            )

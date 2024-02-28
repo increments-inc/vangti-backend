@@ -6,6 +6,8 @@ from transactions.models import TransactionHistory
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from ..serializers import *
 import random
+from collections import Counter
+
 
 
 class InsightsViewSet(viewsets.ModelViewSet):
@@ -52,6 +54,11 @@ class InsightsViewSet(viewsets.ModelViewSet):
         total_amount_of_transaction = profit = no_of_transaction = 0
 
         for date in date_list:
+            # default
+            total_amount_of_transaction = 0.0
+            profit = 0.0
+            no_of_transaction = 0
+            # calculations
             rep_date = date
             if interval == "daily":
                 hour = date
@@ -66,7 +73,8 @@ class InsightsViewSet(viewsets.ModelViewSet):
                         no_of_transaction = stat["no_of_transaction"]
                         break
                 else:
-                    if stat["created_at"].time < date:
+                    # print("time!!!!", stat["created_at"].time() , date)
+                    if stat["created_at"].time() < date:
                         total_amount_of_transaction = stat["total_amount_of_transaction"]
                         profit = stat["profit"]
                         no_of_transaction = stat["no_of_transaction"]
@@ -152,10 +160,10 @@ class InsightsViewSet(viewsets.ModelViewSet):
                                      ) * 100
 
         data = {
-            "no_of_transaction": this_week_trans_number["no_of_transaction__sum"],
+            "no_of_transaction": int(this_week_trans_number["no_of_transaction__sum"]),
             "total_amount_of_transaction": float(this_week_trans_number["total_amount_of_transaction__sum"]),
-            "amount_stat": str(total_amount_transaction_stat),
-            "num_stat": str(total_num_transaction_stat),
+            "amount_stat": float(total_amount_transaction_stat),
+            "num_stat": float(total_num_transaction_stat),
         }
         return Response(data, status=status.HTTP_200_OK)
 
@@ -212,7 +220,7 @@ class InsightsViewSet(viewsets.ModelViewSet):
                    ) * 100
         except:
             stat = 0
-
+        # print("demanded vangti",Counter(note_list).most_common(1))
         data = {
             "note": "0",
             "interval": interval,
@@ -220,7 +228,7 @@ class InsightsViewSet(viewsets.ModelViewSet):
         }
         if len(note_list) != 0:
             data = {
-                "note": str(max(note_list)),
+                "note": str(Counter(note_list).most_common(1)[0][0]),
                 "interval": interval,
                 "stat": float(stat)
             }
