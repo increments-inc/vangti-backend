@@ -1,24 +1,19 @@
 import asyncio
 import json
-import time
 from django.contrib.gis.measure import Distance
-from django.contrib.gis.geos import Point
 from django.core.cache import cache
+from django.conf import settings
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db import transaction
 from asgiref.sync import async_to_sync, sync_to_async
-from datetime import datetime, timedelta
+from datetime import datetime
 from locations.models import UserLocation, LocationRadius
 from transactions.models import TransactionRequest, Transaction, TransactionMessages
 from users.models import User
-from ..fcm import send_push
-from ..tasks import *
-from django.conf import settings
 from utils.apps.location import get_directions
 from utils.apps.transaction import get_transaction_id
-from utils.helper import get_hash
-
+from utils.helper import get_original_hash
 
 class VangtiRequestConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
@@ -48,7 +43,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             if type(text_data) == str:
                 receive_dict = json.loads(text_data)
         except:
-            print("in exception")
             return
         print("all data!!!!\n", receive_dict)
         status = receive_dict["status"]
@@ -131,6 +125,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 await self.receive_message_user(receive_dict)
 
     async def send_to_receiver_data(self, event):
+        print("event", event)
         receive_dict = event['receive_dict']
         if type(receive_dict) == str:
             receive_dict = json.loads(receive_dict)
@@ -219,7 +214,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         receive_dict["data"]["provider"] = user_list[0]
         receive_dict["data"]["seeker_info"] = await self.get_seeker_info(
             receive_dict["data"]["seeker"]
+
         )
+        print("seeker info", receive_dict["data"]["seeker_info"])
         cache.set(
             f'{receive_dict["data"]["seeker"]}-request',
             [
@@ -422,44 +419,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 }
             )
 
-    # async def cancel_request(self, receive_dict):
-    #     # transaction_ins = await self.get_transaction_instance(receive_dict["data"]["transaction_id"], self.user)
-    #     print(" iam in cancelled")
-    #     user_list = cache.get(
-    #         str(self.user.id)
-    #     )
-    #     print(user_list)
-    #     if user_list is not None:
-    #         if len(user_list) != 0:
-    #             provider = user_list[0]
-    #             await self.send(text_data=json.dumps({
-    #                 'message': receive_dict,
-    #                 'user': str(self.user.id)
-    #             }))
-    #             await self.channel_layer.group_send(
-    #                 f"{provider}-room",
-    #                 {
-    #                     'type': 'send_to_receiver_data',
-    #                     'receive_dict': receive_dict,
-    #                 }
-    #             )
-    #             # delete cache
-    #             cache.delete(str(self.user.id))
-    #
-    #     # user_list =
-    #
-    #     # receive_dict = {
-    #     #     "request": "LOCATION",
-    #     #     "status": "ON_GOING_TRANSACTION",
-    #     #     "data": {
-    #     #         "transaction_id": transaction_id,
-    #     #         "location": {
-    #     #             "latitude": 0.0,
-    #     #             "longitude": 0.0
-    #     #         }
-    #     #     }
-    #     # }
-    #     # await self.receive_location(receive_dict)
 
     @database_sync_to_async
     def get_user_list(self, room_name):
@@ -625,14 +584,24 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_seeker_info(self, seeker):
+        print("seeker", seeker, self.user.id)
         try:
-            seeker = User.objects.get(id=seeker)
-            pic_url = seeker.user_info.profile_pic.url
+            seeker = User.objects.get(id=self.user.id)
+            try:
+                pic_url = settings.DOMAIN_NAME + str(seeker.user_info.profile_pic.url)
+            except:
+                pic_url = None
+
+            try:
+                url_hash = get_original_hash(seeker.user_info.profile_pic.url)
+            except:
+                url_hash = None
+
             return {
                 "name": seeker.user_info.person_name,
                 "picture": {
-                    "url": settings.DOMAIN_NAME + pic_url,
-                    "hash": get_hash(pic_url)
+                    "url": pic_url,
+                    "hash": url_hash
                 },
                 "rating": seeker.userrating_user.rating,
                 "total_deals": seeker.userrating_user.no_of_transaction
@@ -647,3 +616,4 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 "rating": 0.0,
                 "total_deals": 0
             }
+

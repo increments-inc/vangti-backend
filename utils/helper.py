@@ -137,3 +137,8 @@ def get_hash(picture_url):
 
 
 
+def get_original_hash(picture_url):
+    with open(picture_url[1:], 'rb') as image_file:
+        url_hash = blurhash.encode(image_file, x_components=4, y_components=3)
+
+    return url_hash

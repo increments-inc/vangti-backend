@@ -9,11 +9,7 @@ class JWTAccessToken(BlacklistMixin, AccessToken):
 
 
 class CustomMiddleware(MiddlewareMixin):
-
     def process_request(self, request):
-        # This method is called before the view
-        # You can modify the request here
-
         # access = request.headers["Authorization"].split("Bearer ")[-1]
         # print("here in middleware",  request.COOKIES,request.user, access)
         # # decoded_token =

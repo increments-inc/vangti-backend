@@ -52,7 +52,6 @@ def get_user_list(user):
         )
     )
     if user.user_mode.is_provider:
-        print("provider tru")
         user_provider_list = list(
             User.objects.filter(
                 is_superuser=False,
@@ -66,8 +65,6 @@ def get_user_list(user):
             # )
         )
     else:
-        print("provider fal")
-
         user_provider_list = list(
             User.objects.filter(
                 is_superuser=False,
@@ -89,7 +86,7 @@ def get_user_analytics(user_list):
     total_user = len(user_list)
     rating_queryset = UserRating.objects.filter(user__in=user_list)
 
-    print(rating_queryset)
+    print("rating queryset",rating_queryset)
     if not rating_queryset:
         return None
     rating_queryset=rating_queryset.annotate(

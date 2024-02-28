@@ -3,7 +3,7 @@ from .models import *
 from django.db.models.signals import post_save, pre_save
 # from web_socket.models import *
 from .models import Transaction
-from analytics.models import Analytics
+from analytics.models import Analytics, UserRating
 from django.conf import settings
 
 
@@ -94,3 +94,21 @@ def create_instance(sender, instance, created, **kwargs):
                 profit=settings.PROVIDER_COMMISSION,
                 total_amount_of_transaction=instance.total_amount
             )
+        # # User Rating
+        # try:
+        #     rating_data = UserRating.objects.get(
+        #         user=instance.provider
+        #     )
+        #     rating_data.no_of_transaction += 1
+        #     rating_data.total_amount_of_transaction += instance.total_amount
+        #     rating_data.no_of_transaction += 1
+        #     rating_data.no_of_transaction += 1
+        #
+        #     rating_data.save()
+        # except UserRating.DoesNotExist:
+        #     UserRating.objects.create(
+        #         user=instance.provider,
+        #         no_of_transaction=1,
+        #         profit=settings.PROVIDER_COMMISSION,
+        #         total_amount_of_transaction=instance.total_amount
+        #     )
