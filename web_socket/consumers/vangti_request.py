@@ -15,15 +15,9 @@ from users.models import User
 from ..fcm import send_push
 from ..tasks import *
 from django.conf import settings
-import blurhash
 from utils.apps.location import get_directions
 from utils.apps.transaction import get_transaction_id
-
-
-def get_hash(picture_url):
-    with open(picture_url[1:], 'rb') as image_file:
-        url_hash = blurhash.encode(image_file, x_components=4, y_components=3)
-    return url_hash
+from utils.helper import get_hash
 
 
 class VangtiRequestConsumer(AsyncWebsocketConsumer):
@@ -36,8 +30,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         self.user = self.scope["user"]
         room_name = self.user.id
         self.room_group_name = f"{room_name}-room"
-        print("all items", self.scope, self.scope["user"], kwargs, self.channel_layer, self.room_group_name)
-        print("CONNECTED!!!!!!!!  ", self.scope["user"])
+        # print("all items", self.scope, self.scope["user"], kwargs, self.channel_layer, self.room_group_name, "\nCONNECTED!!!!!!!!  ", self.scope["user"])
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
