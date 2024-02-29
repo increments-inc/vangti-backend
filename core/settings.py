@@ -291,11 +291,11 @@ CELERY_TIMEZONE = "Asia/Dhaka"
 CELERY_BROKER_URL = "redis://localhost:6379"
 CELERY_RESULT_BACKEND = "redis://localhost:6379"
 CELERY_BEAT_SCHEDULE = {
-    'test_task': {
-        'task': 'web_socket.tasks.test_task',
-        'schedule': crontab(minute="0", hour='*/3'),
-        'args': ('hello world',),
-    },
+    # 'test_task': {
+    #     'task': 'web_socket.tasks.test_task',
+    #     'schedule': crontab(minute="0", hour='*/3'),
+    #     'args': ('hello world',),
+    # },
     'user_deletion_routine_task': {
         'task': 'users.tasks.user_deletion_routine_task',
         'schedule': crontab(minute='*/5'),

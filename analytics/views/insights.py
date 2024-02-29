@@ -9,7 +9,6 @@ import random
 from collections import Counter
 
 
-
 class InsightsViewSet(viewsets.ModelViewSet):
     queryset = Analytics.objects.all()
     serializer_class = InsightsListSerializer
@@ -67,6 +66,11 @@ class InsightsViewSet(viewsets.ModelViewSet):
                 rep_date = today + timedelta(hours=int(hour))
 
             for stat in user_analytics:
+                # default
+                total_amount_of_transaction = 0.0
+                profit = 0.0
+                no_of_transaction = 0
+
                 if interval != "daily":
                     if stat["created_at"].day == date.day:
                         total_amount_of_transaction = stat["total_amount_of_transaction"]
@@ -74,8 +78,11 @@ class InsightsViewSet(viewsets.ModelViewSet):
                         no_of_transaction = stat["no_of_transaction"]
                         break
                 else:
-                    # print("time!!!!", stat["created_at"].time() , date)
-                    if stat["created_at"].time() < date:
+                    if (
+                            date > stat["created_at"].time() >
+                            (datetime.combine(datetime(1, 1, 1), date) - timedelta(
+                                hours=3)).time()
+                    ):
                         total_amount_of_transaction = stat["total_amount_of_transaction"]
                         profit = stat["profit"]
                         no_of_transaction = stat["no_of_transaction"]
@@ -99,8 +106,8 @@ class InsightsViewSet(viewsets.ModelViewSet):
 
     def transaction_by_week(self, *args, **kwargs):
         user_analytics = (
-            self.get_queryset().filter(            user=self.request.user,
-)
+            self.queryset.filter(user=self.request.user,
+                                       )
             .values("no_of_transaction", "total_amount_of_transaction", "profit", "created_at")
         )
         this_week = datetime.now() - timedelta(days=7)
@@ -138,7 +145,7 @@ class InsightsViewSet(viewsets.ModelViewSet):
             Sum("no_of_transaction", default=0),
             Sum("total_amount_of_transaction", default=0)
         )
-
+        print(this_week_trans_number, last_week_trans_number)
         total_amount_transaction_stat = (
                                                 (
                                                         this_week_trans_number["total_amount_of_transaction__sum"] -
@@ -185,31 +192,34 @@ class InsightsViewSet(viewsets.ModelViewSet):
             provider=self.request.user
         )
 
-        interval_day = 1
+        interval_day = timedelta(hours=24)
         if interval == "weekly":
-            interval_day = 7
+            interval_day = timedelta(days=7)
         if interval == "monthly":
-            interval_day = 30
-
+            interval_day = timedelta(days=30)
+        # revise
         note_list = list(past_transactions.filter(
             created_at__lte=today,
-            created_at__gte=today - timedelta(days=interval_day),
+            created_at__gte=today - interval_day,
         ).values_list("total_amount", flat=True))
 
         # stat calculation
         this_note_list = past_transactions.filter(
-            created_at__gte=today - timedelta(days=interval_day),
+            created_at__gte=today - interval_day,
         ).aggregate(
             Sum("total_amount", default=0)
         )
 
         past_note_list = past_transactions.filter(
-            created_at__lte=today - timedelta(days=interval_day),
-            created_at__gte=today - timedelta(days=(interval_day * 2)),
+            created_at__lte=today - interval_day,
+            created_at__gte=today - interval_day*2,
         ).aggregate(
             Sum("total_amount", default=0)
         )
+
+        print(this_note_list, past_note_list)
         try:
+            print("here")
             stat = (
                            (
                                    this_note_list["total_amount__sum"] -
@@ -242,5 +252,3 @@ class InsightsViewSet(viewsets.ModelViewSet):
         #     "stat": float(-10),
         # }
         return Response(data, status=status.HTTP_200_OK)
-
-

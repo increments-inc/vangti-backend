@@ -82,7 +82,7 @@ def get_user_list(user):
 
 
 def get_user_analytics(user_list):
-    ## total total_active_provider
+    # total total_active_provider
     total_user = len(user_list)
     rating_queryset = UserRating.objects.filter(user__in=user_list)
 
@@ -93,19 +93,30 @@ def get_user_analytics(user_list):
         avg_success_rate=Avg("deal_success_rate", default=0.0),
         avg_rating=Avg("rating", default=0.0),
         total_dislikes=Count("dislikes"),
-        avg_response_time=Avg("provider_response_time", default=timedelta(seconds=1)),
+        avg_response_time=Avg("provider_response_time", default=timedelta(seconds=0)),
     ).values("avg_success_rate", "avg_rating", "avg_response_time", "total_dislikes")
-    time_duration = rating_queryset[0]["avg_response_time"]
-    if time_duration.days == 0 and time_duration.seconds > 60:
-        time_dur = f"{round(time_duration.seconds / 60, 2)} min"
-    elif time_duration.days == 0 and time_duration.seconds < 60:
-        time_dur = f"{time_duration.seconds} sec"
-    elif time_duration.days != 0:
-        time_dur = f"{round(time_duration.days * 24 + time_duration.seconds / 3600, 2)} hr"
-    else:
-        time_dur = f"{round(time_duration.days * 24 + time_duration.seconds / 3600, 2)} hr"
 
-    print("rating", rating_queryset)
+
+    time_duration = rating_queryset[0]["avg_response_time"]
+
+    # if time_duration.days == 0 and time_duration.seconds > 60:
+    #     time_dur = f"{round(time_duration.seconds / 60, 2)} min"
+    # elif time_duration.days == 0 and time_duration.seconds < 60:
+    #     time_dur = f"{time_duration.seconds} sec"
+    # elif time_duration.days != 0:
+    #     time_dur = f"{round(time_duration.days * 24 + time_duration.seconds / 3600, 2)} hr"
+    # else:
+    #     time_dur = f"{round(time_duration.days * 24 + time_duration.seconds / 3600, 2)} hr"
+    time_dur = time_duration.days*3600 + time_duration.seconds
+    if time_dur > 3600:
+        time_dur /= 3600
+        time_dur =f"{int(time_dur)} hr"
+    elif time_dur > 60:
+        time_dur /= 60
+        time_dur =f"{int(time_dur)} min"
+    else:
+        time_dur =f"{time_dur} sec"
+
     return {
 
         "total_active_provider": total_user,

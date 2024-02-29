@@ -1,3 +1,6 @@
+from datetime import datetime, timedelta
+
+from django.db.models import Sum, Avg
 from django.dispatch import receiver
 from .models import *
 from django.db.models.signals import post_save, pre_save
@@ -124,4 +127,27 @@ def update_user_rating(sender, instance, created, **kwargs):
             UserRating.objects.create(
                 user=instance.provider,
                 rating=instance.rating
+            )
+
+
+@receiver(post_save, sender=UserTransactionResponse)
+def update_user_response(sender, instance, created, **kwargs):
+    if instance.response_duration is not None:
+        average_response_time = UserTransactionResponse.objects.filter(
+            provider=instance.provider
+        ).aggregate(
+            avg_response_time=Avg("response_duration", default=timedelta(seconds=0))
+        )["avg_response_time"]
+        print(average_response_time)
+        # User Rating
+        try:
+            rating_data = UserRating.objects.get(
+                user=instance.provider
+            )
+            rating_data.provider_response_time = average_response_time
+            rating_data.save()
+        except UserRating.DoesNotExist:
+            UserRating.objects.create(
+                user=instance.provider,
+                provider_response_time=average_response_time
             )

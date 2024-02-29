@@ -16,11 +16,7 @@ from django.db.models import Q
 from utils.apps.transaction import get_transaction_id
 from utils.apps.web_socket import send_message_to_channel
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
-
-
-
-
-
+from analytics.models import UserRating
 
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
@@ -98,10 +94,35 @@ class TransactionViewSet(viewsets.ModelViewSet):
             # for i in range(3):
             send_message_to_channel(request, instance.seeker, message)
             send_message_to_channel(request, instance.provider, message)
+
+            # keep in Cancelled transaction
+            CancelledTransaction.objects.create(
+                    transaction=kwargs[self.lookup_field],
+                    provider=instance.provider,
+                    seeker=instance.seeker,
+                    total_amount=instance.total_amount,
+                    preferred_notes=instance.preferred_notes
+                )
+            # calculations for rating
+            total_cancelled=CancelledTransaction.objects.filter(
+                provider=instance.provider
+            ).count()
+            total_success = TransactionHistory.objects.filter(
+                provider=instance.provider
+            ).count()
+            deal_success_rate = (total_success / (total_success+total_cancelled))*100
+            user_rating = UserRating.objects.get(
+                user=instance.provider
+            )
+            user_rating.deal_success_rate = deal_success_rate
+            user_rating.dislikes = total_cancelled
+            user_rating.save()
+            # destroy action
             self.perform_destroy(instance)
             return response.Response({"detail": "transaction instance deleted"}, status=status.HTTP_200_OK)
         except Exception as e:
-            return response.Response({"errors": f"{e}, transaction could not be deleted"}, status=status.HTTP_400_BAD_REQUEST)
+            return response.Response({"errors": f"{e}, transaction could not be deleted"},
+                                     status=status.HTTP_400_BAD_REQUEST)
 
     def update_seeker(self, request, *args, **kwargs):
         print(request.data)
@@ -189,6 +210,20 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 }
                 send_message_to_channel(request, instance.provider, message)
                 send_message_to_channel(request, instance.seeker, message)
+
+                total_cancelled = CancelledTransaction.objects.filter(
+                    provider=instance.provider
+                ).count()
+                total_success = TransactionHistory.objects.filter(
+                    provider=instance.provider
+                ).count()
+                deal_success_rate = (total_success / (total_success + total_cancelled)) * 100
+                user_rating = UserRating.objects.get(
+                    user=instance.provider
+                )
+                user_rating.deal_success_rate = deal_success_rate
+                user_rating.save()
+
 
                 return response.Response(serializer.data, status=status.HTTP_200_OK)
             return response.Response({"errors": "data not valid"}, status=status.HTTP_400_BAD_REQUEST)

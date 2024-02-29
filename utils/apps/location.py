@@ -26,7 +26,6 @@ def latlong_to_address(latlong):
     url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={latlong}&key={settings.GOOGLE_MAPS_API_KEY}"
     re_geo_response = requests.request("GET", url)
     try:
-        print("reverse geocoding \n", re_geo_response.json())
         formatted_address = re_geo_response.json()["results"][0]["formatted_address"]
         place_id = re_geo_response.json()["results"][0]["place_id"]
     except:
@@ -66,7 +65,6 @@ def latlong_to_address(latlong):
 def get_directions(transaction_id, source_dict, destination_dict):
     response_json={}
     # transaction_id=787
-    print(source_dict, destination_dict, transaction_id)
     source = f"{source_dict['latitude']}, {source_dict['longitude']}"
     destination = f"{destination_dict['latitude']}, {destination_dict['longitude']}"
     # ls = get_polyline_object(
@@ -84,7 +82,6 @@ def get_directions(transaction_id, source_dict, destination_dict):
         poly_obj = PolyLine.objects.create(
             transaction=transaction_id
         )
-    print("here fsdfs", "poly_obj.linestring")
     if poly_obj.linestring is not None:
 
         source_deviation = PolyLine.objects.filter(transaction=transaction_id).annotate(
@@ -93,7 +90,6 @@ def get_directions(transaction_id, source_dict, destination_dict):
         destination_deviation = PolyLine.objects.filter(transaction=transaction_id).annotate(
             distance=Distance("linestring", destination_point)).values(
             "linestring", "distance").values("distance").first()["distance"].km
-        print("im here in no tnone", type(source_deviation), destination_deviation)
 
         # if source_deviation < 30 and destination_deviation < 30:
         #     return poly_obj.linestring
@@ -118,7 +114,6 @@ def get_directions(transaction_id, source_dict, destination_dict):
                 "longitude": point[1]
             })
 
-        print("wjehwkejhwkjheffjwkehfwjehf",empty_point_list)
         response_json = {
             # "distance": response["routes"][0]["legs"][0]["distance"]["text"],
             # "duration": response["routes"][0]["legs"][0]["duration"]["text"],
@@ -127,7 +122,6 @@ def get_directions(transaction_id, source_dict, destination_dict):
             "polyline": empty_point_list
         }
     else:
-        print("i am here", source_point, destination_point)
         ls = poly_obj.linestring
         # source cut
         source_point_in_ls = ls.interpolate(ls.project(source_point))
@@ -141,12 +135,10 @@ def get_directions(transaction_id, source_dict, destination_dict):
         print("new  cosjdhfjsdhf", new_dcoords, new_destination_point)
         list_ls = []
         if new_dcoords>new_scoords:
-            print("in try")
             list_ls = ls[new_scoords: new_dcoords+1]
             list_ls.insert(0, new_source_point)
             list_ls.append(new_destination_point)
         if new_dcoords<new_scoords:
-            print("in except")
             list_ls = ls[new_dcoords: new_scoords+1]
             list_ls.insert(0, new_destination_point)
             list_ls.append(new_source_point)
@@ -165,38 +157,6 @@ def get_directions(transaction_id, source_dict, destination_dict):
         }
 
 
-        # except:
-        #     response_json = {
-        #         "distance": "0 km",
-        #         "duration": "0 min",
-        #         "polyline": [
-        #             {
-        #                 "latitude": 0.0,
-        #                 "longitude": 0.0
-        #             }
-        #         ]
-        #     }
+
     return response_json
-
-
-def process_polyline():
-    empty_array = []
-    array = polyline_to_latlong(
-        'y{upCemufP}@?AWP?rACnDClFE|JGvA?CiB?kBAsACeGnJ?t@ETGLKNAtABnB?hECnEItB?jHMdBAZ}EtAqTB}@@Q')
-    for arr in array:
-        empty_array.append(Point(arr[1], arr[0]))
-    point = Point(90, 23)
-
-    pl = PolyLine.objects.create(
-        linestring=LineString(empty_array),
-        point=point
-    )
-    pl = PolyLine.objects.filter()
-    print(pl)
-    distance = 5
-    # print(PolyLine.objects.filter(
-    #     linestring__ST_DWithin(point, D(m=5))
-    # )
-    # )
-
 

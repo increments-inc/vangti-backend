@@ -1,19 +1,23 @@
 import asyncio
 import json
-from django.contrib.gis.measure import Distance
+from django.contrib.gis.measure import D
+from django.contrib.gis.db.models.functions import Distance
+
 from django.core.cache import cache
 from django.conf import settings
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.db import transaction
 from asgiref.sync import async_to_sync, sync_to_async
-from datetime import datetime
+from datetime import datetime, timedelta
 from locations.models import UserLocation, LocationRadius
-from transactions.models import TransactionRequest, Transaction, TransactionMessages
+from transactions.models import TransactionRequest, Transaction, TransactionMessages, UserTransactionResponse
 from users.models import User
 from utils.apps.location import get_directions
 from utils.apps.transaction import get_transaction_id
 from utils.helper import get_original_hash
+from ..tasks import post_timestamp, update_timestamp
+
 
 class VangtiRequestConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
@@ -38,6 +42,12 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive(self, text_data):
+        if text_data == "ping":
+            # print(text_data)
+            await self.send(text_data=json.dumps({
+                'message': "pong",
+            }))
+            return
         receive_dict = text_data
         try:
             if type(text_data) == str:
@@ -93,6 +103,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     receive_dict["request"] == "TRANSACTION" and
                     receive_dict["status"] == "REJECTED"
             ):
+                update_timestamp.delay(receive_dict["data"]["seeker"], receive_dict["data"]["provider"])
                 # reject message sent to self
                 await self.send(text_data=json.dumps({
                     'message': receive_dict,
@@ -106,6 +117,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     receive_dict["request"] == "TRANSACTION" and
                     receive_dict["status"] == "ACCEPTED"
             ):
+                update_timestamp.delay(receive_dict["data"]["seeker"], receive_dict["data"]["provider"])
                 await self.receive_accept(receive_dict)
 
         # location
@@ -127,6 +139,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     async def send_to_receiver_data(self, event):
         print("event", event)
         receive_dict = event['receive_dict']
+
         if type(receive_dict) == str:
             receive_dict = json.loads(receive_dict)
         await self.send(text_data=json.dumps({
@@ -225,6 +238,15 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             timeout=None
         )
         receive_dict["status"] = "PENDING"
+        # seeker request time stamp
+        if (
+                receive_dict["request"] == "TRANSACTION"
+                and receive_dict["status"] == "PENDING"
+
+        ):
+            if receive_dict["data"]["seeker"] is not None and receive_dict["data"]["provider"] is not None:
+                print("here")
+                post_timestamp.delay(receive_dict["data"]["seeker"], receive_dict["data"]["provider"])
         await self.channel_layer.group_send(
             f"{send_user}-room",
             {
@@ -253,6 +275,16 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     ],
                     timeout=60
                 )
+                # seeker request time stamp
+                if (
+                        receive_dict["request"] == "TRANSACTION"
+                        and receive_dict["status"] == "PENDING"
+
+                ):
+                    if receive_dict["data"]["seeker"] is not None and receive_dict["data"]["provider"] is not None:
+                        print("here")
+                        post_timestamp.delay(receive_dict["data"]["seeker"], receive_dict["data"]["provider"])
+
                 await self.channel_layer.group_send(
                     f"{send_user}-room",
                     {
@@ -419,7 +451,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 }
             )
 
-
     @database_sync_to_async
     def get_user_list(self, room_name):
         user = self.user
@@ -428,7 +459,11 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             radius = settings.LOCATION_RADIUS
             user_location_list = list(
                 UserLocation.objects.using('location').filter(
-                    centre__distance_lte=(center, Distance(km=radius))
+                    centre__distance_lte=(center, D(km=radius))
+                ).annotate(
+                    distance=Distance('centre', center)
+                ).order_by(
+                    'distance'
                 ).values_list(
                     "user", flat=True
                 )
@@ -616,4 +651,3 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 "rating": 0.0,
                 "total_deals": 0
             }
-

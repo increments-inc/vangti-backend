@@ -9,6 +9,7 @@ from django.core.files import File
 from datetime import datetime
 from utils.helper import content_file_path, ImageCompress
 from utils.apps.transaction import get_transaction_no, generate_transaction_pin
+
 User = get_user_model()
 
 
@@ -39,7 +40,7 @@ class Transaction(BaseModel):
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        if not self.qr_image and self._state.adding==False:
+        if not self.qr_image and self._state.adding == False:
             self.transaction_pin = generate_transaction_pin()
             url = f"{self.transaction_pin}"
             image_stream = qr.generate(url)
@@ -74,6 +75,21 @@ class DigitalWallet(BaseModel):
     charge = models.FloatField(default=0.0)
     amount = models.FloatField(default=0.0)
     system_fee = models.FloatField(default=0.0)
+
+    def __str__(self):
+        return self.user.phone_number
+
+
+class CancelledTransaction(BaseModel):
+    transaction = models.CharField(max_length=255, blank=True, null=True)
+    provider = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="cancelled_transaction_provider", null=True
+    )
+    seeker = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="cancelled_transaction_seeker", null=True
+    )
+    total_amount = models.FloatField(default=0, null=True)
+    preferred_notes = ArrayField(models.CharField(max_length=10, null=True, blank=True))
 
     def __str__(self):
         return self.user.phone_number

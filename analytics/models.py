@@ -42,6 +42,19 @@ class UserRating(BaseModel):
     class Meta:
         ordering = ("-created_at",)
 
+class UserSeekerRating(BaseModel):
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="seeker_rating_user"
+    )
+    no_of_transaction = models.IntegerField(default=0)
+    deal_success_rate = models.FloatField(default=0.0)
+    total_amount_of_transaction = models.FloatField(default=0.0)
+    dislikes = models.IntegerField(default=0)
+    rating = models.FloatField(default=0.0)
+
+    class Meta:
+        ordering = ("-created_at",)
+
 
 class AppFeedback(BaseModel):
     user = models.ForeignKey(
