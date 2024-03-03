@@ -12,7 +12,7 @@ from ..models import *
 from ..serializers import *
 from ..app_utils import get_reg_token
 from django.conf import settings
-
+from ..tasks import send_own_users_home_analytics
 
 class UserInformationViewSet(viewsets.ModelViewSet):
     queryset = UserInformation.objects.all()

@@ -6,7 +6,7 @@ from .models import *
 from django.db.models.signals import post_save, pre_save
 # from web_socket.models import *
 from .models import Transaction
-from analytics.models import Analytics, UserRating
+from analytics.models import Analytics, UserRating, UserSeekerRating
 from django.conf import settings
 
 
@@ -107,6 +107,21 @@ def create_analytics_instance(sender, instance, created, **kwargs):
             rating_data.save()
         except UserRating.DoesNotExist:
             UserRating.objects.create(
+                user=instance.provider,
+                no_of_transaction=1,
+                total_amount_of_transaction=instance.total_amount
+            )
+
+        # user as seeker rating
+        try:
+            rating_data = UserSeekerRating.objects.get(
+                user=instance.seeker
+            )
+            rating_data.no_of_transaction += 1
+            rating_data.total_amount_of_transaction += instance.total_amount
+            rating_data.save()
+        except UserSeekerRating.DoesNotExist:
+            UserSeekerRating.objects.create(
                 user=instance.provider,
                 no_of_transaction=1,
                 total_amount_of_transaction=instance.total_amount

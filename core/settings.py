@@ -269,8 +269,6 @@ CACHES = {
     }
 }
 
-# location
-LOCATION_RADIUS = 1
 
 CHANNEL_LAYERS = {
     "default": {
@@ -321,3 +319,5 @@ APP_STORE_DEFAULT_OTP = "123456"
 PROVIDER_COMMISSION = 10
 
 
+# location
+LOCATION_RADIUS = 10

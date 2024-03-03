@@ -42,6 +42,7 @@ class UserRating(BaseModel):
     class Meta:
         ordering = ("-created_at",)
 
+
 class UserSeekerRating(BaseModel):
     user = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="seeker_rating_user"
@@ -62,3 +63,12 @@ class AppFeedback(BaseModel):
     )
     rating = models.FloatField(default=0.0)
     message = models.TextField(null=True, blank=True)
+
+# class UserImpression(BaseModel):
+#     user = models.ForeignKey(
+#         User, on_delete=models.CASCADE, related_name="user_impression_user"
+#     )
+#     impression = models.FloatField(default=0.0)
+#
+#     class Meta:
+#         abstract=True

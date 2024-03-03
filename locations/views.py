@@ -55,11 +55,17 @@ class LocationViewSet(viewsets.ModelViewSet):
 
     def get_reverse_geocode(self, *args, **kwargs):
         # print("helo", self.request.META.get('HTTP_AUTHORIZATION'))
-        instance = self.get_queryset().get(user=self.request.user.id)
-        serializer = self.get_serializer_class()(instance, context={"request": self.request})
+        try:
+            instance = self.get_queryset().get(user=self.request.user.id)
+            serializer = self.get_serializer_class()(instance, context={"request": self.request})
 
-        return response.Response(
-            serializer.data,
-            status=status.HTTP_200_OK
-        )
+            return response.Response(
+                serializer.data,
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return response.Response(
+                {"errors": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 

@@ -173,7 +173,7 @@ class UserServiceModeViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             self.perform_update(serializer)
             user_list = (get_mode_user_list(self.request.user))
-            empty = []
+            empty_user_list = []
             print(user_list)
             if len(user_list) > 0:
                 for usr in user_list:
@@ -183,9 +183,9 @@ class UserServiceModeViewSet(viewsets.ModelViewSet):
                         ana = []
                     else:
                         ana["user"] = str(usr.id)
-                        empty.append(ana)
+                        empty_user_list.append(ana)
                         print(ana)
-                send_out_mesg.delay(empty)
+                send_out_analytics_mesg.delay(empty_user_list)
 
             return response.Response(
                 serializer.data,

@@ -2,7 +2,6 @@ import asyncio
 import json
 from django.contrib.gis.measure import D
 from django.contrib.gis.db.models.functions import Distance
-
 from django.core.cache import cache
 from django.conf import settings
 from channels.db import database_sync_to_async
@@ -17,12 +16,15 @@ from utils.apps.location import get_directions
 from utils.apps.transaction import get_transaction_id
 from utils.helper import get_original_hash
 from ..tasks import post_timestamp, update_timestamp
+from utils.apps.location import get_user_list
+from utils.apps.analytics import get_home_analytics_of_user_set
 
 
 class VangtiRequestConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.reject_received = False
+        # self.reject_received = False
+
 
     async def connect(self):
         self.user = self.scope["user"]
@@ -34,6 +36,14 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
         await self.accept()
+        msg_data = await self.get_home_analytics(self.user)
+        await self.send(text_data=json.dumps({
+            'message': msg_data
+        }))
+
+        # # send analytics
+        # send_own_users_home_analytics(self.user)
+
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
@@ -42,13 +52,13 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         )
 
     async def receive(self, text_data):
+        # ping-pong for app/frontend
         if text_data == "ping":
-            # print(text_data)
             await self.send(text_data=json.dumps({
                 'message': "pong",
             }))
             return
-        receive_dict = text_data
+        receive_dict = {}
         try:
             if type(text_data) == str:
                 receive_dict = json.loads(text_data)
@@ -81,8 +91,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     'message': receive_dict,
                     'user': str(self.user.id)
                 }))
-
-                receive_dict["status"] = status
+                receive_dict["status"] = status  # setting the initial status
 
         await self.condition_gate(receive_dict)
 
@@ -227,9 +236,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         receive_dict["data"]["provider"] = user_list[0]
         receive_dict["data"]["seeker_info"] = await self.get_seeker_info(
             receive_dict["data"]["seeker"]
-
         )
-        print("seeker info", receive_dict["data"]["seeker_info"])
         cache.set(
             f'{receive_dict["data"]["seeker"]}-request',
             [
@@ -651,3 +658,13 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 "rating": 0.0,
                 "total_deals": 0
             }
+    @database_sync_to_async
+    def get_home_analytics(self,  user):
+        user_set = get_user_list(user)
+        rate_data = get_home_analytics_of_user_set(user_set)
+        message = {
+            "request": "ANALYTICS",
+            "status": "ACTIVE",
+            'data': rate_data
+        }
+        return message

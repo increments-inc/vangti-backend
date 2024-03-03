@@ -14,6 +14,11 @@ from transactions.models import UserTransactionResponse
 from datetime import datetime, timedelta
 from users.models import User
 
+from utils.apps.location import get_user_list
+from utils.apps.analytics import get_home_analytics_of_user_set
+
+from utils.apps.web_socket import send_message_to_user
+
 @shared_task
 def post_timestamp( seeker, provider):
     print("seeker timestamp")
@@ -79,3 +84,20 @@ def update_timestamp(seeker, provider):
     # print("timestamp resp",txn_response)
     # txn_response.response_time = datetime.now()
     # txn_response.save()
+
+
+# @shared_task
+def send_own_users_home_analytics(user):
+    print("send own_users_home_analytics")
+    user_set = get_user_list(user)
+    rate_data  = get_home_analytics_of_user_set(user_set)
+    message = {
+        "request": "ANALYTICS",
+        "status": "ACTIVE",
+        'data': rate_data
+    }
+    send_message_to_user(user, message)
+    print("here")
+# await self.send(text_data=json.dumps({
+#     'message': 'WebSocket connection established.'
+# }))

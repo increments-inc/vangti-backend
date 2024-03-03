@@ -16,7 +16,9 @@ from django.db.models import Q
 from utils.apps.transaction import get_transaction_id
 from utils.apps.web_socket import send_message_to_channel
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
-from analytics.models import UserRating
+from analytics.models import UserRating, UserSeekerRating
+from ..tasks import send_out_location_data
+
 
 class TransactionViewSet(viewsets.ModelViewSet):
     queryset = Transaction.objects.all()
@@ -69,11 +71,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
             instance = self.queryset.get(id=int(transaction_id))
         except:
             return response.Response({"errors": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
+        if instance.is_completed:
+            return response.Response({"errors": "Completed transactions cannot be deleted"}, status=status.HTTP_400_BAD_REQUEST)
         # serializer = self.serializer_class(instance, context={"request": request})
         if request.user not in [instance.provider, instance.seeker]:
             return response.Response({"errors": "User not authorised"}, status=status.HTTP_403_FORBIDDEN)
         try:
-            print("del")
             message = {
                 "request": "TRANSACTION",
                 "status": "CANCELLED",
@@ -97,26 +100,49 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
             # keep in Cancelled transaction
             CancelledTransaction.objects.create(
-                    transaction=kwargs[self.lookup_field],
-                    provider=instance.provider,
-                    seeker=instance.seeker,
-                    total_amount=instance.total_amount,
-                    preferred_notes=instance.preferred_notes
-                )
+                transaction=kwargs[self.lookup_field],
+                provider=instance.provider,
+                seeker=instance.seeker,
+                total_amount=instance.total_amount,
+                preferred_notes=instance.preferred_notes
+            )
             # calculations for rating
-            total_cancelled=CancelledTransaction.objects.filter(
+            total_cancelled = CancelledTransaction.objects.filter(
                 provider=instance.provider
             ).count()
             total_success = TransactionHistory.objects.filter(
                 provider=instance.provider
             ).count()
-            deal_success_rate = (total_success / (total_success+total_cancelled))*100
+            deal_success_rate = (total_success / (total_success + total_cancelled)) * 100
             user_rating = UserRating.objects.get(
                 user=instance.provider
             )
             user_rating.deal_success_rate = deal_success_rate
             user_rating.dislikes = total_cancelled
             user_rating.save()
+
+            # calculations for seeker rating
+            total_cancelled = CancelledTransaction.objects.filter(
+                seeker=instance.seeker
+            ).count()
+            total_success = TransactionHistory.objects.filter(
+                seeker=instance.seeker
+            ).count()
+            deal_success_rate = (total_success / (total_success + total_cancelled)) * 100
+            try:
+                user_rating = UserSeekerRating.objects.get(
+                    user=instance.seeker
+                )
+                user_rating.deal_success_rate = deal_success_rate
+                user_rating.dislikes = total_cancelled
+                user_rating.save()
+            except UserSeekerRating.DoesNotExist:
+                UserSeekerRating.objects.create(
+                    user=instance.seeker,
+                    deal_success_rate=deal_success_rate,
+                    dislikes=total_cancelled
+                )
+
             # destroy action
             self.perform_destroy(instance)
             return response.Response({"detail": "transaction instance deleted"}, status=status.HTTP_200_OK)
@@ -224,7 +250,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 user_rating.deal_success_rate = deal_success_rate
                 user_rating.save()
 
-
                 return response.Response(serializer.data, status=status.HTTP_200_OK)
             return response.Response({"errors": "data not valid"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -255,6 +280,11 @@ class TransactionViewSet(viewsets.ModelViewSet):
         if queryset.exists():
             instance = queryset.order_by("-created_at").first()
             serializer = self.serializer_class(instance, context={"request": request})
+            if instance:
+                print("here in transaction id", instance.id)
+                # transaction_id = get_transaction_id(instance.id)
+
+                send_out_location_data.delay(request.user.id, instance.id)
             return response.Response(serializer.data, status=status.HTTP_200_OK)
         return response.Response({}, status=status.HTTP_200_OK)
 

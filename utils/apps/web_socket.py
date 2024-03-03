@@ -13,6 +13,17 @@ def send_message_to_channel(request, user, message):
     )
     return
 
+def send_message_to_user(user, message):
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"{user.id}-room",
+        {
+            "type": "send_to_receiver_data",
+            'receive_dict': message
+        }
+    )
+    return
+
 
 def coin_change_combinations(coins, amount):
     dp = [[] for _ in range(amount + 1)]
