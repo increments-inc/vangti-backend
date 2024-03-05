@@ -39,7 +39,6 @@ class CustomJSONRenderer(JSONRenderer):
                     errors.append(dat)
             if type(data) == list:
                 for dat in data:
-                    print("pronto", dat)
                     errors.append(dat)
             data = None
             detail = ""
@@ -74,7 +73,6 @@ class CustomJSONRenderer(JSONRenderer):
 # # custom_exception_handler.py
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
-    print( "exception",response.data)
     if response is not None and response.status_code >= 400:
         data = []
         for err in response.data.values():

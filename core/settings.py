@@ -222,9 +222,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Dhaka'
 
 USE_I18N = True
 
@@ -269,8 +270,6 @@ CACHES = {
     }
 }
 
-# location
-LOCATION_RADIUS = 500
 
 CHANNEL_LAYERS = {
     "default": {
@@ -291,11 +290,11 @@ CELERY_TIMEZONE = "Asia/Dhaka"
 CELERY_BROKER_URL = "redis://localhost:6379"
 CELERY_RESULT_BACKEND = "redis://localhost:6379"
 CELERY_BEAT_SCHEDULE = {
-    'test_task': {
-        'task': 'web_socket.tasks.test_task',
-        'schedule': crontab(minute="0", hour='*/3'),
-        'args': ('hello world',),
-    },
+    # 'test_task': {
+    #     'task': 'web_socket.tasks.test_task',
+    #     'schedule': crontab(minute="0", hour='*/3'),
+    #     'args': ('hello world',),
+    # },
     'user_deletion_routine_task': {
         'task': 'users.tasks.user_deletion_routine_task',
         'schedule': crontab(minute='*/5'),
@@ -315,3 +314,18 @@ GOOGLE_MAPS_API_KEY = config("GOOGLE_MAPS_API_KEY")
 # APP STORE DEFAULTS
 APP_STORE_DEFAULT_PHONE = "+8801712345678"
 APP_STORE_DEFAULT_OTP = "123456"
+
+
+# provider commission
+PROVIDER_COMMISSION = 10
+
+
+# location
+LOCATION_RADIUS = 10
+
+
+
+
+
+
+

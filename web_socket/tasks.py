@@ -10,25 +10,94 @@ from django.contrib.auth import authenticate, login
 import requests
 import asyncio
 import json
+from transactions.models import UserTransactionResponse
+from datetime import datetime, timedelta
+from users.models import User
 
-async def send_message(path, token, data):
-    async with websockets.connect(
-            "ws://127.0.0.1:8000"+path+"?token="+token
-    ) as websocket:
-        await websocket.send(json.dumps(data))
+from utils.apps.location import get_user_list
+from utils.apps.analytics import get_home_analytics_of_user_set
 
-@app.task
-async def send_celery(path, query_string, data):
-    for i in range(0, 10):
-        print("time", i)
-        await asyncio.sleep(1)
-    print("helo dummy")
-    token = query_string.decode("utf-8").split("=")[-1]
-    # asyncio.get_event_loop().run_forever(webs())
-    await send_message(path, token, data)
+from utils.apps.web_socket import send_message_to_user
 
-    # print(gh)
+@shared_task
+def post_timestamp( seeker, provider):
+    print("seeker timestamp")
+    try:
+        seeker = User.objects.get(id = seeker)
+        provider = User.objects.get(id = provider)
 
-@app.task
-def test_task(arg):
-    print("helo task", arg)
+        try:
+            print("seeker timestamp")
+
+            txn_response = UserTransactionResponse.objects.get(
+                seeker = seeker,
+                provider = provider,
+                created_at__gte = datetime.now()-timedelta(minutes=5)
+            )
+
+        except UserTransactionResponse.DoesNotExist:
+            print("ghsdsd hibi")
+            txn_response = UserTransactionResponse.objects.create(
+                seeker=seeker,
+                provider=provider
+            )
+    except:
+        print("jibi")
+        return
+@shared_task
+def update_timestamp(seeker, provider):
+    try:
+        seeker = User.objects.get(id = seeker)
+        provider = User.objects.get(id = provider)
+        try:
+            print("response timestamp")
+            txn_response = UserTransactionResponse.objects.filter(
+                seeker=seeker,
+                provider=provider,
+                # created_at__gte=datetime.now() - timedelta(minutes=5),
+                # response_time= None
+            ).last()
+            print("timestamp resp",txn_response)
+            txn_response.response_time = datetime.now()
+            txn_response.save()
+        except:
+            print("except response timestamp")
+
+            # txn_response = UserTransactionResponse.objects.create(
+            #     seeker_id=seeker,
+            #     provider_id=provider
+            # )
+            pass
+    except:
+        print("in respose exceptsdjhfsjd")
+        return
+
+    # seeker = User.objects.get(id = seeker)
+    # provider = User.objects.get(id = provider)
+    # print("response timestamp")
+    # txn_response = UserTransactionResponse.objects.filter(
+    #     seeker=seeker,
+    #     provider=provider,
+    #     # created_at__gte=datetime.now() - timedelta(minutes=5),
+    #     # response_time= None
+    # ).last()
+    # print("timestamp resp",txn_response)
+    # txn_response.response_time = datetime.now()
+    # txn_response.save()
+
+
+# @shared_task
+def send_own_users_home_analytics(user):
+    print("send own_users_home_analytics")
+    user_set = get_user_list(user)
+    rate_data  = get_home_analytics_of_user_set(user_set)
+    message = {
+        "request": "ANALYTICS",
+        "status": "ACTIVE",
+        'data': rate_data
+    }
+    send_message_to_user(user, message)
+    print("here")
+# await self.send(text_data=json.dumps({
+#     'message': 'WebSocket connection established.'
+# }))

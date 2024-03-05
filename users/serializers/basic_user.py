@@ -63,7 +63,6 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
         fields = ("phone_number", "device_token", "is_reset_pin",)
 
     def create(self, validated_data):
-        print("here")
         phone_number = validated_data.pop("phone_number", None)
         device_id = validated_data.pop("device_token", None)
         is_reset_pin = validated_data.pop("is_reset_pin", False)
@@ -76,35 +75,31 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
         else:
             if not models.User.objects.filter(
                     phone_number=phone_number,
-                    # user_info__device_token=device_id
             ).exists():
                 return -2
         time_now = datetime.now()
         expires = time_now + timedelta(seconds=120)
         base_otp = pyotp.TOTP('base32secret3232').now()
-
         # default otp ---- for google, use a default phone condition
         if phone_number == settings.APP_STORE_DEFAULT_PHONE:
             base_otp = settings.APP_STORE_DEFAULT_OTP
         try:
             reg_phone = models.RegistrationOTPModel.objects.get(
                 phone_number=phone_number,
-                device_token=device_id
-                # key=base_otp,
-                # expires_at=expires
+                # device_token=device_id
             )
             reg_phone.key = base_otp
             reg_phone.expires_at = expires
+            reg_phone.is_reset = is_reset_pin
             reg_phone.save()
         except models.RegistrationOTPModel.DoesNotExist:
             reg_phone = models.RegistrationOTPModel.objects.create(
                 phone_number=phone_number,
                 device_token=device_id,
                 key=base_otp,
-                expires_at=expires
+                expires_at=expires,
+                is_reset=is_reset_pin
             )
-        # host_user = settings.EMAIL_HOST_USER
-        # insert sms service here
         # include this in celery
         if phone_number != settings.APP_STORE_DEFAULT_PHONE:
             response = requests.post(
@@ -151,48 +146,77 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
         # return reg_phone, base_otp
 
 
+class RegistrationOTPVerifySerializer(serializers.ModelSerializer):
+    otp = serializers.CharField(source="key")
+
+    class Meta:
+        model = models.RegistrationOTPModel
+        fields = ("phone_number", "otp",)
+
+    def update(self, instance, validated_data):
+        otp = validated_data.get("key", None)
+        if otp != instance.key:
+            return -1
+        instance.is_active = True
+        instance.save()
+        return instance
+
+
 class RegistrationSerializer(serializers.ModelSerializer):
-    otp = serializers.CharField(allow_null=True)
+    pin = serializers.CharField()
     phone_number = serializers.CharField()
+    name = serializers.CharField(allow_null=True, required=False)
 
     class Meta:
         model = models.User
-        fields = ("phone_number", "otp",)
-
-    # def validate(self, data):
-    #     print("sdasda",data)
-    #     if "phone_number" in data:
-    #         data["phone_number"] = data["phone_number"]
-    #
-    #     return data
+        fields = ("phone_number", "pin", "name")
 
     def create(self, validated_data):
         phone_number = validated_data.pop("phone_number", None)
-        otp = validated_data.pop("otp", None)
+        pin = validated_data.pop("pin", None)
+        name = validated_data.get("name", None)
         time_now = datetime.now()
         reg = models.RegistrationOTPModel.objects.filter(
             phone_number=phone_number,
-            expires_at__gte=time_now
+            is_active=True
         )
         if not reg.exists():
             return -1
         reg = reg.last()
-        if str(reg.key) != otp:
-            return -2
 
-        try:
+        PINValidator().validate(password=pin)
+        hasher = PBKDF2PasswordHasher()
+        hashed_pin = hasher.encode(pin, settings.SALT)
+        if reg.is_reset:
             user = models.User.objects.get(
                 phone_number=phone_number
             )
-            user.pin = None
+            user.pin = hashed_pin
             user.save()
-        except models.User.DoesNotExist:
+        else:
             user = models.User.objects.create(
                 phone_number=phone_number,
-                pin=None
+                pin=hashed_pin
             )
-        user.user_info.device_token = reg.device_token
-        user.user_info.save()
+            user.user_info.person_name = name
+            user.user_info.save()
+        # try:
+        #     user = models.User.objects.get(
+        #         phone_number=phone_number
+        #     )
+        #     user.pin = hashed_pin
+        #     user.save()
+        # except models.User.DoesNotExist:
+        #     user = models.User.objects.create(
+        #         phone_number=phone_number,
+        #         pin=hashed_pin
+        #     )
+        # user.user_info.person_name = name
+        # user.user_info.save()
+        # delete reg otp
+        models.RegistrationOTPModel.objects.filter(
+            phone_number=phone_number
+        ).delete()
         return user
 
 

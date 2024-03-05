@@ -66,12 +66,12 @@ def create_token(payload: dict):
     )
 
 
-def encode(data: str):
+def secret_encode(data: str):
     key = bytes(settings.SECRET_KEY, "utf-8")
-    return Fernet(key).encrypt(bytes(data, "utf-8"))
+    return Fernet(key).encrypt(bytes(data, "utf-8")).decode("utf-8")
 
 
-def decode(token: str):
+def secret_decode(token: str):
     key = bytes(settings.SECRET_KEY, "utf-8")
     return Fernet(key).decrypt(bytes(token, "utf-8")).decode("utf-8")
 
@@ -130,8 +130,26 @@ def hex_to_int(data):
 def get_hash(picture_url):
     # with open(picture_url[1:], 'rb') as image_file:
     #     url_hash = blurhash.encode(image_file, x_components=4, y_components=3)
-    with Image.open(picture_url[1:]) as image_file:
-        image_file.thumbnail((100, 100))
-        url_hash = blurhash.encode(image_file, x_components=4, y_components=3)
-    return url_hash
+    # with Image.open(picture_url[1:]) as image_file:
+    #     image_file.thumbnail((100, 100))
+    #     url_hash = blurhash.encode(image_file, x_components=4, y_components=3)
+    loaded_image = Image.open(picture_url[1:])
+    temp = loaded_image.copy()
+    temp.thumbnail((100, 100))
+    url_hash = blurhash.encode(temp, x_components=4, y_components=3)
+    return str(url_hash)
 
+
+
+def get_original_hash(picture_url):
+    with open(picture_url[1:], 'rb') as image_file:
+        url_hash = blurhash.encode(image_file, x_components=4, y_components=3)
+    return str(url_hash)
+
+
+def get_hash_from_memory(picture):
+    loaded_image = Image.open(BytesIO(picture.read()))
+    temp = loaded_image
+    temp.thumbnail((100, 100))
+    url_hash = blurhash.encode(temp, x_components=4, y_components=3)
+    return str(url_hash)

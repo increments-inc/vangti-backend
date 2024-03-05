@@ -53,7 +53,6 @@ class TransactionMessagesViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         transaction_no = kwargs.get("transaction_no")
         transaction_id = get_transaction_id(transaction_no)
-        print(transaction_id)
         transaction_obj = Transaction.objects.get(id=transaction_id)
         if request.user not in [transaction_obj.seeker, transaction_obj.provider]:
             return response.Response(
@@ -62,7 +61,7 @@ class TransactionMessagesViewSet(viewsets.ModelViewSet):
         queryset = self.queryset.filter(transaction=transaction_id).order_by("-created_at")
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = self.get_serializer(page, many=True)
+            serializer = self.serializer_class(page, many=True)
             return self.get_paginated_response(serializer.data)
         serializer = self.serializer_class(queryset, many=True)
         return response.Response(serializer.data, status=status.HTTP_200_OK)

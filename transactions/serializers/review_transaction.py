@@ -1,7 +1,7 @@
 from rest_framework import exceptions, serializers, validators
 from ..models import *
 from utils.apps.transaction import get_transaction_id
-
+from utils.helper import secret_decode
 
 class TransactionReviewSerializer(serializers.ModelSerializer):
     transaction_no = serializers.CharField(source="transaction.get_transaction_unique_no")
@@ -70,3 +70,9 @@ class TransactionMessagesSerializer(serializers.ModelSerializer):
         if obj.transaction.provider == obj.user:
             role = "provider"
         return role
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        if "message" in rep:
+            rep["message"] = secret_decode(rep["message"])
+        return rep

@@ -12,10 +12,13 @@ from ..models import *
 from ..serializers import *
 from ..app_utils import get_reg_token
 from django.conf import settings
+from ..tasks import send_own_users_home_analytics
 
 
 class UserInformationViewSet(viewsets.ModelViewSet):
-    queryset = UserInformation.objects.all()
+    queryset = UserInformation.objects.all().select_related(
+        'user__user_info', "user__userrating_user", "user__seeker_rating_user"
+    )
     serializer_class = UserInformationRetrieveSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -29,7 +32,7 @@ class UserInformationViewSet(viewsets.ModelViewSet):
 
     def change_profile(self, request, *args, **kwargs):
         print(request.data)
-        data=request.data
+        data = request.data
         if data:
             for key in data.copy():
                 if data[key] in ['', "", " ", None]:
@@ -60,6 +63,7 @@ class UserNidInformationViewSet(viewsets.ModelViewSet):
     queryset = UserNidInformation.objects.all()
     serializer_class = AddNidSerializer
     permission_classes = [permissions.IsAuthenticated]
+
     # renderer_classes = [MultiPartParser,TemplateHTMLRenderer]
     # parser_classes = [FileUploadParser]
 

@@ -1,10 +1,16 @@
 import polyline
 from django.conf import settings
 import requests
-# from django.contrib.gis.measure import D, Distance
+from django.contrib.gis.measure import D
 from locations.models import PolyLine, UserLocation
 from django.contrib.gis.geos import Point, LineString
 from django.contrib.gis.db.models.functions import Distance
+from users.models import User
+
+
+def get_user_location(user_id):
+    return UserLocation.objects.get(user=user_id).centre
+
 
 def get_user_distance(from_user, to_user):
     to_point = UserLocation.objects.get(user=to_user.id).centre
@@ -15,6 +21,7 @@ def get_user_distance(from_user, to_user):
     )
     return distance
 
+
 def polyline_to_latlong(poly_str):
     res = polyline.decode(poly_str, 5)
     # print("decoded polyline   ", res)
@@ -22,181 +29,285 @@ def polyline_to_latlong(poly_str):
     return res
 
 
-def latlong_to_address(latlong):
-    url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={latlong}&key={settings.GOOGLE_MAPS_API_KEY}"
-    re_geo_response = requests.request("GET", url)
-    try:
-        print("reverse geocoding \n", re_geo_response.json())
-        formatted_address = re_geo_response.json()["results"][0]["formatted_address"]
-        place_id = re_geo_response.json()["results"][0]["place_id"]
-    except:
-        formatted_address = re_geo_response.json()["results"][0]["formatted_address"]
-        place_id = re_geo_response.json()["results"][0]["place_id"]
+def get_nearby_users(user_id):
+    center = UserLocation.objects.using('location').get(user=user_id).centre
+    radius = settings.LOCATION_RADIUS
+    return list(
+        UserLocation.objects.using('location').filter(
+            centre__distance_lte=(center, D(km=radius))
+        ).annotate(
+            distance=Distance('centre', center)
+        ).order_by(
+            'distance'
+        ).values_list(
+            "user", flat=True
+        )
+    )
+
+
+# def get_user_list(user):
+#     user_location_list = get_nearby_users(user.id)
+#     user_provider_list = list(
+#         User.objects.filter(
+#             is_superuser=False,
+#             id__in=user_location_list,
+#             user_mode__is_provider=True
+#         ).values_list(
+#             'id', flat=True
+#         )
+#     )
+#     user_list = [str(id) for id in user_provider_list]
+#     return user_list
+
+def get_user_list_provider(user):
+    user_location_list = get_nearby_users(user.id)
+    user_provider_list = (
+        User.objects.filter(
+            is_superuser=False,
+            id__in=user_location_list,
+            user_mode__is_provider=True
+        )
+    )
+
+    return user_provider_list
+
+
+def get_user_list_seeker(user):
+    user_location_list = get_nearby_users(user.id)
+    user_provider_list = (
+        User.objects.filter(
+            is_superuser=False,
+            id__in=user_location_list,
+            user_mode__is_provider=False
+        )
+    )
+
+    return user_provider_list
+
+
+def get_user_list(user):
+    user_location_list = get_nearby_users(user.id)
+    user_list = (
+        User.objects.filter(
+            is_superuser=False,
+            id__in=user_location_list,
+            # user_mode__is_provider=False
+        )
+    )
+
+    return user_list
+
+
+def get_user_id_list(user):
+    user_location_list = get_nearby_users(user.id)
+    user_provider_list = list(
+        User.objects.filter(
+            is_superuser=False,
+            id__in=user_location_list,
+            user_mode__is_provider=True
+        ).values_list(
+            'id', flat=True
+        )
+    )
+    final_user_list = []
+    for user in user_location_list:
+        if user in user_provider_list:
+            final_user_list.append(user)
+
+    user_list = [str(id) for id in final_user_list]
+    return user_list
+
+
+def call_maps_api(source, destination):
+    directions_url = f"https://maps.googleapis.com/maps/api/directions/json?origin={source}&destination={destination}&key={settings.GOOGLE_MAPS_API_KEY}&mode=walking"
+    direction_response = requests.request("GET", directions_url)
+    response = direction_response.json()
+    print("DIRECTION API CALLED !!! \n", )
+
     return {
-        "formatted_address": formatted_address,
-        "place_id": place_id
+        "distance": response["routes"][0]["legs"][0]["distance"]["text"],
+        "duration": response["routes"][0]["legs"][0]["duration"]["text"],
+        "polyline": response['routes'][0]['overview_polyline']["points"]
     }
 
 
-# def get_polyline_object(transaction_id, source_point, destination_point):
-#     print("hdjhajsda")
-#     poly = PolyLine.objects.filter(transaction=transaction_id)
-#     print(poly.count())
-#     if poly.exists():
-#         poly_obj = poly.first()
-#     else:
-#         poly_obj = PolyLine.objects.create(
-#             transaction=transaction_id
-#         )
-#     print("in here")
-#     if poly_obj.linestring is not None:
-#         source_deviation = PolyLine.objects.filter(transaction=transaction_id).annotate(
-#             distance=Distance("linestring", source_point)).values(
-#             "linestring", "distance")
-#         destination_deviation = PolyLine.objects.filter(transaction=transaction_id).annotate(
-#             distance=Distance("linestring", destination_point)).values(
-#             "linestring", "distance")
-#         if source_deviation < 30 and destination_deviation < 30:
-#             return poly_obj.linestring
-#         else:
-#             return -1
-#     return None
-
-
 def get_directions(transaction_id, source_dict, destination_dict):
-    response_json={}
-    transaction_id=787
-    print(source_dict, destination_dict, transaction_id)
+    # transaction_id=787
     source = f"{source_dict['latitude']}, {source_dict['longitude']}"
     destination = f"{destination_dict['latitude']}, {destination_dict['longitude']}"
-    # ls = get_polyline_object(
-    #     transaction_id,
-    #     Point(source_dict['longitude'], source_dict['latitude'], srid=4326),
-    #     Point(destination_dict['longitude'], destination_dict['latitude'], srid=4326),
-    # )
+
+    # initial deviation
     source_deviation = destination_deviation = 0
-    source_point = Point(source_dict['longitude'], source_dict['latitude'], srid=4326)
-    destination_point = Point(destination_dict['longitude'], destination_dict['latitude'], srid=4326)
+
+    # source and destination points
+    source_point = Point(source_dict['latitude'], source_dict['longitude'], srid=4326)
+    destination_point = Point(destination_dict['latitude'], destination_dict['longitude'], srid=4326)
+
     poly = PolyLine.objects.filter(transaction=transaction_id)
     if poly.exists():
         poly_obj = poly.first()
     else:
         poly_obj = PolyLine.objects.create(
-            transaction=transaction_id
+            transaction=transaction_id,
+            seeker_location = Point(source_dict['longitude'], source_dict['latitude'], srid=4326),
+            provider_location=Point(destination_dict['longitude'], destination_dict['latitude'], srid=4326)
         )
-    print("here fsdfs", "poly_obj.linestring")
+
+    # polyline was previously created
     if poly_obj.linestring is not None:
+        # source deviation
+        source_deviation = PolyLine.objects.filter(
+            transaction=transaction_id
+        ).annotate(
+            distance=Distance("linestring", source_point)
+            # ).values(
+            #     "linestring", "distance"
+        ).values("distance").first()["distance"].km
 
-        source_deviation = PolyLine.objects.filter(transaction=transaction_id).annotate(
-            distance=Distance("linestring", source_point)).values(
-            "linestring", "distance").values("distance").first()["distance"].km
-        destination_deviation = PolyLine.objects.filter(transaction=transaction_id).annotate(
-            distance=Distance("linestring", destination_point)).values(
-            "linestring", "distance").values("distance").first()["distance"].km
-        print("im here in no tnone", type(source_deviation), destination_deviation)
+        destination_deviation = PolyLine.objects.filter(
+            transaction=transaction_id
+        ).annotate(
+            distance=Distance("linestring", destination_point)
+            # ).values(
+            #     "linestring", "distance"
+        ).values("distance").first()["distance"].km
 
-        # if source_deviation < 30 and destination_deviation < 30:
-        #     return poly_obj.linestring
-
-    if (poly_obj.linestring is None) or (source_deviation > 3000000 or destination_deviation > 3000000):
-        directions_url = f"https://maps.googleapis.com/maps/api/directions/json?origin={source}&destination={destination}&key={settings.GOOGLE_MAPS_API_KEY}&mode=walking"
-        direction_response = requests.request("GET", directions_url)
-        # direction_response ={}
-
-        # try:
-        response = direction_response.json()
-        print("direction \n", direction_response.json())
-
-        polyline = response['routes'][0]['overview_polyline']["points"]
-        polyline_points = polyline_to_latlong(polyline)
+    # if polyline line string newly created or there is significant deviation
+    if (
+            poly_obj.linestring is None or
+            source_deviation > 3000000 or
+            destination_deviation > 3000000
+    ):
+        direction_response = call_maps_api(source, destination)
+        polyline_points = polyline_to_latlong(direction_response["polyline"])
         poly_obj.linestring = LineString(polyline_points)
         poly_obj.save()
-        empty_point_list = []
+
+        polyline_points_list = []
         for point in polyline_points:
-            empty_point_list.append({
+            polyline_points_list.append({
                 "latitude": point[0],
                 "longitude": point[1]
             })
 
-        print("wjehwkejhwkjheffjwkehfwjehf",empty_point_list)
-        response_json = {
-            # "distance": response["routes"][0]["legs"][0]["distance"]["text"],
-            # "duration": response["routes"][0]["legs"][0]["duration"]["text"],
-            "distance": "less ",
-            "duration": "ajsdhah",
-            "polyline": empty_point_list
+        return {
+            "distance": direction_response["distance"],
+            "duration": direction_response["duration"],
+            "polyline": polyline_points_list
         }
+
+    # polyline cut
+    ls = poly_obj.linestring
+    print("linestring print", ls)
+
+    # source cut
+    source_point_in_ls = ls.interpolate(ls.project(source_point))
+    new_source_point = Point(source_point_in_ls.y, source_point_in_ls.x, srid=4326)
+    new_scoords = ls.coords.index(tuple(source_point_in_ls))
+    print("new  source  ", new_scoords, new_source_point)
+
+    # destination cut
+    destination_point_in_ls = ls.interpolate(ls.project(destination_point))
+    new_destination_point = Point(destination_point_in_ls.y, destination_point_in_ls.x, srid=4326)
+    new_dcoords = ls.coords.index(tuple(destination_point_in_ls))
+    print("new  destination  ", new_dcoords, new_destination_point)
+
+    list_ls = []
+    # inserting new source and destination
+    if new_dcoords > new_scoords:
+        list_ls = ls[new_scoords: new_dcoords + 1]
+        list_ls.insert(0, new_source_point)
+        list_ls.append(new_destination_point)
+    if new_dcoords < new_scoords:
+        list_ls = ls[new_dcoords: new_scoords + 1]
+        list_ls.insert(0, new_destination_point)
+        list_ls.append(new_source_point)
+    if new_dcoords == new_scoords:
+        list_ls = ls
+
+    empty_point_list = []
+    for point in list_ls:
+        empty_point_list.append({
+            "latitude": point[0],
+            "longitude": point[1]
+        })
+    source_p = Point(empty_point_list[0]["longitude"], empty_point_list[0]["latitude"])
+    des_p = Point(empty_point_list[-1]["longitude"], empty_point_list[-1]["latitude"])
+
+    print("list ls", list_ls[0])
+    # distance = D(m=
+    #     source_p.transform(4326, clone=True).distance(
+    #         des_p.transform(4326, clone=True)
+    #     )
+    # )
+    duration = 0 * 1.5 * 1000
+
+    if duration > 3600:
+        duration /= 3600
+        duration = f"{int(duration)} hr"
+    elif duration > 60:
+        duration /= 60
+        duration = f"{int(duration)} min"
     else:
-        print("i am here", source_point, destination_point)
-        ls = poly_obj.linestring
-        # source cut
-        source_point_in_ls = ls.interpolate(ls.project(source_point))
-        new_source_point = Point(source_point_in_ls.y, source_point_in_ls.x, srid=4326)
-        new_scoords = ls.coords.index(tuple(source_point_in_ls))
-        print("new  cosjdhfjsdhf", new_scoords, new_source_point)
-        # destination cut
-        destination_point_in_ls = ls.interpolate(ls.project(destination_point))
-        new_destination_point = Point(destination_point_in_ls.y, destination_point_in_ls.x, srid=4326)
-        new_dcoords = ls.coords.index(tuple(destination_point_in_ls))
-        print("new  cosjdhfjsdhf", new_dcoords, new_destination_point)
-        list_ls = []
-        if new_dcoords>new_scoords:
-            print("in try")
-            list_ls = ls[new_scoords: new_dcoords+1]
-            list_ls.insert(0, new_source_point)
-            list_ls.append(new_destination_point)
-        if new_dcoords<new_scoords:
-            print("in except")
-            list_ls = ls[new_dcoords: new_scoords+1]
-            list_ls.insert(0, new_destination_point)
-            list_ls.append(new_source_point)
-        if new_dcoords==new_scoords:
-            list_ls = ls
-        empty_point_list = []
-        for point in list_ls:
-            empty_point_list.append({
-                "latitude": point[0],
-                "longitude": point[1]
-            })
-        response_json = {
-            "distance": "hajgsdjm",
-            "duration": "ajsdhah",
-            "polyline": empty_point_list
-        }
+        duration = f"{duration} sec"
+    response_json = {
+        "distance": f"{0}",
+        "duration": f"{duration}",
+        "polyline": empty_point_list
+    }
+    print("duration", duration, response_json)
 
-
-        # except:
-        #     response_json = {
-        #         "distance": "0 km",
-        #         "duration": "0 min",
-        #         "polyline": [
-        #             {
-        #                 "latitude": 0.0,
-        #                 "longitude": 0.0
-        #             }
-        #         ]
-        #     }
     return response_json
 
 
-def process_polyline():
-    empty_array = []
-    array = polyline_to_latlong(
-        'y{upCemufP}@?AWP?rACnDClFE|JGvA?CiB?kBAsACeGnJ?t@ETGLKNAtABnB?hECnEItB?jHMdBAZ}EtAqTB}@@Q')
-    for arr in array:
-        empty_array.append(Point(arr[1], arr[0]))
-    point = Point(90, 23)
-
-    pl = PolyLine.objects.create(
-        linestring=LineString(empty_array),
-        point=point
-    )
-    pl = PolyLine.objects.filter()
-    print(pl)
-    distance = 5
-    # print(PolyLine.objects.filter(
-    #     linestring__ST_DWithin(point, D(m=5))
-    # )
-    # )
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# reverse geocoding
+def latlong_to_address(latlong):
+    # url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={latlong}&key={settings.GOOGLE_MAPS_API_KEY}"
+    # re_geo_response = requests.request("GET", url)
+    # try:
+    #     formatted_address = re_geo_response.json()["results"][0]["formatted_address"]
+    #     place_id = re_geo_response.json()["results"][0]["place_id"]
+    # except:
+    #     formatted_address = re_geo_response.json()["results"][0]["formatted_address"]
+    #     place_id = re_geo_response.json()["results"][0]["place_id"]
+    # return {
+    #     "formatted_address": formatted_address,
+    #     "place_id": place_id
+    # }
+    # dev data
+    return {
+        "formatted_address": '7 Gareeb-e-Nawaz Ave, Dhaka 1230, Bangladesh',
+        'place_id': 'ChIJVRuudV3FVTcRtpi3AmwBTSI'
+    }

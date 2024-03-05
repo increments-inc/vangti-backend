@@ -31,11 +31,11 @@ class GoogleMapsSerializer(serializers.ModelSerializer):
     @extend_schema_field(MapsSerializer)
     def get_google_api_data(self, obj):
         lat_long = f"{obj.latitude},{obj.longitude}"
-        # return latlong_to_address(lat_long)
-        return {
-            "formatted_address": "hibijibi",
-            "place_id": "hibijibi"
-        }
+        return latlong_to_address(lat_long)
+        # return {
+        #     "formatted_address": "hibijibi",
+        #     "place_id": "hibijibi"
+        # }
 
 
 class LocationSerializer(serializers.ModelSerializer):

@@ -16,14 +16,14 @@ from django.db.models import Q
 from utils.apps.transaction import get_transaction_id
 from utils.apps.web_socket import send_message_to_channel
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
-
-
-
-
+from analytics.models import UserRating, UserSeekerRating
+from ..tasks import send_out_location_data
 
 
 class TransactionViewSet(viewsets.ModelViewSet):
-    queryset = Transaction.objects.all()
+    queryset = Transaction.objects.all().select_related(
+        "seeker__user_info", "provider__user_info","provider__userrating_user", "seeker__userrating_user"
+    )
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
     lookup_field = 'transaction_no'
@@ -45,8 +45,11 @@ class TransactionViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         # print(kwargs)
         transaction_id = get_transaction_id(kwargs[self.lookup_field])
+
+        # transaction_id = self.get_object(pk=transaction_id)
         try:
             instance = self.queryset.get(id=int(transaction_id))
+            print("check instance transcation   ",instance)
         except:
             return response.Response({"errors": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
         if request.user not in [instance.provider, instance.seeker]:
@@ -71,11 +74,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
             instance = self.queryset.get(id=int(transaction_id))
         except:
             return response.Response({"errors": "No transaction instance found"}, status=status.HTTP_404_NOT_FOUND)
+        if instance.is_completed:
+            return response.Response({"errors": "Completed transactions cannot be deleted"}, status=status.HTTP_400_BAD_REQUEST)
         # serializer = self.serializer_class(instance, context={"request": request})
         if request.user not in [instance.provider, instance.seeker]:
             return response.Response({"errors": "User not authorised"}, status=status.HTTP_403_FORBIDDEN)
         try:
-            print("del")
             message = {
                 "request": "TRANSACTION",
                 "status": "CANCELLED",
@@ -96,10 +100,58 @@ class TransactionViewSet(viewsets.ModelViewSet):
             # for i in range(3):
             send_message_to_channel(request, instance.seeker, message)
             send_message_to_channel(request, instance.provider, message)
+
+            # keep in Cancelled transaction
+            CancelledTransaction.objects.create(
+                transaction=kwargs[self.lookup_field],
+                provider=instance.provider,
+                seeker=instance.seeker,
+                total_amount=instance.total_amount,
+                preferred_notes=instance.preferred_notes
+            )
+            # calculations for rating
+            total_cancelled = CancelledTransaction.objects.filter(
+                provider=instance.provider
+            ).count()
+            total_success = TransactionHistory.objects.filter(
+                provider=instance.provider
+            ).count()
+            deal_success_rate = (total_success / (total_success + total_cancelled)) * 100
+            user_rating = UserRating.objects.get(
+                user=instance.provider
+            )
+            user_rating.deal_success_rate = deal_success_rate
+            user_rating.dislikes = total_cancelled
+            user_rating.save()
+
+            # calculations for seeker rating
+            total_cancelled = CancelledTransaction.objects.filter(
+                seeker=instance.seeker
+            ).count()
+            total_success = TransactionHistory.objects.filter(
+                seeker=instance.seeker
+            ).count()
+            deal_success_rate = (total_success / (total_success + total_cancelled)) * 100
+            try:
+                user_rating = UserSeekerRating.objects.get(
+                    user=instance.seeker
+                )
+                user_rating.deal_success_rate = deal_success_rate
+                user_rating.dislikes = total_cancelled
+                user_rating.save()
+            except UserSeekerRating.DoesNotExist:
+                UserSeekerRating.objects.create(
+                    user=instance.seeker,
+                    deal_success_rate=deal_success_rate,
+                    dislikes=total_cancelled
+                )
+
+            # destroy action
             self.perform_destroy(instance)
             return response.Response({"detail": "transaction instance deleted"}, status=status.HTTP_200_OK)
         except Exception as e:
-            return response.Response({"errors": f"{e}, transaction could not be deleted"}, status=status.HTTP_400_BAD_REQUEST)
+            return response.Response({"errors": f"{e}, transaction could not be deleted"},
+                                     status=status.HTTP_400_BAD_REQUEST)
 
     def update_seeker(self, request, *args, **kwargs):
         print(request.data)
@@ -118,6 +170,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 partial=True)
             if serializer.is_valid():
                 instance = serializer.save()
+
                 if instance == -1:
                     return response.Response({"errors": "transaction pin not valid"},
                                              status=status.HTTP_400_BAD_REQUEST)
@@ -140,46 +193,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
                         'provider': f'{instance.provider.id}'
                     }
                 }
-                # for i in range(3):
                 send_message_to_channel(request, instance.provider, message)
-                # send_message_to_channel(request, instance.seeker, message)
+
                 # Location
-                receive_dict = cache.get(
-                    f"transaction-{instance.get_transaction_unique_no}"
-                )
-                print(receive_dict)
-                if receive_dict is None:
-                    message = {
-                        'request': 'LOCATION',
-                        'status': 'COMPLETED_TRANSACTION',
-                        'data': {
-                            'transaction_id': instance.get_transaction_unique_no,
-                            "seeker": f'{instance.seeker.id}',
-                            "provider": f'{instance.provider.id}',
-                            "seeker_location": {
-                                "latitude": 0.0,
-                                "longitude": 0.0
-                            },
-                            "provider_location": {
-                                "latitude": 0.0,
-                                "longitude": 0.0
-                            },
-                            "direction": None
-                        }
-                    }
-                else:
-                    message = {
-                        'request': 'LOCATION',
-                        'status': 'COMPLETED_TRANSACTION',
-                        'data': {
-                            'transaction_id': instance.get_transaction_unique_no,
-                            "seeker": f'{instance.seeker.id}',
-                            "provider": f'{instance.provider.id}',
-                            "seeker_location": receive_dict["data"]["seeker_location"],
-                            "provider_location": receive_dict["data"]["provider_location"],
-                            "direction": None
-                        }
-                    }
                 message = {
                     'request': 'LOCATION',
                     'status': 'COMPLETED_TRANSACTION',
@@ -187,6 +203,20 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 }
                 send_message_to_channel(request, instance.provider, message)
                 send_message_to_channel(request, instance.seeker, message)
+
+
+                total_cancelled = CancelledTransaction.objects.filter(
+                    provider=instance.provider
+                ).count()
+                total_success = TransactionHistory.objects.filter(
+                    provider=instance.provider
+                ).count()
+                deal_success_rate = (total_success / (total_success + total_cancelled)) * 100
+                user_rating = UserRating.objects.get(
+                    user=instance.provider
+                )
+                user_rating.deal_success_rate = deal_success_rate
+                user_rating.save()
 
                 return response.Response(serializer.data, status=status.HTTP_200_OK)
             return response.Response({"errors": "data not valid"}, status=status.HTTP_400_BAD_REQUEST)
@@ -218,13 +248,17 @@ class TransactionViewSet(viewsets.ModelViewSet):
         if queryset.exists():
             instance = queryset.order_by("-created_at").first()
             serializer = self.serializer_class(instance, context={"request": request})
+            if instance:
+                print("here in transaction id", instance.id)
+                # transaction_id = get_transaction_id(instance.id)
+                send_out_location_data.delay(request.user.id, instance.id)
             return response.Response(serializer.data, status=status.HTTP_200_OK)
         return response.Response({}, status=status.HTTP_200_OK)
 
 
 # history and insights
 class TransactionHistoryViewSet(viewsets.ModelViewSet):
-    queryset = TransactionHistory.objects.all()
+    queryset = TransactionHistory.objects.all().select_related("seeker__user_info", "provider__user_info", "provider__userrating_user", "seeker__userrating_user")
     serializer_class = TransactionHistorySerializer
     permission_classes = [permissions.IsAuthenticated]
     http_method_names = ["get"]

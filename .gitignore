@@ -9,3 +9,4 @@ celerybeat-schedule.db
 send_request.py
 management/
 message.txt
+loca.py
