@@ -51,7 +51,6 @@ def create_instance(sender, instance, created, **kwargs):
                 # t_history.save()
 
             except TransactionHistory.DoesNotExist:
-
                 TransactionHistory.objects.create(
                     transaction=instance,
                     total_amount=instance.total_amount,

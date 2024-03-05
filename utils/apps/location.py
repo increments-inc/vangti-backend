@@ -6,7 +6,7 @@ from locations.models import PolyLine, UserLocation
 from django.contrib.gis.geos import Point, LineString
 from django.contrib.gis.db.models.functions import Distance
 from users.models import User
-
+import math
 
 def get_user_location(user_id):
     return UserLocation.objects.get(user=user_id).centre
@@ -132,7 +132,8 @@ def call_maps_api(source, destination):
 
 
 def get_directions(transaction_id, source_dict, destination_dict):
-    # transaction_id=787
+    transaction_id = 787
+    # into coordinate strings for api call
     source = f"{source_dict['latitude']}, {source_dict['longitude']}"
     destination = f"{destination_dict['latitude']}, {destination_dict['longitude']}"
 
@@ -149,7 +150,7 @@ def get_directions(transaction_id, source_dict, destination_dict):
     else:
         poly_obj = PolyLine.objects.create(
             transaction=transaction_id,
-            seeker_location = Point(source_dict['longitude'], source_dict['latitude'], srid=4326),
+            seeker_location=Point(source_dict['longitude'], source_dict['latitude'], srid=4326),
             provider_location=Point(destination_dict['longitude'], destination_dict['latitude'], srid=4326)
         )
 
@@ -160,16 +161,12 @@ def get_directions(transaction_id, source_dict, destination_dict):
             transaction=transaction_id
         ).annotate(
             distance=Distance("linestring", source_point)
-            # ).values(
-            #     "linestring", "distance"
         ).values("distance").first()["distance"].km
 
         destination_deviation = PolyLine.objects.filter(
             transaction=transaction_id
         ).annotate(
             distance=Distance("linestring", destination_point)
-            # ).values(
-            #     "linestring", "distance"
         ).values("distance").first()["distance"].km
 
     # if polyline line string newly created or there is significant deviation
@@ -201,46 +198,54 @@ def get_directions(transaction_id, source_dict, destination_dict):
     print("linestring print", ls)
 
     # source cut
-    source_point_in_ls = ls.interpolate(ls.project(source_point))
-    new_source_point = Point(source_point_in_ls.y, source_point_in_ls.x, srid=4326)
-    new_scoords = ls.coords.index(tuple(source_point_in_ls))
-    print("new  source  ", new_scoords, new_source_point)
+    interpolated_source_point = ls.interpolate(ls.project(source_point))
+    interpolated_destination_point = ls.interpolate(ls.project(destination_point))
 
-    # destination cut
-    destination_point_in_ls = ls.interpolate(ls.project(destination_point))
-    new_destination_point = Point(destination_point_in_ls.y, destination_point_in_ls.x, srid=4326)
-    new_dcoords = ls.coords.index(tuple(destination_point_in_ls))
-    print("new  destination  ", new_dcoords, new_destination_point)
+    ls.append(tuple(interpolated_source_point))
+    ls.append(tuple(interpolated_destination_point))
 
-    list_ls = []
-    # inserting new source and destination
-    if new_dcoords > new_scoords:
-        list_ls = ls[new_scoords: new_dcoords + 1]
-        list_ls.insert(0, new_source_point)
-        list_ls.append(new_destination_point)
-    if new_dcoords < new_scoords:
-        list_ls = ls[new_dcoords: new_scoords + 1]
-        list_ls.insert(0, new_destination_point)
-        list_ls.append(new_source_point)
-    if new_dcoords == new_scoords:
-        list_ls = ls
+    reference_point_start = Point(ls[0])
 
-    empty_point_list = []
-    for point in list_ls:
-        empty_point_list.append({
+    ls_with_distance_list = [x[1] for x in (sorted(
+        [(Point(point).distance(reference_point_start), point) for point in ls],
+        key=lambda tup: tup[0]
+    ))]
+    index_interpolated_source_point = ls_with_distance_list.index(tuple(interpolated_source_point))
+    index_interpolated_destination_point = ls_with_distance_list.index(tuple(interpolated_destination_point))
+
+    # polyline_points_list = ls_with_distance_list[int(index_interpolated_source_point):int(index_interpolated_destination_point+1)]
+    if index_interpolated_destination_point > index_interpolated_source_point:
+        polyline_points_list = ls_with_distance_list[
+                               index_interpolated_source_point:index_interpolated_destination_point + 1
+                               ]
+    else:
+        polyline_points_list = ls_with_distance_list[
+                               index_interpolated_destination_point:index_interpolated_source_point + 1
+                               ]
+
+    print(
+        "Interpolated",
+        reference_point_start, "\n",
+        polyline_points_list, "\n",
+        interpolated_source_point, "\n",
+        interpolated_destination_point, "\n",
+        ls_with_distance_list, "\n",
+        index_interpolated_source_point, index_interpolated_destination_point
+    )
+
+    polyline_points_dict = [
+        {
             "latitude": point[0],
             "longitude": point[1]
-        })
-    source_p = Point(empty_point_list[0]["longitude"], empty_point_list[0]["latitude"])
-    des_p = Point(empty_point_list[-1]["longitude"], empty_point_list[-1]["latitude"])
-
-    print("list ls", list_ls[0])
-    # distance = D(m=
-    #     source_p.transform(4326, clone=True).distance(
-    #         des_p.transform(4326, clone=True)
-    #     )
-    # )
-    duration = 0 * 1.5 * 1000
+        } for point in set(polyline_points_list)
+    ]
+    distance =(
+        interpolated_destination_point.distance(interpolated_source_point) *
+        2 * math.pi * 6378.137
+        / 360
+        * 1000
+    )
+    duration = distance * 1.5
 
     if duration > 3600:
         duration /= 3600
@@ -249,47 +254,16 @@ def get_directions(transaction_id, source_dict, destination_dict):
         duration /= 60
         duration = f"{int(duration)} min"
     else:
-        duration = f"{duration} sec"
+        duration = f"{round(duration, 2)} sec"
+
     response_json = {
-        "distance": f"{0}",
+        "distance": f"{distance} m",
         "duration": f"{duration}",
-        "polyline": empty_point_list
+        "polyline": polyline_points_dict
     }
-    print("duration", duration, response_json)
+    print("duration", duration, distance)
 
     return response_json
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # reverse geocoding
