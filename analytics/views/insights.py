@@ -188,8 +188,10 @@ class InsightsViewSet(viewsets.ModelViewSet):
             return Response({"message": "no interval provided"}, status=status.HTTP_400_BAD_REQUEST)
         today = datetime.now()
 
-        past_transactions = TransactionHistory.objects.filter(
-            provider=self.request.user
+        # corrections by PM - to regard it with whole user base
+        # until decision from business team
+        past_transactions = TransactionHistory.objects.all(
+            # provider=self.request.user
         )
 
         interval_day = timedelta(hours=24)

@@ -35,10 +35,8 @@ class CancelSearch(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, *args, **kwargs):
-        print("here in post", self.request.data, self.request.user)
         # if "cancel" in self.request.data:
         #     if self.request.data.get("cancel"):
-        print("cache", cache.get(str(self.request.user.id)))
         try:
             cache.delete(str(self.request.user.id))
             return response.Response(

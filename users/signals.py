@@ -3,7 +3,7 @@ from .models import *
 from django.db.models.signals import post_save, pre_save, post_delete
 from transactions.models import UserServiceMode
 from locations.models import UserLocation
-from analytics.models import UserRating
+from analytics.models import UserRating, UserSeekerRating
 from django.contrib.auth.signals import (
     user_logged_in,
     user_logged_out,
@@ -19,9 +19,9 @@ def create_instance(sender, instance, created, **kwargs):
             UserInformation.objects.create(
                 user=instance
             )
-            UserNidInformation.objects.create(
-                user=instance
-            )
+            # UserNidInformation.objects.create(
+            #     user=instance
+            # )
             # user service
             UserServiceMode.objects.create(
                 user=instance
@@ -31,8 +31,12 @@ def create_instance(sender, instance, created, **kwargs):
                 user=instance.id,
                 user_phone_number=instance.phone_number,
             )
+
             # analytics rating
             UserRating.objects.create(
+                user=instance
+            )
+            UserSeekerRating.objects.create(
                 user=instance
             )
         except:

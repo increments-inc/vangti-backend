@@ -9,9 +9,8 @@ from users.models import User
 
 
 def get_user_location(user_id):
-
-
     return UserLocation.objects.get(user=user_id).centre
+
 
 def get_user_distance(from_user, to_user):
     to_point = UserLocation.objects.get(user=to_user.id).centre
@@ -119,8 +118,20 @@ def get_user_id_list(user):
     return user_list
 
 
+def call_maps_api(source, destination):
+    directions_url = f"https://maps.googleapis.com/maps/api/directions/json?origin={source}&destination={destination}&key={settings.GOOGLE_MAPS_API_KEY}&mode=walking"
+    direction_response = requests.request("GET", directions_url)
+    response = direction_response.json()
+    print("DIRECTION API CALLED !!! \n", )
+
+    return {
+        "distance": response["routes"][0]["legs"][0]["distance"]["text"],
+        "duration": response["routes"][0]["legs"][0]["duration"]["text"],
+        "polyline": response['routes'][0]['overview_polyline']["points"]
+    }
+
+
 def get_directions(transaction_id, source_dict, destination_dict):
-    response_json = {}
     # transaction_id=787
     source = f"{source_dict['latitude']}, {source_dict['longitude']}"
     destination = f"{destination_dict['latitude']}, {destination_dict['longitude']}"
@@ -129,15 +140,17 @@ def get_directions(transaction_id, source_dict, destination_dict):
     source_deviation = destination_deviation = 0
 
     # source and destination points
-    source_point = Point(source_dict['longitude'], source_dict['latitude'], srid=4326)
-    destination_point = Point(destination_dict['longitude'], destination_dict['latitude'], srid=4326)
+    source_point = Point(source_dict['latitude'], source_dict['longitude'], srid=4326)
+    destination_point = Point(destination_dict['latitude'], destination_dict['longitude'], srid=4326)
 
     poly = PolyLine.objects.filter(transaction=transaction_id)
     if poly.exists():
         poly_obj = poly.first()
     else:
         poly_obj = PolyLine.objects.create(
-            transaction=transaction_id
+            transaction=transaction_id,
+            seeker_location = Point(source_dict['longitude'], source_dict['latitude'], srid=4326),
+            provider_location=Point(destination_dict['longitude'], destination_dict['latitude'], srid=4326)
         )
 
     # polyline was previously created
@@ -165,35 +178,28 @@ def get_directions(transaction_id, source_dict, destination_dict):
             source_deviation > 3000000 or
             destination_deviation > 3000000
     ):
-        directions_url = f"https://maps.googleapis.com/maps/api/directions/json?origin={source}&destination={destination}&key={settings.GOOGLE_MAPS_API_KEY}&mode=walking"
-        direction_response = requests.request("GET", directions_url)
-        # direction_response ={}
-
-        # try:
-        response = direction_response.json()
-        print("direction \n", direction_response.json())
-
-        polyline = response['routes'][0]['overview_polyline']["points"]
-        polyline_points = polyline_to_latlong(polyline)
-        poly_obj.linestring = LineString(polyline_to_latlong(polyline))
+        direction_response = call_maps_api(source, destination)
+        polyline_points = polyline_to_latlong(direction_response["polyline"])
+        poly_obj.linestring = LineString(polyline_points)
         poly_obj.save()
 
-        empty_point_list = []
+        polyline_points_list = []
         for point in polyline_points:
-            empty_point_list.append({
+            polyline_points_list.append({
                 "latitude": point[0],
                 "longitude": point[1]
             })
 
         return {
-            "distance": response["routes"][0]["legs"][0]["distance"]["text"],
-            "duration": response["routes"][0]["legs"][0]["duration"]["text"],
-            "polyline": empty_point_list
+            "distance": direction_response["distance"],
+            "duration": direction_response["duration"],
+            "polyline": polyline_points_list
         }
 
     # polyline cut
     ls = poly_obj.linestring
     print("linestring print", ls)
+
     # source cut
     source_point_in_ls = ls.interpolate(ls.project(source_point))
     new_source_point = Point(source_point_in_ls.y, source_point_in_ls.x, srid=4326)
@@ -234,16 +240,16 @@ def get_directions(transaction_id, source_dict, destination_dict):
     #         des_p.transform(4326, clone=True)
     #     )
     # )
-    duration = 0*1.5*1000
+    duration = 0 * 1.5 * 1000
 
     if duration > 3600:
         duration /= 3600
-        duration =f"{int(duration)} hr"
+        duration = f"{int(duration)} hr"
     elif duration > 60:
         duration /= 60
-        duration =f"{int(duration)} min"
+        duration = f"{int(duration)} min"
     else:
-        duration =f"{duration} sec"
+        duration = f"{duration} sec"
     response_json = {
         "distance": f"{0}",
         "duration": f"{duration}",
@@ -252,6 +258,38 @@ def get_directions(transaction_id, source_dict, destination_dict):
     print("duration", duration, response_json)
 
     return response_json
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # reverse geocoding

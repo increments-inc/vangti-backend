@@ -51,7 +51,7 @@ class UserSeekerRating(BaseModel):
     deal_success_rate = models.FloatField(default=0.0)
     total_amount_of_transaction = models.FloatField(default=0.0)
     dislikes = models.IntegerField(default=0)
-    rating = models.FloatField(default=0.0)
+    rating = models.FloatField(default=5.0)
 
     class Meta:
         ordering = ("-created_at",)

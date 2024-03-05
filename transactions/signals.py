@@ -8,6 +8,7 @@ from django.db.models.signals import post_save, pre_save
 from .models import Transaction
 from analytics.models import Analytics, UserRating, UserSeekerRating
 from django.conf import settings
+from locations.models import UserLocation
 
 
 # created several times as it updates
@@ -30,21 +31,42 @@ from django.conf import settings
 def create_instance(sender, instance, created, **kwargs):
     try:
         if instance.is_completed:
+            seeker_location = UserLocation.objects.get(user=instance.seeker.id)
+            provider_location = UserLocation.objects.get(user=instance.provider.id)
             # transaction history
             try:
-                TransactionHistory.objects.get(
+                t_history = TransactionHistory.objects.get(
                     transaction=instance,
                     provider=instance.provider,
                     seeker=instance.seeker
                 )
+                t_history.seeker_location = {
+                    'latitude': seeker_location.latitude,
+                    'longitude': seeker_location.longitude
+                }
+                t_history.provider_location = {
+                    'latitude': provider_location.latitude,
+                    'longitude': provider_location.longitude
+                }
+                t_history.save()
+
             except TransactionHistory.DoesNotExist:
+
                 TransactionHistory.objects.create(
                     transaction=instance,
                     total_amount=instance.total_amount,
                     preferred_notes=instance.preferred_notes,
                     provider=instance.provider,
                     seeker=instance.seeker,
-                    charge=instance.charge
+                    charge=instance.charge,
+                    seeker_location={
+                        'latitude': seeker_location.latitude,
+                        'longitude': seeker_location.longitude
+                    },
+                    provider_location={
+                        'latitude': provider_location.latitude,
+                        'longitude': provider_location.longitude
+                    }
                 )
             # digital wallet
             # try:

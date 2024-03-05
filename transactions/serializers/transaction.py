@@ -46,11 +46,11 @@ class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
         # fields = "__all__"
-        exclude = ("id", "qr_image",)
+        exclude = ("id", "qr_image","qr_image_hash",)
 
     @extend_schema_field(serializers.CharField)
     def get_distance(self,obj):
-        seeker_point = UserLocation.objects.get(user = obj.seeker.id)
+        # seeker_point = UserLocation.objects.get(user = obj.seeker.id)
         provider_point = UserLocation.objects.get(user = obj.provider.id).centre
 
         all_distance = (
@@ -58,7 +58,6 @@ class TransactionSerializer(serializers.ModelSerializer):
                 distance=Distance("centre", provider_point)
             ).values("distance").first()["distance"].m
         )
-        print("hjdkfhskjd",seeker_point.centre,provider_point,all_distance)
         return f"{int(all_distance)}"
 
     @staticmethod
@@ -71,7 +70,7 @@ class TransactionSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         try:
             image = request.build_absolute_uri(obj.qr_image.url)
-            url_hash = get_hash(obj.qr_image.url)
+            url_hash = obj.qr_image_hash
         except:
             image = None
             url_hash = None
@@ -80,80 +79,13 @@ class TransactionSerializer(serializers.ModelSerializer):
             "url": image,
             "hash": url_hash
         }
-    @extend_schema_field(InfoSerializer)
+    @extend_schema_field(UserInformationRetrieveSerializer)
     def get_seeker_info(self, obj):
         return UserInformationRetrieveSerializer(obj.seeker.user_info, context={"request": self.context.get('request')}).data
 
-    @extend_schema_field(InfoSerializer)
+    @extend_schema_field(UserInformationRetrieveSerializer)
     def get_provider_info(self, obj):
         return UserInformationRetrieveSerializer(obj.provider.user_info, context={"request": self.context.get('request')}).data
-
-    # @extend_schema_field(InfoSerializer)
-    # def get_seeker_info(self, obj):
-    #     name = obj.seeker.user_info.person_name
-    #     try:
-    #         picture = obj.seeker.user_info.profile_pic
-    #         url = self.context.get('request').build_absolute_uri(picture.url)
-    #         url_hash = get_hash(picture.url)
-    #         print("url", url)
-    #
-    #     except:
-    #         url = None
-    #         url_hash = None
-    #     rating = obj.seeker.userrating_user.rating
-    #     deals = obj.seeker.userrating_user.no_of_transaction
-    #     deal_amounts = obj.seeker.userrating_user.total_amount_of_transaction
-    #     dislikes = obj.seeker.userrating_user.dislikes
-    #     deal_success_rate = obj.seeker.userrating_user.deal_success_rate
-    #     # distance = str(0)
-    #     phone_number = obj.seeker.phone_number
-    #     return {
-    #         "name": name,
-    #         "picture": {
-    #             "url": url,
-    #             "hash": url_hash
-    #         },
-    #         "rating": rating,
-    #         "deals": deals,
-    #         "amount": deal_amounts,
-    #         "dislikes": dislikes,
-    #         "deal_success_rate": deal_success_rate,
-    #         # "distance": distance,
-    #         "phone_number": phone_number
-    #     }
-    #
-    # @extend_schema_field(InfoSerializer)
-    # def get_provider_info(self, obj):
-    #     request = self.context.get('request')
-    #     name = obj.provider.user_info.person_name
-    #     try:
-    #         picture = obj.provider.user_info.profile_pic
-    #         url = request.build_absolute_uri(picture.url)
-    #         url_hash = get_hash(picture.url)
-    #     except:
-    #         url = None
-    #         url_hash = None
-    #     rating = obj.provider.userrating_user.rating
-    #     deals = obj.provider.userrating_user.no_of_transaction
-    #     deal_amounts = obj.provider.userrating_user.total_amount_of_transaction
-    #     dislikes = obj.provider.userrating_user.dislikes
-    #     deal_success_rate = obj.provider.userrating_user.deal_success_rate
-    #     # distance = str(0)
-    #     phone_number = obj.provider.phone_number
-    #     return {
-    #         "name": name,
-    #         "picture": {
-    #             "url": url,
-    #             "hash": url_hash
-    #         },
-    #         "rating": rating,
-    #         "deals": deals,
-    #         "amount": deal_amounts,
-    #         "dislikes": dislikes,
-    #         "deal_success_rate": deal_success_rate,
-    #         # "distance": distance,
-    #         "phone_number": phone_number
-    #     }
 
 
 class TransactionProviderSerializer(serializers.ModelSerializer):
@@ -221,6 +153,7 @@ class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
             "provider_picture",
         )
 
+    # user distance revise !!
     def get_distance(self, obj):
         user = self.context.get("request").user
         provider = UserLocation.objects.get(user=obj.provider.id)
@@ -237,7 +170,7 @@ class TransactionSeekerHistorySerializer(serializers.ModelSerializer):
         try:
             provider_pic = obj.provider.user_info.profile_pic
             url = request.build_absolute_uri(provider_pic.url)
-            url_hash = get_hash(provider_pic.url)
+            url_hash = obj.provider.user_info.profile_pic_hash
         except:
             url = None
             url_hash = None
@@ -287,7 +220,7 @@ class TransactionProviderHistorySerializer(serializers.ModelSerializer):
         try:
             seeker_pic = obj.seeker.user_info.profile_pic
             url = request.build_absolute_uri(seeker_pic.url)
-            url_hash = get_hash(seeker_pic.url)
+            url_hash = obj.seeker.user_info.profile_pic_hash
         except:
             url = None
             url_hash = None

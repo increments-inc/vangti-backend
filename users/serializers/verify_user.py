@@ -3,7 +3,8 @@ from .. import models
 from drf_extra_fields.fields import Base64ImageField
 from utils.helper import get_hash, get_original_hash
 from drf_spectacular.utils import extend_schema_serializer, OpenApiExample, extend_schema_field
-from analytics.serializers import  ProviderModeSerializer, SeekerModeSerializer
+from analytics.serializers import ProviderModeSerializer, SeekerModeSerializer
+
 
 class AddNidSerializer(serializers.ModelSerializer):
     class Meta:
@@ -184,117 +185,6 @@ class SignNidSerializer(serializers.ModelSerializer):
         ),
     ]
 )
-class UserInformationRetrieveSerializer0(serializers.ModelSerializer):
-    phone_number = serializers.CharField(source="user.phone_number", read_only=True)
-    transactions = serializers.IntegerField(source="user.userrating_user.no_of_transaction", read_only=True)
-    user_id = serializers.CharField(source="user.id", read_only=True)
-    is_provider = serializers.BooleanField(source="user.user_mode.is_provider", read_only=True)
-    profile_pic = Base64ImageField(required=False, allow_null=True)
-
-    # no_of_transaction = serializers.IntegerField(source="user.userrating_user.rating", read_only=True)
-    deal_success_rate = serializers.FloatField(source="user.userrating_user.deal_success_rate", read_only=True)
-    total_amount = serializers.FloatField(source="user.userrating_user.total_amount_of_transaction", read_only=True)
-    cancelled_deals = serializers.IntegerField(source="user.userrating_user.dislikes", read_only=True)
-    rating = serializers.FloatField(source="user.userrating_user.rating", read_only=True)
-
-    # provider_response_time = serializers.DurationField(source="user.userrating_user.rating", read_only=True)
-
-    class Meta:
-        model = models.UserInformation
-        fields = (
-            "user_id",
-            "person_name",
-            "acc_type",
-            "profile_pic",
-            "phone_number",
-            "transactions",
-            "is_provider",
-            "deal_success_rate",
-            "total_amount",
-            "rating",
-            "cancelled_deals"
-        )
-        # exclude = ("user","device_id")
-        read_only_fields = ("acc_type",)
-
-    def to_representation(self, instance):
-        rep = super().to_representation(instance)
-        if rep.get('transactions') is None:
-            rep['transactions'] = 0
-        if rep.get('rating') is None:
-            rep['rating'] = 0.0
-        if rep.get('deal_success_rate') is None:
-            rep['deal_success_rate'] = 0.0
-        if rep.get('total_amount') is None:
-            rep['total_amount'] = 0.0
-        if rep.get('cancelled_deals') is None:
-            rep['cancelled_deals'] = 0.0
-        if rep.get('is_provider') is None:
-            rep['is_provider'] = False
-
-        if instance.profile_pic:
-            request = self.context.get('request')
-            print("profile", instance.profile_pic, request)
-            try:
-                image = request.build_absolute_uri(instance.profile_pic.url)
-            except:
-                image = None
-            try:
-                url_hash = get_original_hash(instance.profile_pic.url)
-            except:
-                url_hash = None
-
-            rep['profile_pic'] = {
-                "url": image,
-                "hash": url_hash
-            }
-        else:
-            rep['profile_pic'] = {
-                "url": None,
-                "hash": None
-            }
-        return rep
-
-
-
-
-
-
-
-@extend_schema_serializer(
-    exclude_fields=('single',),  # schema ignore these fields
-    examples=[
-        OpenApiExample(
-            'Example 1',
-            value={
-                "user_id": "string",
-                "person_name": "string",
-                "acc_type": "string",
-                "profile_pic": {
-                    "url": "string",
-                    "hash": "string"
-                },
-                "phone_number": "string",
-                "analytics_as_seeker": {
-                    "rating": 0.0,
-                    "total_deals_count": 0,
-                    "transaction_amount": 0.0,
-                    "deals_success_rate": 0.0,
-                    "cancel_deals_count": 0
-                },
-                "analytics_as_provider": {
-                    "rating": 0.0,
-                    "total_deals_count": 0,
-                    "transaction_amount": 0.0,
-                    "deals_success_rate": 0.0,
-                    "cancel_deals_count": 0
-                },
-                "is_provider": True,
-            },
-            response_only=True,  # signal that example only applies to responses
-        ),
-    ]
-)
 class UserInformationRetrieveSerializer(serializers.ModelSerializer):
     phone_number = serializers.CharField(source="user.phone_number", read_only=True)
     user_id = serializers.CharField(source="user.id", read_only=True)
@@ -302,9 +192,6 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
     profile_pic = Base64ImageField(required=False, allow_null=True)
     analytics_as_seeker = serializers.SerializerMethodField()
     analytics_as_provider = serializers.SerializerMethodField()
-
-
-
 
     class Meta:
         model = models.UserInformation
@@ -341,13 +228,9 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
                 "cancel_deals_count": 0
             }
 
-
-
-
     @extend_schema_field(ProviderModeSerializer)
     def get_analytics_as_provider(self, obj):
         return ProviderModeSerializer(obj.user.userrating_user).data
-
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
@@ -364,25 +247,21 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
         if rep.get('is_provider') is None:
             rep['is_provider'] = False
 
+        rep['profile_pic'] = {
+            "url": None,
+            "hash": None
+        }
         if instance.profile_pic:
             request = self.context.get('request')
-            print("profile", instance.profile_pic, request)
             try:
                 image = request.build_absolute_uri(instance.profile_pic.url)
+                url_hash = instance.profile_pic_hash
             except:
                 image = None
-            try:
-                url_hash = get_original_hash(instance.profile_pic.url)
-            except:
                 url_hash = None
-
             rep['profile_pic'] = {
                 "url": image,
                 "hash": url_hash
             }
-        else:
-            rep['profile_pic'] = {
-                "url": None,
-                "hash": None
-            }
+
         return rep

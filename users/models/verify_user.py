@@ -1,6 +1,7 @@
 from core.abstract_models import models, BaseModel
 from django.contrib.auth.models import BaseUserManager
 from utils.helper import content_file_path, ImageCompress
+from utils.model_helpers.user import get_picture_hash
 from .basic_user import User
 
 GENDER = [
@@ -33,6 +34,8 @@ class UserInformation(BaseModel):
     person_name = models.CharField(max_length=255, null=True, blank=True)
     acc_type = models.CharField(max_length=25, choices=ACCOUNT_TYPE, default="PERSONAL")
     profile_pic = models.ImageField(upload_to=content_file_path, blank=True, null=True)
+    profile_pic_hash = models.CharField(max_length=250, null=True, blank=True)
+
     __original_image = None
 
     def __str__(self):
@@ -43,6 +46,8 @@ class UserInformation(BaseModel):
         self.__original_image = self.profile_pic
 
     def save(self, force_insert=False, force_update=False, *args, **kwargs):
+        self.profile_pic_hash = get_picture_hash(self.profile_pic)
+
         if self.profile_pic != self.__original_image:
             self.profile_pic = ImageCompress(self.profile_pic)
 

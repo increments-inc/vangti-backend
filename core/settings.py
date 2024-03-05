@@ -222,9 +222,10 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Dhaka'
 
 USE_I18N = True
 
@@ -321,3 +322,10 @@ PROVIDER_COMMISSION = 10
 
 # location
 LOCATION_RADIUS = 10
+
+
+
+
+
+
+
