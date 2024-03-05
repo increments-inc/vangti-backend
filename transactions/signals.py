@@ -40,15 +40,15 @@ def create_instance(sender, instance, created, **kwargs):
                     provider=instance.provider,
                     seeker=instance.seeker
                 )
-                t_history.seeker_location = {
-                    'latitude': seeker_location.latitude,
-                    'longitude': seeker_location.longitude
-                }
-                t_history.provider_location = {
-                    'latitude': provider_location.latitude,
-                    'longitude': provider_location.longitude
-                }
-                t_history.save()
+                # t_history.seeker_location = {
+                #     'latitude': seeker_location.latitude,
+                #     'longitude': seeker_location.longitude
+                # }
+                # t_history.provider_location = {
+                #     'latitude': provider_location.latitude,
+                #     'longitude': provider_location.longitude
+                # }
+                # t_history.save()
 
             except TransactionHistory.DoesNotExist:
 
