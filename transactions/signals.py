@@ -59,14 +59,14 @@ def create_instance(sender, instance, created, **kwargs):
                     provider=instance.provider,
                     seeker=instance.seeker,
                     charge=instance.charge,
-                    seeker_location={
-                        'latitude': seeker_location.latitude,
-                        'longitude': seeker_location.longitude
-                    },
-                    provider_location={
-                        'latitude': provider_location.latitude,
-                        'longitude': provider_location.longitude
-                    }
+                    # seeker_location={
+                    #     'latitude': seeker_location.latitude,
+                    #     'longitude': seeker_location.longitude
+                    # },
+                    # provider_location={
+                    #     'latitude': provider_location.latitude,
+                    #     'longitude': provider_location.longitude
+                    # }
                 )
             # digital wallet
             # try:
