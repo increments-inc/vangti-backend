@@ -53,6 +53,7 @@ def get_home_analytics_of_user_set(user_set):
             "avg_demanded_vangti": "0",
             "avg_deal_possibility": 0.0
         }
+    print("rating_queryset", rating_queryset.values())
 
     rating_queryset = rating_queryset.annotate(
         avg_success_rate=Avg("deal_success_rate", default=0.0),
@@ -65,6 +66,7 @@ def get_home_analytics_of_user_set(user_set):
         "avg_response_time",
         "total_dislikes"
     )
+    print("rating_queryset", rating_queryset.values())
 
     time_dur = rating_queryset[0]["avg_response_time"].days * 3600 + rating_queryset[0]["avg_response_time"].seconds
     if time_dur > 3600:
@@ -98,7 +100,17 @@ def get_home_analytics_of_user_set(user_set):
         provider__in=user_set,
     ).values_list("total_amount", flat=True))
     avg_demanded = "0" if len(t_history) == 0 else max(t_history, key=t_history.count)
-
+    print(
+        {
+            "total_active_provider": total_providers,
+            "deal_success_rate": rating_queryset[0]["avg_success_rate"],
+            "rating": rating_queryset[0]["avg_rating"],
+            "dislikes": float(rating_queryset[0]["total_dislikes"]),
+            "provider_response_time": time_dur,
+            "avg_demanded_vangti": f"{avg_demanded}",
+            "avg_deal_possibility": float(avg_deal_possibility)
+        }
+    )
     return {
         "total_active_provider": total_providers,
         "deal_success_rate": rating_queryset[0]["avg_success_rate"],
