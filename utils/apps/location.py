@@ -12,6 +12,7 @@ from django.contrib.gis.geos import GEOSGeometry
 from django.db import connection
 import re
 
+
 def get_user_location(user_id):
     return UserLocation.objects.get(user=user_id).centre
 
@@ -127,14 +128,16 @@ def rounding(number):
     cut_number = decimal_number.quantize(Decimal('0.' + '0' * (5 - 1) + '1'))  # Precision of 5 decimal places
     return float(cut_number)
 
+
 def degress_to_meters(number):
     m = round((
-        number *
-         2 * math.pi * 6378.137
-         / 360
-         * 1000), 3
+            number *
+            2 * math.pi * 6378.137
+            / 360
+            * 1000), 3
     )
     return m
+
 
 def segment_polyline(line_string, point):
     cursor = connection.cursor()
@@ -160,6 +163,7 @@ def call_maps_api(source, destination):
         "duration": response["routes"][0]["legs"][0]["duration"]["text"],
         "polyline": response['routes'][0]['overview_polyline']["points"]
     }
+
 
 """
 def get_directions0(transaction_id, source_dict, destination_dict):
@@ -342,6 +346,7 @@ def get_directions0(transaction_id, source_dict, destination_dict):
 
 """
 
+
 def get_directions(transaction_id, source_dict, destination_dict):
     # transaction_id = 787
     # into coordinate strings for api call
@@ -371,7 +376,7 @@ def get_directions(transaction_id, source_dict, destination_dict):
         source_deviation = poly_obj.linestring.distance(source_point)
         destination_deviation = poly_obj.linestring.distance(destination_point)
     print(destination_deviation, degress_to_meters(destination_deviation))
-    print("deviations:",source_deviation, degress_to_meters(source_deviation))
+    print("deviations:", source_deviation, degress_to_meters(source_deviation))
     # if polyline line string newly created or there is significant deviation
     if (
             poly_obj.linestring is None or
@@ -400,7 +405,6 @@ def get_directions(transaction_id, source_dict, destination_dict):
     ls = poly_obj.linestring
     print("linestring print", ls)
 
-
     # source cut
     interpolated_source_point = ls.interpolate(ls.project(source_point))
     interpolated_destination_point = ls.interpolate(ls.project(destination_point))
@@ -408,14 +412,13 @@ def get_directions(transaction_id, source_dict, destination_dict):
     segment_poly_source = segment_polyline(ls, interpolated_source_point)
     new_ls = GEOSGeometry(segment_poly_source[0])[-1]
     new_ls.srid = 4326
-    final_segment_poly= segment_polyline(new_ls, interpolated_destination_point)
+    final_segment_poly = segment_polyline(new_ls, interpolated_destination_point)
     # final_segment_poly= segment_poly_source
 
     print("segment_poly ", type(GEOSGeometry(final_segment_poly[0])[0]), type(ls),
           GEOSGeometry(final_segment_poly[0])[0],
           # GEOSGeometry(final_segment_poly[0])[1],
           "\n")
-
 
     print(
         "Interpolated",
@@ -445,7 +448,7 @@ def get_directions(transaction_id, source_dict, destination_dict):
          * 1000), 3
     )
 
-    if GEOSGeometry(final_segment_poly[0])[0] ==GEOSGeometry(final_segment_poly[0])[-1] and distance < 40:
+    if GEOSGeometry(final_segment_poly[0])[0] == GEOSGeometry(final_segment_poly[0])[-1] and distance < 40:
         duplist = LineString(interpolated_destination_point, interpolated_source_point, srid=4326)
 
     print("duplist ", duplist)
@@ -467,14 +470,20 @@ def get_directions(transaction_id, source_dict, destination_dict):
     else:
         duration = f"{round(duration, 2)} sec"
 
+    if distance < 1000:
+        distance = f"{round(distance,2)} meter"
+    else:
+        distance = f"{round(distance/ 1000,2) } km"
+
     response_json = {
-        "distance": f"{distance} m",
+        "distance": f"{distance}",
         "duration": f"{duration}",
         "polyline": polyline_points_dict
     }
     print("duration", duration, distance)
 
     return response_json
+
 
 # reverse geocoding
 def latlong_to_address(latlong):
