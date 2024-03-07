@@ -471,7 +471,7 @@ def get_directions(transaction_id, source_dict, destination_dict):
         duration = f"{round(duration, 2)} sec"
 
     if distance < 1000:
-        distance = f"{round(distance,2)} meter"
+        distance = f"{int(distance)} meter"
     else:
         distance = f"{round(distance/ 1000,2) } km"
 

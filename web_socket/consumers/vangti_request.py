@@ -18,13 +18,13 @@ from utils.helper import get_original_hash
 from ..tasks import post_timestamp, update_timestamp
 from utils.apps.location import get_user_list
 from utils.apps.analytics import get_home_analytics_of_user_set
+from django.db.models import Q
 
 
 class VangtiRequestConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # self.reject_received = False
-
 
     async def connect(self):
         self.user = self.scope["user"]
@@ -43,7 +43,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
         # # send analytics
         # send_own_users_home_analytics(self.user)
-
 
     async def disconnect(self, close_code):
         await self.channel_layer.group_discard(
@@ -486,7 +485,16 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     'id', flat=True
                 )
             )
-            user_list = [str(id) for id in user_provider_list]
+            on_going_txn = list(Transaction.objects.filter(
+                Q(seeker__in=user_provider_list) | Q(provider__in=user_provider_list)
+            ).filter(
+                is_completed=False
+            ).values_list('seeker_id', 'provider_id'))
+            on_going_users = [usr for user in on_going_txn for usr in user]
+
+            user_list = [str(id) for id in user_provider_list if id not in on_going_users]
+
+            # user_list = [str(id) for id in user_provider_list ]
             return user_list
         except:
             return
@@ -658,8 +666,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 "rating": 0.0,
                 "total_deals": 0
             }
+
     @database_sync_to_async
-    def get_home_analytics(self,  user):
+    def get_home_analytics(self, user):
         user_set = get_user_list(user)
         rate_data = get_home_analytics_of_user_set(user_set)
         message = {

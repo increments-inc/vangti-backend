@@ -95,8 +95,9 @@ class CancelledTransaction(BaseModel):
     seeker = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="cancelled_transaction_seeker", null=True
     )
+    cancelled_by_provider = models.BooleanField(default=False)
     total_amount = models.FloatField(default=0, null=True)
     preferred_notes = ArrayField(models.CharField(max_length=10, null=True, blank=True))
 
     def __str__(self):
-        return self.user.phone_number
+        return self.transaction
