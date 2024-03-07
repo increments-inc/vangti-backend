@@ -161,7 +161,7 @@ def call_maps_api(source, destination):
         "polyline": response['routes'][0]['overview_polyline']["points"]
     }
 
-
+"""
 def get_directions0(transaction_id, source_dict, destination_dict):
     # transaction_id = 787
     # into coordinate strings for api call
@@ -340,6 +340,8 @@ def get_directions0(transaction_id, source_dict, destination_dict):
 
     return response_json
 
+"""
+
 def get_directions(transaction_id, source_dict, destination_dict):
     # transaction_id = 787
     # into coordinate strings for api call
@@ -404,7 +406,7 @@ def get_directions(transaction_id, source_dict, destination_dict):
     interpolated_destination_point = ls.interpolate(ls.project(destination_point))
 
     segment_poly_source = segment_polyline(ls, interpolated_source_point)
-    new_ls = GEOSGeometry(segment_poly_source[0])[0]
+    new_ls = GEOSGeometry(segment_poly_source[0])[-1]
     new_ls.srid = 4326
     final_segment_poly= segment_polyline(new_ls, interpolated_destination_point)
     # final_segment_poly= segment_poly_source
@@ -445,7 +447,6 @@ def get_directions(transaction_id, source_dict, destination_dict):
 
     if GEOSGeometry(final_segment_poly[0])[0] ==GEOSGeometry(final_segment_poly[0])[-1] and distance < 40:
         duplist = LineString(interpolated_destination_point, interpolated_source_point, srid=4326)
-
 
     print("duplist ", duplist)
     polyline_points_dict = [
