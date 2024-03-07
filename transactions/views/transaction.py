@@ -1,23 +1,17 @@
-from django.shortcuts import render
-from django.core.mail import send_mail
-from django.conf import settings
 from rest_framework import (
     permissions,
     response,
     status,
-    views,
     viewsets,
 )
-from utils.custom_pagination import CustomPagination
-from rest_framework_simplejwt.views import TokenObtainPairView
-from ..models import *
-from ..serializers import *
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from utils.apps.transaction import get_transaction_id
 from utils.apps.web_socket import send_message_to_channel
-from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
+
 from analytics.models import UserRating, UserSeekerRating
 from ..tasks import send_out_location_data
+from ..serializers import *
 
 
 class TransactionViewSet(viewsets.ModelViewSet):

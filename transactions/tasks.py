@@ -7,6 +7,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from utils.apps.location import get_user_location, get_directions
 
+
 def send_message_to_channel(user_id, message):
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
@@ -34,16 +35,17 @@ def send_out_analytics_mesg(some_list):
         send_message_to_channel(str(user), message)
     return
 
+
 @shared_task
 def send_out_location_data(user, instance_id):
-    instance = Transaction.objects.get(id = instance_id)
+    instance = Transaction.objects.get(id=instance_id)
     seeker_location = get_user_location(instance.seeker.id)
     provider_location = get_user_location(instance.seeker.id)
     seeker_dict = {
         "latitude": seeker_location[1],
         "longitude": seeker_location[0]
     }
-    provider_dict= {
+    provider_dict = {
         "latitude": provider_location[1],
         "longitude": provider_location[0]
     }
@@ -63,7 +65,7 @@ def send_out_location_data(user, instance_id):
                 "latitude": provider_location[1],
                 "longitude": provider_location[0]
             },
-            "direction":direction
+            "direction": direction
         }
     }
     # for i in range(3):
