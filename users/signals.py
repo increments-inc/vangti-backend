@@ -33,12 +33,12 @@ def create_instance(sender, instance, created, **kwargs):
             # )
 
             # analytics rating
-            UserRating.objects.create(
-                user=instance
-            )
-            UserSeekerRating.objects.create(
-                user=instance
-            )
+            # UserRating.objects.create(
+            #     user=instance
+            # )
+            # UserSeekerRating.objects.create(
+            #     user=instance
+            # )
         except:
             pass
 
