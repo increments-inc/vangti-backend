@@ -10,7 +10,7 @@ from django.db import transaction
 from asgiref.sync import async_to_sync, sync_to_async
 from datetime import datetime, timedelta
 from locations.models import UserLocation
-from transactions.models import TransactionRequest, Transaction, TransactionMessages, UserTransactionResponse
+from transactions.models import  Transaction, TransactionMessages, UserTransactionResponse
 from users.models import User
 from utils.apps.location import get_directions
 from utils.apps.transaction import get_transaction_id

@@ -133,21 +133,21 @@ def create_analytics_instance(sender, instance, created, **kwargs):
             )
 
 
-@receiver(post_save, sender=TransactionReview)
-def update_user_rating(sender, instance, created, **kwargs):
-    if created:
-        # User Rating
-        try:
-            rating_data = UserRating.objects.get(
-                user=instance.provider
-            )
-            rating_data.rating += instance.rating
-            rating_data.save()
-        except UserRating.DoesNotExist:
-            UserRating.objects.create(
-                user=instance.provider,
-                rating=instance.rating
-            )
+# @receiver(post_save, sender=TransactionReview)
+# def update_user_rating(sender, instance, created, **kwargs):
+#     if created:
+#         # User Rating
+#         try:
+#             rating_data = UserRating.objects.get(
+#                 user=instance.provider
+#             )
+#             rating_data.rating += instance.rating
+#             rating_data.save()
+#         except UserRating.DoesNotExist:
+#             UserRating.objects.create(
+#                 user=instance.provider,
+#                 rating=instance.rating
+#             )
 
 
 @receiver(post_save, sender=UserTransactionResponse)
