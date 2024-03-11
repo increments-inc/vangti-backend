@@ -15,8 +15,6 @@ from locations.models import UserLocation
 def create_instance(sender, instance, created, **kwargs):
     try:
         if instance.is_completed:
-            seeker_location = UserLocation.objects.get(user=instance.seeker.id)
-            provider_location = UserLocation.objects.get(user=instance.provider.id)
             # transaction history
             try:
                 t_history = TransactionHistory.objects.get(
@@ -24,15 +22,6 @@ def create_instance(sender, instance, created, **kwargs):
                     provider=instance.provider,
                     seeker=instance.seeker
                 )
-                # t_history.seeker_location = {
-                #     'latitude': seeker_location.latitude,
-                #     'longitude': seeker_location.longitude
-                # }
-                # t_history.provider_location = {
-                #     'latitude': provider_location.latitude,
-                #     'longitude': provider_location.longitude
-                # }
-                # t_history.save()
 
             except TransactionHistory.DoesNotExist:
                 TransactionHistory.objects.create(
@@ -42,14 +31,6 @@ def create_instance(sender, instance, created, **kwargs):
                     provider=instance.provider,
                     seeker=instance.seeker,
                     charge=instance.charge,
-                    # seeker_location={
-                    #     'latitude': seeker_location.latitude,
-                    #     'longitude': seeker_location.longitude
-                    # },
-                    # provider_location={
-                    #     'latitude': provider_location.latitude,
-                    #     'longitude': provider_location.longitude
-                    # }
                 )
             # digital wallet
             # try:
@@ -102,35 +83,7 @@ def create_analytics_instance(sender, instance, created, **kwargs):
                 profit=settings.PROVIDER_COMMISSION,
                 total_amount_of_transaction=instance.total_amount
             )
-        # User Rating
-        try:
-            rating_data = UserRating.objects.get(
-                user=instance.provider
-            )
-            rating_data.no_of_transaction += 1
-            rating_data.total_amount_of_transaction += instance.total_amount
-            rating_data.save()
-        except UserRating.DoesNotExist:
-            UserRating.objects.create(
-                user=instance.provider,
-                no_of_transaction=1,
-                total_amount_of_transaction=instance.total_amount
-            )
 
-        # user as seeker rating
-        try:
-            rating_data = UserSeekerRating.objects.get(
-                user=instance.seeker
-            )
-            rating_data.no_of_transaction += 1
-            rating_data.total_amount_of_transaction += instance.total_amount
-            rating_data.save()
-        except UserSeekerRating.DoesNotExist:
-            UserSeekerRating.objects.create(
-                user=instance.provider,
-                no_of_transaction=1,
-                total_amount_of_transaction=instance.total_amount
-            )
 
 
 # @receiver(post_save, sender=TransactionReview)

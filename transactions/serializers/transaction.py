@@ -305,18 +305,18 @@ class TransactionHistorySerializer(serializers.ModelSerializer):
     seeker_info = serializers.SerializerMethodField()
     provider_info = serializers.SerializerMethodField()
     qr = serializers.SerializerMethodField()
-    is_completed = serializers.BooleanField(source="transaction__is_completed", read_only=True)
-    transaction_pin = serializers.CharField(source="transaction__transaction_pin", read_only=True)
+
     # distance = serializers.SerializerMethodField()
     abuse_report = serializers.SerializerMethodField()
     review = serializers.SerializerMethodField()
+    is_completed = serializers.BooleanField(source="transaction.is_completed")
+    transaction_pin = serializers.CharField(source="transaction.transaction_pin")
 
     class Meta:
         model = TransactionHistory
         # fields = "__all__"
         exclude = ("id",
                    "transaction",
-
                    )
 
     @extend_schema_field(ReportAbuseSerializer)

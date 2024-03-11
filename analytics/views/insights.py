@@ -24,15 +24,19 @@ class InsightsViewSet(viewsets.ModelViewSet):
 
     @extend_schema(
         parameters=[
-            OpenApiParameter("interval", OpenApiTypes.STR, OpenApiParameter.QUERY),
+            OpenApiParameter("month", OpenApiTypes.STR, OpenApiParameter.QUERY),
+            OpenApiParameter("year", OpenApiTypes.STR, OpenApiParameter.QUERY),
+
         ],
     )
     def profit_by_time(self, *args, **kwargs):
-        interval = self.request.query_params.get("interval")
-        if interval is None:
+        q_month = self.request.query_params.get("month", None)
+        q_year = self.request.query_params.get("year", None)
+        if q_month is None or q_year is None:
             return Response({"message": "no interval provided"}, status=status.HTTP_400_BAD_REQUEST)
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        interval = "monthly"
         interval_day = 1
         date_list = ["0", "3", "6", "9", "12", "15", "18", "21"]
         scan_list = []

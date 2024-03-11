@@ -42,6 +42,12 @@ class UserRating(BaseModel):
     class Meta:
         ordering = ("-created_at",)
 
+    def save(self, *args, **kwargs):
+        self.deal_success_rate = (
+                self.no_of_transaction / (self.no_of_transaction + self.dislikes)
+        ) * 100
+        super().save(*args, **kwargs)
+
 
 class UserSeekerRating(BaseModel):
     user = models.OneToOneField(
@@ -55,6 +61,12 @@ class UserSeekerRating(BaseModel):
 
     class Meta:
         ordering = ("-created_at",)
+
+    def save(self, *args, **kwargs):
+        self.deal_success_rate = (
+                self.no_of_transaction / (self.no_of_transaction + self.dislikes)
+        ) * 100
+        super().save(*args, **kwargs)
 
 
 class AppFeedback(BaseModel):

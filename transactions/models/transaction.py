@@ -64,7 +64,6 @@ class TransactionHistory(BaseModel):
         User, on_delete=models.CASCADE, related_name="history_seeker"
     )
     charge = models.FloatField(default=0.0)
-    #
     # seeker_location = models.JSONField(default=dict)
     # provider_location = models.JSONField(default=dict)
 
