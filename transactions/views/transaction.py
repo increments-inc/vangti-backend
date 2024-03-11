@@ -260,10 +260,11 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
     # pagination_class = CustomPagination
 
     def get_serializer_class(self):
-        if self.action == "provider_history":
-            return TransactionProviderHistorySerializer
-        if self.action == "seeker_history":
-            return TransactionSeekerHistorySerializer
+        # if self.action == "provider_history":
+        #     return TransactionProviderHistorySerializer
+        # if self.action == "seeker_history":
+        #     return TransactionSeekerHistorySerializer
+        return self.serializer_class
 
     def provider_history(self, *args, **kwargs):
         user = self.request.user

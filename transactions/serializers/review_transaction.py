@@ -136,21 +136,21 @@ class TransactionAsProviderAbuseReportSerializer(serializers.ModelSerializer):
 
         message = validated_data.pop("message")
 
-        if transaction_instance.seeker != user:
+        if transaction_instance.provider != user:
             return -2
         try:
             review = TransactionAsProviderAbuseReport.objects.get(
                 transaction=transaction_instance,
-                # provider=transaction_instance.provider,
-                seeker=transaction_instance.seeker
+                provider=transaction_instance.provider,
+                # seeker=transaction_instance.seeker
             )
             review.message = message
             review.save()
         except TransactionAsProviderAbuseReport.DoesNotExist:
             review = TransactionAsProviderAbuseReport.objects.create(
                 transaction=transaction_instance,
-                # provider=transaction_instance.provider,
-                seeker=transaction_instance.seeker,
+                provider=transaction_instance.provider,
+                # seeker=transaction_instance.seeker,
                 message=message
             )
         return review
@@ -175,21 +175,21 @@ class TransactionAsSeekerAbuseReportSerializer(serializers.ModelSerializer):
 
         message = validated_data.pop("message")
 
-        if transaction_instance.provider != user:
+        if transaction_instance.seeker != user:
             return -2
         try:
             review = TransactionAsSeekerAbuseReport.objects.get(
                 transaction=transaction_instance,
-                provider=transaction_instance.provider,
-                # seeker=transaction_instance.seeker
+                # provider=transaction_instance.provider,
+                seeker=transaction_instance.seeker
             )
             review.message = message
             review.save()
         except TransactionAsSeekerAbuseReport.DoesNotExist:
             review = TransactionAsSeekerAbuseReport.objects.create(
                 transaction=transaction_instance,
-                provider=transaction_instance.provider,
-                # seeker=transaction_instance.seeker,
+                # provider=transaction_instance.provider,
+                seeker=transaction_instance.seeker,
                 message=message
             )
         return review

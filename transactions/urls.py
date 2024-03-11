@@ -4,16 +4,16 @@ from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 
-router.register("rate-as-seeker", TransactionAsSeekerReviewViewSet, basename="transaction_rate_as_seeker")
+router.register("rate/as-seeker", TransactionAsSeekerReviewViewSet, basename="transaction_rate_as_seeker")
 
-router.register("rate-as-provider", TransactionAsProviderReviewViewSet, basename="transaction_rate_as_provider")
+router.register("rate/as-provider", TransactionAsProviderReviewViewSet, basename="transaction_rate_as_provider")
 
 router.register(
-    "report-abuse-as-seeker", TransactionAsSeekerAbuseReportViewSet, basename="transaction_report_abuse_as_seeker"
+    "report-abuse/as-seeker", TransactionAsSeekerAbuseReportViewSet, basename="transaction_report_abuse_as_seeker"
 )
 
 router.register(
-    "report-abuse-as-provider", TransactionAsProviderAbuseReportViewSet, basename="transaction_report_abuse_as_provider"
+    "report-abuse/as-provider", TransactionAsProviderAbuseReportViewSet, basename="transaction_report_abuse_as_provider"
 )
 
 

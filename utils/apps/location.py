@@ -348,7 +348,7 @@ def get_directions0(transaction_id, source_dict, destination_dict):
 
 
 def get_directions(transaction_id, source_dict, destination_dict):
-    # transaction_id = 787
+    transaction_id = 787
     # into coordinate strings for api call
     source = f"{source_dict['latitude']}, {source_dict['longitude']}"
     destination = f"{destination_dict['latitude']}, {destination_dict['longitude']}"
