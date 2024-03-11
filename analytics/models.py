@@ -38,7 +38,7 @@ class UserRating(BaseModel):
     dislikes = models.IntegerField(default=0)
     rating = models.FloatField(default=0.0)
     provider_response_time = models.DurationField(null=True, blank=True)
-
+    abuse_report_count = models.IntegerField(default=0)
     class Meta:
         ordering = ("-created_at",)
 
@@ -58,6 +58,7 @@ class UserSeekerRating(BaseModel):
     total_amount_of_transaction = models.FloatField(default=0.0)
     dislikes = models.IntegerField(default=0)
     rating = models.FloatField(default=5.0)
+    abuse_report_count = models.IntegerField(default=0)
 
     class Meta:
         ordering = ("-created_at",)

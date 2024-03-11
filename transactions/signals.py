@@ -103,24 +103,24 @@ def create_analytics_instance(sender, instance, created, **kwargs):
 #             )
 
 
-@receiver(post_save, sender=UserTransactionResponse)
-def update_user_response(sender, instance, created, **kwargs):
-    if instance.response_duration is not None:
-        average_response_time = UserTransactionResponse.objects.filter(
-            provider=instance.provider
-        ).aggregate(
-            avg_response_time=Avg("response_duration", default=timedelta(seconds=0))
-        )["avg_response_time"]
-        print(average_response_time)
-        # User Rating
-        try:
-            rating_data = UserRating.objects.get(
-                user=instance.provider
-            )
-            rating_data.provider_response_time = average_response_time
-            rating_data.save()
-        except UserRating.DoesNotExist:
-            UserRating.objects.create(
-                user=instance.provider,
-                provider_response_time=average_response_time
-            )
+# @receiver(post_save, sender=UserTransactionResponse)
+# def update_user_response(sender, instance, created, **kwargs):
+#     if instance.response_duration is not None:
+#         average_response_time = UserTransactionResponse.objects.filter(
+#             provider=instance.provider
+#         ).aggregate(
+#             avg_response_time=Avg("response_duration", default=timedelta(seconds=0))
+#         )["avg_response_time"]
+#         print(average_response_time)
+#         # User Rating
+#         try:
+#             rating_data = UserRating.objects.get(
+#                 user=instance.provider
+#             )
+#             rating_data.provider_response_time = average_response_time
+#             rating_data.save()
+#         except UserRating.DoesNotExist:
+#             UserRating.objects.create(
+#                 user=instance.provider,
+#                 provider_response_time=average_response_time
+#             )

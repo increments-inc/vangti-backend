@@ -105,11 +105,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 preferred_notes=instance.preferred_notes,
                 cancelled_by_provider=True if instance.provider == request.user else False
             )
-            # calculations for rating
-            at_transaction_deletion(request.user, instance)
 
             # destroy action
             self.perform_destroy(instance)
+
+            # calculations for rating
+            at_transaction_deletion(request.user, instance)
 
             return response.Response({"detail": "transaction instance deleted"}, status=status.HTTP_200_OK)
         except Exception as e:

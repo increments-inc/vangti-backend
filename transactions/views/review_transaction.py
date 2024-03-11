@@ -12,6 +12,10 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from ..models import *
 from ..serializers import *
 from utils.apps.transaction import get_transaction_id
+from utils.apps.analytics_rating import (
+    at_seeker_rating_update, at_provider_rating_update,
+    at_seeker_abuse_rep_update, at_provider_abuse_rep_update
+)
 from drf_spectacular.utils import extend_schema
 from rest_framework.decorators import action
 from utils.custom_pagination import CustomPagination
@@ -80,10 +84,16 @@ class TransactionAsSeekerReviewViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             review = serializer.save()
             if review == -1:
-                return response.Response({"error": "No valid transaction found"}, status=status.HTTP_400_BAD_REQUEST)
+                return response.Response(
+                    {"error": "No valid transaction found"}, status=status.HTTP_400_BAD_REQUEST)
             if review == -2:
-                return response.Response({"error": "User not authorised to rate this transaction"},
-                                         status=status.HTTP_403_FORBIDDEN)
+                return response.Response(
+                    {"error": "User not authorised to rate this transaction"},
+                    status=status.HTTP_403_FORBIDDEN)
+
+            # update rating
+            at_seeker_rating_update(request.user)
+
             return response.Response(serializer.data, status=status.HTTP_201_CREATED)
         return response.Response("", status=status.HTTP_400_BAD_REQUEST)
 
@@ -100,10 +110,16 @@ class TransactionAsProviderReviewViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             review = serializer.save()
             if review == -1:
-                return response.Response({"error": "No valid transaction found"}, status=status.HTTP_400_BAD_REQUEST)
+                return response.Response(
+                    {"error": "No valid transaction found"}, status=status.HTTP_400_BAD_REQUEST)
             if review == -2:
-                return response.Response({"error": "User not authorised to rate this transaction"},
-                                         status=status.HTTP_403_FORBIDDEN)
+                return response.Response(
+                    {"error": "User not authorised to rate this transaction"},
+                    status=status.HTTP_403_FORBIDDEN)
+
+            # update rating
+            at_provider_rating_update(request.user)
+
             return response.Response(serializer.data, status=status.HTTP_201_CREATED)
         return response.Response("", status=status.HTTP_400_BAD_REQUEST)
 
@@ -120,10 +136,16 @@ class TransactionAsProviderAbuseReportViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             review = serializer.save()
             if review == -1:
-                return response.Response({"error": "No valid transaction found"}, status=status.HTTP_400_BAD_REQUEST)
+                return response.Response(
+                    {"error": "No valid transaction found"}, status=status.HTTP_400_BAD_REQUEST)
             if review == -2:
-                return response.Response({"error": "User not authorised to rate this transaction"},
-                                         status=status.HTTP_403_FORBIDDEN)
+                return response.Response(
+                    {"error": "User not authorised to rate this transaction"},
+                    status=status.HTTP_403_FORBIDDEN)
+
+            # update abuse rep count
+            at_provider_abuse_rep_update(self.request.user)
+
             return response.Response(serializer.data, status=status.HTTP_201_CREATED)
         return response.Response("", status=status.HTTP_400_BAD_REQUEST)
 
@@ -140,9 +162,15 @@ class TransactionAsSeekerAbuseReportViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             review = serializer.save()
             if review == -1:
-                return response.Response({"error": "No valid transaction found"}, status=status.HTTP_400_BAD_REQUEST)
+                return response.Response(
+                    {"error": "No valid transaction found"}, status=status.HTTP_400_BAD_REQUEST)
             if review == -2:
-                return response.Response({"error": "User not authorised to rate this transaction"},
-                                         status=status.HTTP_403_FORBIDDEN)
+                return response.Response(
+                    {"error": "User not authorised to rate this transaction"},
+                    status=status.HTTP_403_FORBIDDEN)
+
+            # update abuse rep count
+            at_seeker_abuse_rep_update(self.request.user)
+
             return response.Response(serializer.data, status=status.HTTP_201_CREATED)
         return response.Response("", status=status.HTTP_400_BAD_REQUEST)
