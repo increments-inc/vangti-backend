@@ -7,6 +7,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from ..serializers import *
 import random
 from collections import Counter
+import calendar
 
 
 class InsightsViewSet(viewsets.ModelViewSet):
@@ -101,7 +102,6 @@ class InsightsViewSet(viewsets.ModelViewSet):
             scan_list.append(data)
         return Response(scan_list, status=status.HTTP_200_OK)
 
-
     @extend_schema(
         parameters=[
             OpenApiParameter("month", OpenApiTypes.STR, OpenApiParameter.QUERY),
@@ -114,66 +114,39 @@ class InsightsViewSet(viewsets.ModelViewSet):
         q_year = self.request.query_params.get("year", None)
         if q_month is None or q_year is None:
             return Response({"message": "no interval provided"}, status=status.HTTP_400_BAD_REQUEST)
-
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        interval = "monthly"
-        interval_day = 1
-        date_list = ["0", "3", "6", "9", "12", "15", "18", "21"]
+        month_list = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+                      "November", "December"]
+        month_in_numerical = int(month_list.index(q_month) + 1)
         scan_list = []
-
-        if interval == "weekly":
-            interval_day = 7
-            date_list = [today - timedelta(days=x) for x in range(interval_day)]
-
-        if interval == "monthly":
-            interval_day = 30
-            date_list = [today - timedelta(days=x) for x in range(interval_day)]
 
         user_analytics = self.queryset.filter(
             user=self.request.user,
-            created_at__lte=datetime.now(),
-            created_at__gte=today - timedelta(days=interval_day),
+            created_at__month=month_in_numerical,
+            created_at__year=int(q_year),
         ).values("no_of_transaction", "total_amount_of_transaction", "profit", "created_at")
+        print("user analytics:", user_analytics)
+        num_days = calendar.monthrange(int(q_year), int(month_in_numerical))[1]
 
-        total_amount_of_transaction = profit = no_of_transaction = 0
-
+        date_list = [datetime(int(q_year), int(month_in_numerical), day) for day in range(1, num_days + 1)]
         for date in date_list:
-            # default
             total_amount_of_transaction = 0.0
             profit = 0.0
             no_of_transaction = 0
             # calculations
-            rep_date = date
-            if interval == "daily":
-                hour = date
-                date = time(hour=int(date))
-                rep_date = today + timedelta(hours=int(hour))
-
             for stat in user_analytics:
                 # default
                 total_amount_of_transaction = 0.0
                 profit = 0.0
                 no_of_transaction = 0
 
-                if interval != "daily":
-                    if stat["created_at"].day == date.day:
-                        total_amount_of_transaction = stat["total_amount_of_transaction"]
-                        profit = stat["profit"]
-                        no_of_transaction = stat["no_of_transaction"]
-                        break
-                else:
-                    if (
-                            date > stat["created_at"].time() >
-                            (datetime.combine(datetime(1, 1, 1), date) - timedelta(
-                                hours=3)).time()
-                    ):
-                        total_amount_of_transaction = stat["total_amount_of_transaction"]
-                        profit = stat["profit"]
-                        no_of_transaction = stat["no_of_transaction"]
-                        break
+                if stat["created_at"].day == date.day:
+                    total_amount_of_transaction = stat["total_amount_of_transaction"]
+                    profit = stat["profit"]
+                    no_of_transaction = stat["no_of_transaction"]
+                    break
 
             data = {
-                "date": str(rep_date),
+                "date": str(date),
                 "total_amount_of_transaction": float(total_amount_of_transaction),
                 "profit": float(profit),
                 "no_of_transaction": no_of_transaction,
@@ -191,7 +164,7 @@ class InsightsViewSet(viewsets.ModelViewSet):
     def transaction_by_week(self, *args, **kwargs):
         user_analytics = (
             self.queryset.filter(user=self.request.user,
-                                       )
+                                 )
             .values("no_of_transaction", "total_amount_of_transaction", "profit", "created_at")
         )
         this_week = datetime.now() - timedelta(days=7)
@@ -298,7 +271,7 @@ class InsightsViewSet(viewsets.ModelViewSet):
 
         past_note_list = past_transactions.filter(
             created_at__lte=today - interval_day,
-            created_at__gte=today - interval_day*2,
+            created_at__gte=today - interval_day * 2,
         ).aggregate(
             Sum("total_amount", default=0)
         )
