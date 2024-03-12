@@ -29,7 +29,7 @@ def total_success(user, as_provider: bool):
         total_count = total.count()
         total_data = total.aggregate(
             Sum('total_amount', default=0)
-        )
+        )["total_amount__sum"]
     else:
         total = TransactionHistory.objects.filter(
             seeker=user
@@ -37,7 +37,7 @@ def total_success(user, as_provider: bool):
         total_count = total.count()
         total_data = total.aggregate(
             Sum('total_amount', default=0)
-        )
+        )["total_amount__sum"]
     return {"total_number": total_count, "total_amount": total_data}
 
 

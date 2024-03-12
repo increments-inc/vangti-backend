@@ -43,9 +43,12 @@ class UserRating(BaseModel):
         ordering = ("-created_at",)
 
     def save(self, *args, **kwargs):
-        self.deal_success_rate = (
-                self.no_of_transaction / (self.no_of_transaction + self.dislikes)
-        ) * 100
+        try:
+            self.deal_success_rate = (
+                    self.no_of_transaction / (self.no_of_transaction + self.dislikes)
+            ) * 100
+        except ZeroDivisionError:
+            self.deal_success_rate = 0.0
         super().save(*args, **kwargs)
 
 
@@ -64,9 +67,12 @@ class UserSeekerRating(BaseModel):
         ordering = ("-created_at",)
 
     def save(self, *args, **kwargs):
-        self.deal_success_rate = (
-                self.no_of_transaction / (self.no_of_transaction + self.dislikes)
-        ) * 100
+        try:
+            self.deal_success_rate = (
+                    self.no_of_transaction / (self.no_of_transaction + self.dislikes)
+            ) * 100
+        except ZeroDivisionError:
+            self.deal_success_rate = 0.0
         super().save(*args, **kwargs)
 
 

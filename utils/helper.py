@@ -13,6 +13,7 @@ from django.core.mail import EmailMessage, send_mass_mail
 import blurhash
 # image compression
 from rest_framework.exceptions import ValidationError
+from decimal import Decimal
 
 
 def ImageCompress(file):
@@ -140,7 +141,6 @@ def get_hash(picture_url):
     return str(url_hash)
 
 
-
 def get_original_hash(picture_url):
     with open(picture_url[1:], 'rb') as image_file:
         url_hash = blurhash.encode(image_file, x_components=4, y_components=3)
@@ -153,3 +153,8 @@ def get_hash_from_memory(picture):
     temp.thumbnail((100, 100))
     url_hash = blurhash.encode(temp, x_components=4, y_components=3)
     return str(url_hash)
+
+def rounding(number, precision):
+    decimal_number = Decimal(str(number))  # Convert to Decimal
+    cut_number = decimal_number.quantize(Decimal('0.' + '0' * (precision - 1) + '1'))  # Precision of 5 decimal places
+    return float(cut_number)

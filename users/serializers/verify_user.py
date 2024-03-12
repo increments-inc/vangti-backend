@@ -251,19 +251,9 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
                 "cancel_deals_count": 0
             }
 
-
     def to_representation(self, instance):
         rep = super().to_representation(instance)
-        # if rep.get('transactions') is None:
-        #     rep['transactions'] = 0
-        # if rep.get('rating') is None:
-        #     rep['rating'] = 0.0
-        # if rep.get('deal_success_rate') is None:
-        #     rep['deal_success_rate'] = 0.0
-        # if rep.get('total_amount') is None:
-        #     rep['total_amount'] = 0.0
-        # if rep.get('cancelled_deals') is None:
-        #     rep['cancelled_deals'] = 0.0
+
         if rep.get('is_provider') is None:
             rep['is_provider'] = False
 
