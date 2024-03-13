@@ -71,7 +71,6 @@ def get_home_analytics_of_user_set(user_set):
         time_dur = f"{int(time_dur)} min"
     else:
         time_dur = f"{time_dur} sec"
-
     # t_history = TransactionHistory.objects.filter(
     #     created_at__gte=datetime.now() - timedelta(days=90),
     #     provider__in=user_set,

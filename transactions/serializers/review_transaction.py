@@ -33,7 +33,7 @@ class TransactionMessagesSerializer(serializers.ModelSerializer):
 
 class TransactionAsSeekerReviewSerializer(serializers.ModelSerializer):
     transaction_no = serializers.CharField(source="transaction.get_transaction_unique_no")
-    review_message = serializers.CharField(source="message")
+    review_message = serializers.CharField(source="message", required=False, allow_null=True)
 
     class Meta:
         model = TransactionAsSeekerReview
@@ -76,7 +76,7 @@ class TransactionAsSeekerReviewSerializer(serializers.ModelSerializer):
 
 class TransactionAsProviderReviewSerializer(serializers.ModelSerializer):
     transaction_no = serializers.CharField(source="transaction.get_transaction_unique_no")
-    review_message = serializers.CharField(source="message")
+    review_message = serializers.CharField(source="message",required=False, allow_null=True)
 
     class Meta:
         model = TransactionAsProviderReview
@@ -93,7 +93,7 @@ class TransactionAsProviderReviewSerializer(serializers.ModelSerializer):
             return -1
 
         rating = validated_data.pop("rating")
-        message = validated_data.pop("message")
+        message = validated_data.pop("message", None)
 
         if transaction_instance.provider != user:
             return -2

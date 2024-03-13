@@ -33,7 +33,12 @@ class CustomJSONRenderer(JSONRenderer):
                 if "message" in messages[0]:
                     errors.append(messages[0]["message"])
             if "errors" in data:
-                errors.append(data.pop("errors"))
+                if type(data["errors"]) != list:
+                    errors.append(data.pop("errors"))
+                else:
+                    errors = data.pop("errors")
+                # errors.append(data.pop("errors"))
+
             if type(data) == dict:
                 for dat in data.values():
                     errors.append(dat)

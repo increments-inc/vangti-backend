@@ -112,8 +112,10 @@ class InsightsViewSet(viewsets.ModelViewSet):
     def profit_by_time(self, *args, **kwargs):
         q_month = self.request.query_params.get("month", None)
         q_year = self.request.query_params.get("year", None)
+
         if q_month is None or q_year is None:
-            return Response({"message": "no interval provided"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"message": "no month and year provided"}, status=status.HTTP_400_BAD_REQUEST)
+
         month_list = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
                       "November", "December"]
         month_in_numerical = int(month_list.index(q_month) + 1)
