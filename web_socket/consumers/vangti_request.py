@@ -159,8 +159,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
     async def delayed_message_seeker(self, receive_dict):
         provider = receive_dict["data"]["provider"]
-        # wait and check cache for 5 seconds
-        for i in range(0, 5):
+        # wait and check cache for 10 seconds
+        for i in range(0, 10):
             await asyncio.sleep(1)
             print("cache value ", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
@@ -186,7 +186,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             await self.set_timeout(receive_dict)
 
     async def delayed_message(self, receive_dict):
-        for i in range(0, 5):
+        for i in range(0, 10):
             await asyncio.sleep(1)
             print("cache value ", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
