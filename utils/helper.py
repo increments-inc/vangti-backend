@@ -154,6 +154,7 @@ def get_hash_from_memory(picture):
     url_hash = blurhash.encode(temp, x_components=4, y_components=3)
     return str(url_hash)
 
+
 def rounding(number, precision):
     decimal_number = Decimal(str(number))  # Convert to Decimal
     cut_number = decimal_number.quantize(Decimal('0.' + '0' * (precision - 1) + '1'))  # Precision of 5 decimal places
