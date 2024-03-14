@@ -16,23 +16,24 @@ from users.models import User
 
 from utils.apps.location import get_user_list
 from utils.apps.analytics import get_home_analytics_of_user_set
-
+from utils.apps.analytics_rating import update_response_times
 from utils.apps.web_socket import send_message_to_user
 
+
 @shared_task
-def post_timestamp( seeker, provider):
+def post_timestamp(seeker, provider):
     print("seeker timestamp")
     try:
-        seeker = User.objects.get(id = seeker)
-        provider = User.objects.get(id = provider)
+        seeker = User.objects.get(id=seeker)
+        provider = User.objects.get(id=provider)
 
         try:
             print("seeker timestamp")
 
             txn_response = UserTransactionResponse.objects.get(
-                seeker = seeker,
-                provider = provider,
-                created_at__gte = datetime.now()-timedelta(minutes=5)
+                seeker=seeker,
+                provider=provider,
+                created_at__gte=datetime.now() - timedelta(minutes=5)
             )
 
         except UserTransactionResponse.DoesNotExist:
@@ -44,11 +45,13 @@ def post_timestamp( seeker, provider):
     except:
         print("jibi")
         return
+
+
 @shared_task
 def update_timestamp(seeker, provider):
     try:
-        seeker = User.objects.get(id = seeker)
-        provider = User.objects.get(id = provider)
+        seeker = User.objects.get(id=seeker)
+        provider = User.objects.get(id=provider)
         try:
             print("response timestamp")
             txn_response = UserTransactionResponse.objects.filter(
@@ -57,7 +60,7 @@ def update_timestamp(seeker, provider):
                 # created_at__gte=datetime.now() - timedelta(minutes=5),
                 # response_time= None
             ).last()
-            print("timestamp resp",txn_response)
+            print("timestamp resp", txn_response)
             txn_response.response_time = datetime.now()
             txn_response.save()
         except:
@@ -90,7 +93,7 @@ def update_timestamp(seeker, provider):
 def send_own_users_home_analytics(user):
     print("send own_users_home_analytics")
     user_set = get_user_list(user)
-    rate_data  = get_home_analytics_of_user_set(user_set)
+    rate_data = get_home_analytics_of_user_set(user_set)
     message = {
         "request": "ANALYTICS",
         "status": "ACTIVE",
@@ -101,3 +104,22 @@ def send_own_users_home_analytics(user):
 # await self.send(text_data=json.dumps({
 #     'message': 'WebSocket connection established.'
 # }))
+
+
+@shared_task
+def update_providers_timestamps(seeker_id, user_list):
+    seeker = User.objects.get(id=seeker_id)
+    for user_ in user_list:
+        provider = User.objects.get(id=user_[0])
+        duration = user_[2] - user_[1]
+        UserTransactionResponse.objects.create(
+            seeker=seeker,
+            provider=provider,
+            response_duration=duration
+        )
+
+        # rating calculation
+        update_response_times(provider)
+
+    return
+

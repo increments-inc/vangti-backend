@@ -1,11 +1,12 @@
 from transactions.models import (
     CancelledTransaction, TransactionHistory, TransactionAsSeekerReview, TransactionAsProviderReview,
 TransactionAsSeekerAbuseReport,
-TransactionAsProviderAbuseReport
+TransactionAsProviderAbuseReport,
+UserTransactionResponse
 )
 from analytics.models import UserRating, UserSeekerRating
 from django.db.models import Q, Sum, Avg
-
+from datetime import datetime, timedelta
 
 def total_cancelled(user, as_provider: bool):
     if as_provider:
@@ -197,3 +198,25 @@ def at_provider_abuse_rep_update(user):
         pass
 
     return
+
+
+def update_response_times_list(provider_list):
+    for provider in provider_list:
+        response_avg = UserTransactionResponse.objects.filter(
+            provider=provider
+        ).aggregate(Avg('response_duration', default=timedelta(seconds=0)))["response_duration__avg"]
+        prov_rating = UserRating.objects.get(provider=provider)
+        prov_rating.provider_response_time = response_avg
+        prov_rating.save()
+    return
+
+
+def update_response_times(provider):
+    response_avg = UserTransactionResponse.objects.filter(
+        provider=provider
+    ).aggregate(Avg('response_duration', default=timedelta(seconds=0)))["response_duration__avg"]
+    prov_rating = UserRating.objects.get(user=provider)
+    prov_rating.provider_response_time = response_avg
+    prov_rating.save()
+    return
+

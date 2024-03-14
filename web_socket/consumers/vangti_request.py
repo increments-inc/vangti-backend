@@ -15,7 +15,7 @@ from users.models import User
 from utils.apps.location import get_directions
 from utils.apps.transaction import get_transaction_id
 from utils.helper import get_original_hash
-from ..tasks import post_timestamp, update_timestamp
+from ..tasks import post_timestamp, update_timestamp, update_providers_timestamps
 from utils.apps.analytics import get_home_analytics_of_user_set
 from django.db.models import Q
 from utils.apps.web_socket_helper import get_user_information, get_transaction_instance
@@ -159,8 +159,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
     async def delayed_message_seeker(self, receive_dict):
         provider = receive_dict["data"]["provider"]
-        # wait and check cache for 10 seconds
-        for i in range(0, 10):
+        # wait and check cache for 5 seconds
+        for i in range(0, 5):
             await asyncio.sleep(1)
             print("cache value ", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
@@ -186,7 +186,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             await self.set_timeout(receive_dict)
 
     async def delayed_message(self, receive_dict):
-        for i in range(0, 10):
+        for i in range(0, 5):
             await asyncio.sleep(1)
             print("cache value ", cache.get(f'{receive_dict["data"]["seeker"]}-request'))
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
@@ -320,7 +320,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 )
                 await self.delayed_message(receive_dict)
         else:
-            await self.update_provider_responses(receive_dict["data"]["seeker"],
+            # await self.update_provider_responses(receive_dict["data"]["seeker"],
+            #                                      cache.get(f'{receive_dict["data"]["seeker"]}-timestamp'))
+            update_providers_timestamps.delay(receive_dict["data"]["seeker"],
                                                  cache.get(f'{receive_dict["data"]["seeker"]}-timestamp'))
 
             room_seeker = receive_dict["data"]["seeker"]
@@ -364,8 +366,11 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         timestamp_list[-1].append(datetime.now())
         cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=None)
         print("timestamp list", timestamp_list)
-        await self.update_provider_responses(receive_dict["data"]["seeker"],
-                                             cache.get(f'{receive_dict["data"]["seeker"]}-timestamp'))
+        # await self.update_provider_responses(receive_dict["data"]["seeker"],
+        #                                      cache.get(f'{receive_dict["data"]["seeker"]}-timestamp'))
+
+        update_providers_timestamps.delay(receive_dict["data"]["seeker"],
+                                          cache.get(f'{receive_dict["data"]["seeker"]}-timestamp'))
 
         cache.delete(
             f'{receive_dict["data"]["seeker"]}-request'
@@ -659,15 +664,15 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         }
         return message
 
-    @database_sync_to_async
-    def update_provider_responses(self, seeker_id, user_list):
-        seeker = User.objects.get(id=seeker_id)
-        for user_ in user_list:
-            provider = User.objects.get(id=user_[0])
-            duration = user_[2] - user_[1]
-            UserTransactionResponse.objects.create(
-                seeker=seeker,
-                provider=provider,
-                response_duration=duration
-            )
-        return
+    # @database_sync_to_async
+    # def update_provider_responses(self, seeker_id, user_list):
+    #     seeker = User.objects.get(id=seeker_id)
+    #     for user_ in user_list:
+    #         provider = User.objects.get(id=user_[0])
+    #         duration = user_[2] - user_[1]
+    #         UserTransactionResponse.objects.create(
+    #             seeker=seeker,
+    #             provider=provider,
+    #             response_duration=duration
+    #         )
+    #     return
