@@ -1,0 +1,192 @@
+/////////////////////////
+/////////////////////////
+/////////////////////////
+# new format
+// request -send- pending
+{
+    "request": "TRANSACTION",
+    "status": "PENDING",
+    "data": {
+        "amount": 1000,
+        "preferred": ["100","20"],
+        "transaction_id": null,
+        "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+        "seeker_info" : {
+            "name" : "",
+            "picture": {
+                "url": "",
+                "hash": ""
+            },
+            "rating" : 0.0,
+            "total_deals": 0
+        },
+        "provider": null
+    }
+}
+//# response - reject
+{
+    "request": "TRANSACTION",
+    "status": "REJECTED",
+    "data": {
+        "amount": 1000,
+        "preferred": ["100","20"],
+        "transaction_id": null,
+        "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+        "seeker_info" : {
+            "name" : "",
+            "picture": {
+                "url": "",
+                "hash": ""
+            },
+            "rating" : 0.0,
+            "total_deals": 0
+        },
+        "provider": "0de6c6f5-1470-4f16-b381-4034e9e71c5e"
+    }
+}
+//# response - accept
+{
+    "request": "TRANSACTION",
+    "status": "ACCEPTED",
+    "data": {
+        "amount": 1000,
+        "preferred": ["100","20"],
+        "transaction_id": null,
+        "seeker": "983bce72-e76f-4cd8-b490-e50b66c46176",
+        "seeker_info" : {
+            "name" : "",
+            "picture": {
+                "url": "",
+                "hash": ""
+            },
+            "rating" : 0.0,
+            "total_deals": 0
+        },
+        "provider": "ef1d0f1c-017b-4bb8-8376-114798f65975"
+    }
+}
+//# transaction instance
+{
+    "request": "TRANSACTION",
+    "status": "ON_GOING_TRANSACTION",
+    "data": {
+        "amount": 1000,
+        "preferred": ["100","20"],
+        "transaction_id": 90,
+        "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+        "seeker_info" : {
+            "name" : "",
+            "picture": {
+                "url": "",
+                "hash": ""
+            },
+            "rating" : 0.0,
+            "total_deals": 0
+        }
+        "provider": "ef1d0f1c-017b-4bb8-8376-114798f65975"
+    }
+}
+
+
+
+////////# location
+# response
+{
+    "request": "LOCATION",
+    "status": "ON_GOING_TRANSACTION",
+    "data": {
+        "transaction_id": "00000004b6696233",
+        "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+        "provider": "ef1d0f1c-017b-4bb8-8376-114798f65975",
+        "seeker_location": {
+            "latitude" : float,
+            "longitude" : float
+        },
+        "provider_location": {
+            "latitude" : float,
+            "longitude" : float
+        },
+        "direction":{
+            "start_location" : float,
+            "end_location": float,
+            "distance": "0.5 km",
+            "duration" : "1 min",
+            "polyline":[(float)]
+        }
+    }
+}
+
+# request
+{
+    "request": "LOCATION",
+    "status": "ON_GOING_TRANSACTION",
+    "data": {
+        "transaction_id": "0000002f202a876b",
+        "location": {
+            "latitude": 0.0,
+            "longitude": 0.0
+        }
+    }
+}
+
+
+# message instance
+{
+    "request": "MESSAGE",
+    "status": "ON_GOING_TRANSACTION",
+    "data" : {
+        "transaction_id": "00000004b66942e9",
+        "message": "",
+        "created_at": null
+    }
+}
+{
+    "request": "MESSAGE",
+    "status": "COMPLETED_TRANSACTION",
+    "data" :None
+}
+
+
+
+//////////////////#cancel
+#response
+{
+    "request": "TRANSACTION",
+    "status": "CANCELLED",
+    "data": {
+        "amount": 1000,
+        "preferred": [
+            "100",
+            "20"
+        ],
+        "transaction_id": null,
+        "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+        "seeker_info": {
+            "name": "",
+            "picture": {
+                "url": "",
+                "hash": ""
+            },
+            "rating": 0.0,
+            "total_deals": 0
+        },
+        "provider": "b81e7195-e678-4de2-92e6-093dea2aa372",
+        "status": "PENDING"
+    }
+}
+
+##/////////##analytics
+#response
+{
+    "request": "ANALYTICS",
+    "status": "ACTIVE",
+    "data": {
+        "total_active_provider": 2,
+        "deal_success_rate": 0.0,
+        "rating": 8.0,
+        "dislikes": 1.0,
+        "provider_response_time": "1 sec",
+        "avg_demanded_vangti": "1000",
+        "avg_deal_possibility": 100.0
+    }
+}
