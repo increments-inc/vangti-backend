@@ -54,7 +54,7 @@ def get_home_analytics_of_user_set(user_set):
             "avg_demanded_vangti": "0",
             "avg_deal_possibility": 0.0
         }
-    print("rating_queryset", rating_queryset.values())
+    # print("rating_queryset", rating_queryset.values())
 
     rating_queryset = rating_queryset.aggregate(
         Avg("deal_success_rate", default=0.0),
@@ -62,7 +62,7 @@ def get_home_analytics_of_user_set(user_set):
         Avg("dislikes", default=0),
         Avg("provider_response_time", default=timedelta(seconds=0))
     )
-    print("rating_queryset232323", rating_queryset)
+    # print("rating_queryset232323", rating_queryset)
 
     time_dur = rating_queryset["provider_response_time__avg"].days * 3600 + rating_queryset["provider_response_time__avg"].seconds
     if time_dur > 3600:
