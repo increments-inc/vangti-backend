@@ -158,7 +158,7 @@ def call_maps_api(source, destination):
 
 
 def get_directions(transaction_id, source_dict, destination_dict):
-    # transaction_id = 787
+    transaction_id = 787
 
     # initializations of variables
     # into coordinate strings for api call
@@ -188,14 +188,14 @@ def get_directions(transaction_id, source_dict, destination_dict):
         # source deviation
         source_deviation = poly_obj.linestring.distance(source_point)
         destination_deviation = poly_obj.linestring.distance(destination_point)
-    # print(destination_deviation, degress_to_meters(destination_deviation))
-    # print("deviations:", source_deviation, degress_to_meters(source_deviation))
+
     # if polyline line string newly created or there is significant deviation
     if (
             poly_obj.linestring is None or
             degress_to_meters(source_deviation) > 50 or
             degress_to_meters(destination_deviation) > 50
     ):
+        # save the new linestring
         direction_response = call_maps_api(source, destination)
         polyline_points = polyline_to_latlong(direction_response["polyline"])
         poly_obj.linestring = LineString(polyline_points)
@@ -225,21 +225,22 @@ def get_directions(transaction_id, source_dict, destination_dict):
     new_ls.srid = 4326
     final_segment_poly = segment_polyline(new_ls, interpolated_destination_point)
 
-    print(
-        "Interpolated",
-        # polyline_points_list, "\n",
-        interpolated_source_point, "\n",
-        interpolated_destination_point, "\n",
-        # index_interpolated_source_point, index_interpolated_destination_point,
-        "segment_poly ", type(GEOSGeometry(final_segment_poly[0])[0]), type(ls),
-        GEOSGeometry(final_segment_poly[0])[0],
-        # GEOSGeometry(final_segment_poly[0])[1],
-        "\n"
-    )
+    # print(
+    # "Interpolated",
+    # polyline_points_list, "\n",
+    # interpolated_source_point, "\n",
+    # interpolated_destination_point, "\n",
+    # index_interpolated_source_point, index_interpolated_destination_point,
+    # "segment_poly ", type(GEOSGeometry(final_segment_poly[0])[0]), type(ls),
+    # GEOSGeometry(final_segment_poly[0])[0],
+    # GEOSGeometry(final_segment_poly[0])[1],
+    #     "\n"
+    # )
     # if interpolated_destination_point in GEOSGeometry(final_segment_poly[0])[0] and interpolated_source_point in GEOSGeometry(final_segment_poly[0])[0]:
     #     final_geom = GEOSGeometry(final_segment_poly[0])[0]
     # else:
     #     final_geom = GEOSGeometry(final_segment_poly[0])[1]
+
     duplist = []
     for point in GEOSGeometry(final_segment_poly[0])[0]:
         if point in duplist:
@@ -249,11 +250,12 @@ def get_directions(transaction_id, source_dict, destination_dict):
 
     distance = round(
         (interpolated_destination_point.distance(interpolated_source_point) *
-         2 * math.pi * 6378.137
+         2 * math.pi * 6378.137  # earth's radius
          / 360
          * 1000), 3
     )
 
+    # if the distance is very short --- revise
     if GEOSGeometry(final_segment_poly[0])[0] == GEOSGeometry(final_segment_poly[0])[-1] and distance < 40:
         duplist = LineString(interpolated_destination_point, interpolated_source_point, srid=4326)
 
@@ -264,7 +266,7 @@ def get_directions(transaction_id, source_dict, destination_dict):
         } for point in duplist
     ]
 
-    duration = distance * 1.5
+    duration = distance * 1.5  # walking speed 1 meter/1.5 sec
 
     if duration > 3600:
         duration /= 3600
