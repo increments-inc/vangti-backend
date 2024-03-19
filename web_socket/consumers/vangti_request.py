@@ -6,6 +6,7 @@ from django.core.cache import cache
 from django.conf import settings
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.exceptions import StopConsumer
 from django.db import transaction
 from asgiref.sync import async_to_sync, sync_to_async
 from datetime import datetime, timedelta
@@ -18,7 +19,7 @@ from utils.helper import get_original_hash
 from ..tasks import post_timestamp, update_timestamp, update_providers_timestamps
 from utils.apps.analytics import get_home_analytics_of_user_set
 from django.db.models import Q
-from utils.apps.web_socket_helper import get_user_information, get_transaction_instance, create_transaction_instance
+from utils.apps.web_socket_helper import get_user_information, get_transaction_instance, create_transaction_instance, get_providers
 
 from utils.apps.location import get_user_list, update_user_location_instance, get_user_location_instance
 
@@ -51,6 +52,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             self.room_group_name,
             self.channel_name
         )
+        raise StopConsumer()
 
     async def receive(self, text_data):
         # ping-pong for app/frontend
@@ -188,15 +190,11 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 receive_dict["status"] = "REJECTED"
                 await self.receive_reject(receive_dict)
 
-
     async def receive_pending(self, receive_dict):
         # cache get
-        user_list = cache.get(
-            receive_dict["data"]["seeker"]
-        )
+        user_list = cache.get(receive_dict["data"]["seeker"])
 
         # cache set for timestamps for providers
-        print("in pending")
         cache.set(
             f'{receive_dict["data"]["seeker"]}-timestamp',
             [[user_list[0], datetime.now()]],
@@ -204,39 +202,28 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         )
 
         # user list
-        send_user = user_list[0]
         receive_dict["data"]["provider"] = user_list[0]
 
         # get seeker info
         receive_dict["data"]["seeker_info"] = await self.get_seeker_info(
             receive_dict["data"]["seeker"]
         )
+
+        # cache set for counting timeout
         cache.set(
             f'{receive_dict["data"]["seeker"]}-request',
             receive_dict["data"]["provider"],
             timeout=None
         )
 
-        receive_dict["status"] = "PENDING"
-        # # seeker request time stamp
-        # if (
-        #         receive_dict["request"] == "TRANSACTION"
-        #         and receive_dict["status"] == "PENDING"
-        #
-        # ):
-        #     if receive_dict["data"]["seeker"] is not None and receive_dict["data"]["provider"] is not None:
-        #         print("here")
-        #         # post_timestamp.delay(receive_dict["data"]["seeker"], receive_dict["data"]["provider"])
         await self.channel_layer.group_send(
-            f"{send_user}-room",
+            f"{receive_dict['data']['provider']}-room",
             {
                 'type': 'send_to_receiver_data',
                 'receive_dict': receive_dict,
             }
         )
-
-        receive_dict["data"]["provider"] = send_user
-        # await self.delayed_message_seeker(receive_dict)
+        # send for timeout counting
         await self.delayed_message(receive_dict)
 
     async def receive_reject(self, receive_dict):
@@ -275,6 +262,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 )
                 await self.delayed_message(receive_dict)
         else:
+            # no provider section
             update_providers_timestamps.delay(
                 receive_dict["data"]["seeker"],
                 cache.get(f'{receive_dict["data"]["seeker"]}-timestamp'))
@@ -313,8 +301,11 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=None)
         print("in accept", "timestamp list", timestamp_list)
 
-        update_providers_timestamps.delay(receive_dict["data"]["seeker"],
-                                          cache.get(f'{receive_dict["data"]["seeker"]}-timestamp'))
+        update_providers_timestamps.delay(
+            receive_dict["data"]["seeker"],
+            # cache.get(f'{receive_dict["data"]["seeker"]}-timestamp')
+            timestamp_list
+        )
 
         cache.delete(
             f'{receive_dict["data"]["seeker"]}-request'
@@ -322,6 +313,10 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         cache.delete(
             f'{receive_dict["data"]["seeker"]}'
         )
+        cache.delete(
+            f'{receive_dict["data"]["seeker"]}-timestamp'
+        )
+
         await self.send_location(receive_dict)
 
     async def send_location(self, receive_dict):
@@ -368,9 +363,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             return
 
         # send location to seeker, provider
-        # cache.set(
-        #     f"transaction-{receive_dict['data']['transaction_id']}", receive_dict, timeout=None
-        # )
         await self.channel_layer.group_send(
             f"{receive_dict['data']['seeker']}-room",
             {
@@ -611,7 +603,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     #             return
     #     if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
     #         await self.set_timeout(receive_dict)
-
 
     # async def set_timeout0(self, receive_dict):
     #     state = cache.get(

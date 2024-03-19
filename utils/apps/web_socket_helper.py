@@ -1,8 +1,11 @@
 from django.conf import settings
-from utils.apps.transaction import get_transaction_id
+from django.db.models import Q
 from transactions.models import Transaction
-from locations.models import UserLocation
 from users.models import User
+from utils.apps.transaction import get_transaction_id
+
+from .location import get_user_list_provider
+from .analytics import calculate_user_impressions
 
 
 def get_user_information(user):
@@ -54,5 +57,29 @@ def create_transaction_instance(dict_data):
     return str(transaction_hex_id)
 
 
-def get_user_location(user_id):
-    return
+def get_providers(user):
+    provs = get_user_list_provider(user)
+
+    prov_list = sorted(
+        [(user.id, calculate_user_impressions(user)) for user in provs],
+        key=lambda x: x[1]
+    )
+    print("validity", prov_list)
+    # prov_list = list(provs.filter(
+    #     "userrating_user__rating"
+    # ).values_list(
+    #     'id', flat=True
+    # ))
+
+    on_going_txn = list(Transaction.objects.filter(
+        Q(seeker__in=prov_list) | Q(provider__in=prov_list)
+    ).filter(
+        is_completed=False
+    ).values_list('seeker_id', 'provider_id'))
+    on_going_users = [usr for user in on_going_txn for usr in user]
+
+    user_list = [str(id) for id in prov_list if id not in on_going_users]
+
+    # user_list = [str(id) for id in user_provider_list ]
+    return user_list
+    # return
