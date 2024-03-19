@@ -130,9 +130,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
         # location
         if (
-                # (receive_dict["data"]["seeker"] == str(self.user.id)
-                #  or receive_dict["data"]["provider"] == str(self.user.id))
-                # and
                 receive_dict["request"] == "LOCATION" and
                 receive_dict["status"] == "ON_GOING_TRANSACTION"
         ):
@@ -140,9 +137,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
         # message
         if receive_dict["request"] == "MESSAGE":
-            if (
-                    receive_dict["status"] == "ON_GOING_TRANSACTION"
-            ):
+            if receive_dict["status"] == "ON_GOING_TRANSACTION":
                 await self.receive_message_user(receive_dict)
 
     async def send_to_receiver_data(self, event):
@@ -152,44 +147,17 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             receive_dict = json.loads(receive_dict)
         await self.send(text_data=json.dumps({'message': receive_dict, "user": str(self.user.id)}))
 
-    async def delayed_message_seeker(self, receive_dict):
-        provider = receive_dict["data"]["provider"]
-        # wait and check cache for 10 seconds
+    async def delayed_message(self, receive_dict):
         for i in range(0, 10):
             await asyncio.sleep(1)
+            print("cache log", i)
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
-            if cache.get(f'{receive_dict["data"]["seeker"]}') is None:  # if no cache, cancelled event
+            if cancelled_request := cache.get(f'{receive_dict["data"]["seeker"]}') is None:
                 receive_dict["request"] = "TRANSACTION"
                 receive_dict["status"] = "CANCELLED"
                 await self.send(text_data=json.dumps({
                     'message': receive_dict, "user": str(self.user.id)
-                }))
-                await self.channel_layer.group_send(
-                    f"{provider}-room",
-                    {
-                        'type': 'send_to_receiver_data',
-                        'receive_dict': receive_dict,
-                    }
-                )
-                return
-
-        receive_dict["data"]["provider"] = provider
-        receive_dict["data"]["status"] = 'PENDING'
-        if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
-            await self.set_timeout(receive_dict)
-
-    async def delayed_message(self, receive_dict):
-        for i in range(0, 10):
-            await asyncio.sleep(1)
-            if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
-                break
-            if cache.get(f'{receive_dict["data"]["seeker"]}') is None:
-                receive_dict["request"] = "TRANSACTION"
-                receive_dict["status"] = "CANCELLED"
-                await self.send(text_data=json.dumps({
-                    'message': receive_dict,
-                    "user": str(self.user.id)
                 }))
                 await self.channel_layer.group_send(
                     f"{receive_dict['data']['provider']}-room",
@@ -203,12 +171,11 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             await self.set_timeout(receive_dict)
 
     async def set_timeout(self, receive_dict):
-        state = cache.get(
+        own_provider = receive_dict["data"]["provider"]
+        cache_provider = cache.get(
             f'{receive_dict["data"]["seeker"]}-request',
         )
-        if state is not None:
-            own_provider = receive_dict["data"]["provider"]
-            cache_provider = state[0]
+        if cache_provider is not None:
             if cache_provider == own_provider:
                 receive_dict["status"] = "TIMEOUT"
                 await self.channel_layer.group_send(
@@ -220,6 +187,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 )
                 receive_dict["status"] = "REJECTED"
                 await self.receive_reject(receive_dict)
+
 
     async def receive_pending(self, receive_dict):
         # cache get
@@ -243,7 +211,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         receive_dict["data"]["seeker_info"] = await self.get_seeker_info(
             receive_dict["data"]["seeker"]
         )
-
         cache.set(
             f'{receive_dict["data"]["seeker"]}-request',
             receive_dict["data"]["provider"],
@@ -267,12 +234,16 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 'receive_dict': receive_dict,
             }
         )
+
         receive_dict["data"]["provider"] = send_user
-        await self.delayed_message_seeker(receive_dict)
+        # await self.delayed_message_seeker(receive_dict)
+        await self.delayed_message(receive_dict)
 
     async def receive_reject(self, receive_dict):
         user_list = cache.get(receive_dict["data"]["seeker"])
-        if len(user_list) != 0:
+        user_list_length = len(user_list)
+
+        if user_list_length != 0:
             if user_list[0] == receive_dict["data"]["provider"]:
                 user_list.pop(0)
                 user_list_length = len(user_list)
@@ -286,23 +257,23 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=None)
                 print("in reject", "timestamp list", timestamp_list)
 
-                if user_list_length != 0:
-                    receive_dict["data"]["provider"] = user_list[0]
-                    receive_dict["status"] = "PENDING"
-                    if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
-                        cache.set(
-                            f'{receive_dict["data"]["seeker"]}-request',
-                            receive_dict["data"]["provider"],
-                            timeout=60
-                        )
-                        await self.channel_layer.group_send(
-                            f"{user_list[0]}-room",
-                            {
-                                'type': 'send_to_receiver_data',
-                                'receive_dict': receive_dict,
-                            }
-                        )
-                        await self.delayed_message(receive_dict)
+        if user_list_length != 0:
+            receive_dict["data"]["provider"] = user_list[0]
+            receive_dict["status"] = "PENDING"
+            if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
+                cache.set(
+                    f'{receive_dict["data"]["seeker"]}-request',
+                    receive_dict["data"]["provider"],
+                    timeout=60
+                )
+                await self.channel_layer.group_send(
+                    f"{user_list[0]}-room",
+                    {
+                        'type': 'send_to_receiver_data',
+                        'receive_dict': receive_dict,
+                    }
+                )
+                await self.delayed_message(receive_dict)
         else:
             update_providers_timestamps.delay(
                 receive_dict["data"]["seeker"],
@@ -618,3 +589,47 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     #             response_duration=duration
     #         )
     #     return
+
+    # async def delayed_message_seeker(self, receive_dict):
+    #     for i in range(0, 10):
+    #         await asyncio.sleep(1)
+    #         if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
+    #             break
+    #         if cache.get(f'{receive_dict["data"]["seeker"]}') is None:
+    #             receive_dict["request"] = "TRANSACTION"
+    #             receive_dict["status"] = "CANCELLED"
+    #             await self.send(text_data=json.dumps({
+    #                 'message': receive_dict, "user": str(self.user.id)
+    #             }))
+    #             await self.channel_layer.group_send(
+    #                 f"{receive_dict['data']['provider']}-room",
+    #                 {
+    #                     'type': 'send_to_receiver_data',
+    #                     'receive_dict': receive_dict,
+    #                 }
+    #             )
+    #             return
+    #     if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
+    #         await self.set_timeout(receive_dict)
+
+
+    # async def set_timeout0(self, receive_dict):
+    #     state = cache.get(
+    #         f'{receive_dict["data"]["seeker"]}-request',
+    #     )
+    #     if cache.get(
+    #         f'{receive_dict["data"]["seeker"]}-request',
+    #     ) is not None:
+    #         own_provider = receive_dict["data"]["provider"]
+    #         cache_provider = state
+    #         if cache_provider == own_provider:
+    #             receive_dict["status"] = "TIMEOUT"
+    #             await self.channel_layer.group_send(
+    #                 f"{cache_provider}-room",
+    #                 {
+    #                     'type': 'send_to_receiver_data',
+    #                     'receive_dict': receive_dict,
+    #                 }
+    #             )
+    #             receive_dict["status"] = "REJECTED"
+    #             await self.receive_reject(receive_dict)
