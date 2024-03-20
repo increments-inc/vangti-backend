@@ -11,3 +11,4 @@ management/
 #web_socket/consumers/message.txt
 loca.py
 py-history.txt
+message.txt
