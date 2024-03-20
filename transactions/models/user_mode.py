@@ -13,3 +13,12 @@ class UserServiceMode(BaseModel):
     class Meta:
         ordering = ("user",)
 
+
+class UserAppActivityMode(BaseModel):
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="user_app_mode"
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("user",)

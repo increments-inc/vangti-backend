@@ -58,13 +58,15 @@ def create_transaction_instance(dict_data):
 
 
 def get_providers(user):
-    provs = get_user_list_provider(user)
+    providers = get_user_list_provider(user)
 
-    prov_list = sorted(
-        [(user.id, calculate_user_impressions(user)) for user in provs],
-        key=lambda x: x[1]
-    )
-    print("validity", prov_list)
+    prov_list = [
+        x[0] for x in
+        sorted(
+            [(user.id, calculate_user_impressions(user)) for user in providers],
+            key=lambda x: x[1], reverse=True
+        )]
+
     # prov_list = list(provs.filter(
     #     "userrating_user__rating"
     # ).values_list(
@@ -77,9 +79,6 @@ def get_providers(user):
         is_completed=False
     ).values_list('seeker_id', 'provider_id'))
     on_going_users = [usr for user in on_going_txn for usr in user]
-
     user_list = [str(id) for id in prov_list if id not in on_going_users]
 
-    # user_list = [str(id) for id in user_provider_list ]
     return user_list
-    # return

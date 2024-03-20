@@ -1,53 +1,49 @@
 import asyncio
 import json
-from django.contrib.gis.measure import D
-from django.contrib.gis.db.models.functions import Distance
 from django.core.cache import cache
-from django.conf import settings
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.exceptions import StopConsumer
 from django.db import transaction
 from asgiref.sync import async_to_sync, sync_to_async
 from datetime import datetime, timedelta
-from locations.models import UserLocation
-from transactions.models import Transaction, TransactionMessages, UserTransactionResponse
+from transactions.models import Transaction, TransactionMessages, UserTransactionResponse, UserAppActivityMode
 from users.models import User
-from utils.apps.location import get_directions
 from utils.apps.transaction import get_transaction_id
-from utils.helper import get_original_hash
-from ..tasks import post_timestamp, update_timestamp, update_providers_timestamps
 from utils.apps.analytics import get_home_analytics_of_user_set
-from django.db.models import Q
-from utils.apps.web_socket_helper import get_user_information, get_transaction_instance, create_transaction_instance, get_providers
-
-from utils.apps.location import get_user_list, update_user_location_instance, get_user_location_instance
+from utils.apps.web_socket_helper import get_user_information, get_transaction_instance, create_transaction_instance, \
+    get_providers
+from utils.apps.location import get_user_list, update_user_location_instance, get_user_location_instance, get_directions
+from ..tasks import update_providers_timestamps
 
 
 class VangtiRequestConsumer(AsyncWebsocketConsumer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # self.reject_received = False
 
     async def connect(self):
         self.user = self.scope["user"]
         room_name = self.user.id
         self.room_group_name = f"{room_name}-room"
-        # print("all items", self.scope, self.scope["user"], self.scope.get("url_route")["kwargs"], self.channel_layer, self.room_group_name, "\nCONNECTED!!!!!!!!  ", self.scope["user"])
         await self.channel_layer.group_add(
             self.room_group_name,
             self.channel_name
         )
         await self.accept()
+
+        # # send analytics
         msg_data = await self.get_home_analytics(self.user)
         await self.send(text_data=json.dumps({
             'message': msg_data
         }))
 
-        # # send analytics
-        # send_own_users_home_analytics(self.user)
+        # change user active state
+        await self.user_activity_connect(self.user)
 
     async def disconnect(self, close_code):
+        # change user active state
+        await self.user_activity_disconnect(self.user)
+
         await self.channel_layer.group_discard(
             self.room_group_name,
             self.channel_name
@@ -61,6 +57,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 'message': "pong",
             }))
             return
+
         receive_dict = {}
         try:
             if type(text_data) == str:
@@ -75,7 +72,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 print("user list", user_list)
                 # cache set for nearby users
                 if len(user_list) == 0:
-                    receive_dict["status"] = "NO_PROVIDER"
+                    receive_dict.update({"status": "NO_PROVIDER"})
+                    # receive_dict["status"] = "NO_PROVIDER"
                     await self.channel_layer.group_send(
                         f'{receive_dict["data"]["seeker"]}-room',
                         {
@@ -89,12 +87,13 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     user_list,
                     timeout=None
                 )
-                receive_dict["status"] = "SEARCHING"
+                # receive_dict["status"] = "SEARCHING"
+                receive_dict.update({"status": "SEARCHING"})
                 await self.send(text_data=json.dumps({
                     'message': receive_dict,
                     'user': str(self.user.id)
                 }))
-                receive_dict["status"] = status  # setting the initial status
+                receive_dict.update({"status": status})  # setting the initial status
 
         await self.condition_gate(receive_dict)
 
@@ -155,9 +154,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             print("cache log", i)
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
-            if cancelled_request := cache.get(f'{receive_dict["data"]["seeker"]}') is None:
-                receive_dict["request"] = "TRANSACTION"
-                receive_dict["status"] = "CANCELLED"
+            if (cancelled_request := cache.get(f'{receive_dict["data"]["seeker"]}')) is None:
+                receive_dict.update({"status": "CANCELLED"})
                 await self.send(text_data=json.dumps({
                     'message': receive_dict, "user": str(self.user.id)
                 }))
@@ -187,7 +185,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                         'receive_dict': receive_dict,
                     }
                 )
-                receive_dict["status"] = "REJECTED"
+                receive_dict.update({"status": "REJECTED"})
+                # receive_dict["status"] = "REJECTED"
                 await self.receive_reject(receive_dict)
 
     async def receive_pending(self, receive_dict):
@@ -246,7 +245,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
         if user_list_length != 0:
             receive_dict["data"]["provider"] = user_list[0]
-            receive_dict["status"] = "PENDING"
+            receive_dict.update({"status": "PENDING"})
+            # receive_dict["status"] = "PENDING"
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
                 cache.set(
                     f'{receive_dict["data"]["seeker"]}-request',
@@ -266,8 +266,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             update_providers_timestamps.delay(
                 receive_dict["data"]["seeker"],
                 cache.get(f'{receive_dict["data"]["seeker"]}-timestamp'))
-
-            receive_dict["status"] = "NO_PROVIDER"
+            receive_dict.update({"status": "NO_PROVIDER"})
+            # receive_dict["status"] = "NO_PROVIDER"
             cache.delete(f'{receive_dict["data"]["seeker"]}-request')
             await self.channel_layer.group_send(
                 f'{receive_dict["data"]["seeker"]}-room',
@@ -278,7 +278,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             )
 
     async def receive_accept(self, receive_dict):
-        receive_dict["status"] = "ON_GOING_TRANSACTION"
+        receive_dict.update({"status": "ON_GOING_TRANSACTION"})
+        # receive_dict["status"] = "ON_GOING_TRANSACTION"
         receive_dict["data"]["transaction_id"] = await self.create_new_transaction(receive_dict["data"])
         if receive_dict["data"]["provider"]:
             await self.channel_layer.group_send(
@@ -352,10 +353,10 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         receive_dict["data"] = await self.get_direction_data(receive_dict["data"])
         if receive_dict["data"] in [-1, -2]:
             if receive_dict["data"] == -1:
-                receive_dict["status"] = "INVALID_TRANSACTION"
+                receive_dict.update({"status": "INVALID_TRANSACTION"})
             if receive_dict["data"] == -2:
-                receive_dict["status"] = "COMPLETED_TRANSACTION"
-            receive_dict["data"] = None
+                receive_dict.update({"status": "COMPLETED_TRANSACTION"})
+            receive_dict.update({"data": None})
             await self.send(text_data=json.dumps({
                 'message': receive_dict,
                 'user': str(self.user.id)
@@ -386,10 +387,12 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             self.user)
         if transaction_obj_user in [-1, -2]:
             if transaction_obj_user == -1:
-                receive_dict["status"] = "INVALID_TRANSACTION"
+                receive_dict.update({"status": "INVALID_TRANSACTION"})
+                # receive_dict["status"] = "INVALID_TRANSACTION"
             elif transaction_obj_user == -2:
-                receive_dict["status"] = "COMPLETED_TRANSACTION"
-            receive_dict["data"] = None
+                receive_dict.update({"status": "COMPLETED_TRANSACTION"})
+                # receive_dict["status"] = "COMPLETED_TRANSACTION"
+            receive_dict.update({"data": None})
             await self.send(text_data=json.dumps({
                 'message': receive_dict,
                 'user': str(self.user.id)
@@ -405,8 +408,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 receive_dict["data"]["message"]
             )
             if msg_obj is None:
-                receive_dict["status"] = "SEND_FAILED"
-                receive_dict["data"] = None
+                receive_dict.update({"status": "SEND_FAILED", "data": None})
+                # receive_dict["status"] = "SEND_FAILED"
+                # receive_dict["data"] = None
                 await self.send(text_data=json.dumps({
                     'message': receive_dict,
                     'user': str(self.user.id)
@@ -425,43 +429,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     def get_user_list(self, room_name):
         user = self.user
         try:
-            center = UserLocation.objects.using('location').get(user=user.id).centre
-            radius = settings.LOCATION_RADIUS
-            user_location_list = list(
-                UserLocation.objects.using('location').filter(
-                    centre__distance_lte=(center, D(km=radius))
-                ).annotate(
-                    distance=Distance('centre', center)
-                ).order_by(
-                    'distance'
-                ).values_list(
-                    "user", flat=True
-                )
-            )
-            user_provider_list = list(
-                User.objects.filter(
-                    is_superuser=False,
-                    id__in=user_location_list,
-                    user_mode__is_provider=True
-                ).order_by(
-                    "-userrating_user__rating"
-                ).values_list(
-                    'id', flat=True
-                )
-            )
-            on_going_txn = list(Transaction.objects.filter(
-                Q(seeker__in=user_provider_list) | Q(provider__in=user_provider_list)
-            ).filter(
-                is_completed=False
-            ).values_list('seeker_id', 'provider_id'))
-            on_going_users = [usr for user in on_going_txn for usr in user]
-
-            user_list = [str(id) for id in user_provider_list if id not in on_going_users]
-
-            # user_list = [str(id) for id in user_provider_list ]
-            return user_list
+            return get_providers(user)
         except:
-            return
+            return []
 
     @database_sync_to_async
     def create_new_transaction(self, data):
@@ -518,11 +488,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_transaction_party(self, transaction_id, user):
-        # transaction_id = get_transaction_id(transaction_id)
-        # try:
-        #     transaction_obj = Transaction.objects.get(id=transaction_id)
-        # except Transaction.DoesNotExist:
-        #     return -1
         transaction_obj = get_transaction_instance(transaction_id)
         if transaction_obj == -1:
             return -1
@@ -568,6 +533,73 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             'data': get_home_analytics_of_user_set(user_set)
         }
         return message
+
+    @database_sync_to_async
+    def user_activity_connect(self, user):
+        if getattr(user, "user_app_mode", None) is not None:
+            user.user_app_mode.is_active = True
+            user.user_app_mode.save()
+            return
+        UserAppActivityMode.objects.create(
+            user=user,
+            is_active=True
+        )
+        return
+
+    @database_sync_to_async
+    def user_activity_disconnect(self, user):
+        if getattr(user, "user_app_mode", None) is not None:
+            user.user_app_mode.is_active = False
+            user.user_app_mode.save()
+            return
+        UserAppActivityMode.objects.create(
+            user=user,
+            is_active=False
+        )
+        return
+
+
+    # @database_sync_to_async
+    # def get_user_list0(self, room_name):
+    #     user = self.user
+    #     try:
+    #         center = UserLocation.objects.using('location').get(user=user.id).centre
+    #         radius = settings.LOCATION_RADIUS
+    #         user_location_list = list(
+    #             UserLocation.objects.using('location').filter(
+    #                 centre__distance_lte=(center, D(km=radius))
+    #             ).annotate(
+    #                 distance=Distance('centre', center)
+    #             ).order_by(
+    #                 'distance'
+    #             ).values_list(
+    #                 "user", flat=True
+    #             )
+    #         )
+    #         user_provider_list = list(
+    #             User.objects.filter(
+    #                 is_superuser=False,
+    #                 id__in=user_location_list,
+    #                 user_mode__is_provider=True
+    #             ).order_by(
+    #                 "-userrating_user__rating"
+    #             ).values_list(
+    #                 'id', flat=True
+    #             )
+    #         )
+    #         on_going_txn = list(Transaction.objects.filter(
+    #             Q(seeker__in=user_provider_list) | Q(provider__in=user_provider_list)
+    #         ).filter(
+    #             is_completed=False
+    #         ).values_list('seeker_id', 'provider_id'))
+    #         on_going_users = [usr for user in on_going_txn for usr in user]
+    #
+    #         user_list = [str(id) for id in user_provider_list if id not in on_going_users]
+    #
+    #         # user_list = [str(id) for id in user_provider_list ]
+    #         return user_list
+    #     except:
+    #         return
 
     # @database_sync_to_async
     # def update_provider_responses(self, seeker_id, user_list):

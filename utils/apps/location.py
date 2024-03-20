@@ -68,7 +68,8 @@ def get_user_list_provider(user):
         User.objects.filter(
             is_superuser=False,
             id__in=user_location_list,
-            user_mode__is_provider=True
+            user_mode__is_provider=True,
+            user_app_mode__is_active=True
         )
     )
 
@@ -81,7 +82,9 @@ def get_user_list_seeker(user):
         User.objects.filter(
             is_superuser=False,
             id__in=user_location_list,
-            user_mode__is_provider=False
+            user_mode__is_provider=False,
+            user_app_mode__is_active=True
+
         )
     )
 
@@ -94,7 +97,9 @@ def get_user_list(user):
         User.objects.filter(
             is_superuser=False,
             id__in=user_location_list,
-            # user_mode__is_provider=False
+            # user_mode__is_provider=False,
+            user_app_mode__is_active=True
+
         )
     )
 
