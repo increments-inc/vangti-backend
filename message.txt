@@ -1,0 +1,197 @@
+/
+// new
+// request -send- pending
+{
+    "request":"POST",
+    "amount": 1000,
+    "preferred": ["100","20"],
+    "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+    "provider": null,
+    "status": "PENDING"
+}
+
+//# response - reject
+{
+    "request":"RESPONSE",
+    "amount": 1000,
+    "preferred": ["100","20"],
+    "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+    "provider": "0de6c6f5-1470-4f16-b381-4034e9e71c5e",
+    "status": "REJECTED"
+}
+//# response - accept
+{
+    "request":"RESPONSE",
+    "amount": 1000,
+    "preferred": ["100","20"],
+    "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+    "provider": "ef1d0f1c-017b-4bb8-8376-114798f65975",
+    "status": "ACCEPTED"
+}
+//# transaction instance
+{
+    "request":"RESPONSE",
+    "amount": 1000,
+    "preferred": ["100","20"],
+    "seeker": "seeker_user_phone_number",
+    "provider": "provider_user_phone_number",
+    "status": "ON_GOING_TRANSACTION",
+    "transaction_id": 90
+}
+# location instance
+{
+    "request": "LOCATION",
+    "status": "ON_GOING_TRANSACTION",
+    "transaction_id": 90,
+    "seeker": "seeker_user_phone_number",
+    "provider": "provider_user_phone_number",
+    "seeker_location" : "90, 90",
+    "provider_location" : "91, 91",
+    "direction" : ""
+}
+
+
+# message instance
+{
+    "request": "MESSAGE",
+    "status": "ON_GOING_TRANSACTION",
+    "transaction_id": 90,
+    "seeker": "seeker_user_phone_number",
+    "provider": "provider_user_phone_number",
+    "previous_messages" : [],
+    "user_msg" : "qwerty",
+}
+
+
+
+
+/////////////////////////
+/////////////////////////
+/////////////////////////
+# new format
+// request -send- pending
+{
+    "request": "TRANSACTION",
+    "status": "PENDING",
+    "data": {
+        "amount": 1000,
+        "preferred": ["100","20"],
+        "transaction_id": null,
+        "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+        "seeker_info" : {
+            "name" : "",
+            "picture": {
+                "url": "",
+                "hash": ""
+            },
+            "rating" : 0.0,
+            "total_deals": 0
+        },
+        "provider": null
+    }
+}
+//# response - reject
+{
+    "request": "TRANSACTION",
+    "status": "REJECTED",
+    "data": {
+        "amount": 1000,
+        "preferred": ["100","20"],
+        "transaction_id": null,
+        "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+        "seeker_info" : {
+            "name" : "",
+            "picture": {
+                "url": "",
+                "hash": ""
+            },
+            "rating" : 0.0,
+            "total_deals": 0
+        },
+        "provider": "0de6c6f5-1470-4f16-b381-4034e9e71c5e"
+    }
+}
+//# response - accept
+{
+    "request": "TRANSACTION",
+    "status": "ACCEPTED",
+    "data": {
+        "amount": 1000,
+        "preferred": ["100","20"],
+        "transaction_id": null,
+        "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+        "seeker_info" : {
+            "name" : "",
+            "picture": {
+                "url": "",
+                "hash": ""
+            },
+            "rating" : 0.0,
+            "total_deals": 0
+        },
+        "provider": "ef1d0f1c-017b-4bb8-8376-114798f65975"
+    }
+}
+//# transaction instance
+{
+    "request": "TRANSACTION",
+    "status": "ON_GOING_TRANSACTION",
+    "data": {
+        "amount": 1000,
+        "preferred": ["100","20"],
+        "transaction_id": 90,
+        "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+        "seeker_info" : {
+            "name" : "",
+            "picture": {
+                "url": "",
+                "hash": ""
+            },
+            "rating" : 0.0,
+            "total_deals": 0
+        }
+        "provider": "ef1d0f1c-017b-4bb8-8376-114798f65975"
+    }
+}
+
+
+
+//# location
+{
+    "request": "LOCATION",
+    "status": "ON_GOING_TRANSACTION",
+    "data": {
+        "transaction_id": "00000004b6691386",
+        "seeker": "144b87d6-4522-4694-a0cf-e5ba29cb5535",
+        "provider": "ef1d0f1c-017b-4bb8-8376-114798f65975",
+        "seeker_location": {
+            "latitude" : float,
+            "longitude" : float
+        },
+        "provider_location": {
+            "latitude" : float,
+            "longitude" : float
+        },
+        "direction":{
+            "start_location" : float,
+            "end_location": float,
+            "distance": "0.5 km",
+            "duration" : "1 min",
+            "polyline":[(float)]
+        }
+    }
+}
+
+
+{
+    "request": "LOCATION",
+    "status": "ON_GOING_TRANSACTION",
+    "data": {
+        "transaction_id": "000000000c10690a",
+        "location": {
+            "latitude": 50.0,
+            "longitude": 51.0
+        }
+    }
+}
+

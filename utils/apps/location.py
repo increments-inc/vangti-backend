@@ -260,7 +260,8 @@ def get_directions(transaction_id, source_dict, destination_dict):
 
     # if the distance is very short --- revise
     if GEOSGeometry(final_segment_poly[0])[0] == GEOSGeometry(final_segment_poly[0])[-1] and distance < 40:
-        duplist = LineString(interpolated_destination_point, interpolated_source_point, srid=4326)
+        # duplist = LineString(interpolated_destination_point, interpolated_source_point, srid=4326)
+        duplist = LineString(interpolated_destination_point, interpolated_destination_point, srid=4326)
 
     polyline_points_dict = [
         {
