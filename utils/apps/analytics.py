@@ -73,7 +73,7 @@ def get_home_analytics_of_user_set(user_set):
             "rating": 0.0,
             "dislikes": 0,
             "provider_response_time": "0 sec",
-            "avg_demanded_vangti": "0",
+            "avg_demanded_vangti": 0.0,
             "avg_deal_possibility": 0.0
         }
 

@@ -139,7 +139,7 @@ def degress_to_meters(number):
 def segment_polyline(line_string, point):
     cursor = connection.cursor()
     cursor.execute(
-        f"""WITH data AS (SELECT '{line_string}'::geometry AS line, '{point}':: geometry AS point) SELECT ST_AsText( ST_Split( ST_Snap(line, point, 1), point)) AS snapped_split, ST_AsText( ST_Split(line, point)) AS not_snapped_not_split FROM data;"""
+        f"""WITH data AS (SELECT '{line_string}'::geometry AS line, '{point}':: geometry AS point) SELECT ST_AsText( ST_Split( ST_Snap(line, point, 0.0001), point)) AS snapped_split, ST_AsText( ST_Split(line, point)) AS not_snapped_not_split FROM data;"""
         # f"""WITH data AS (SELECT '{line_string}'::geometry AS line,'{point}'::geometry AS point),split_data AS (SELECT ST_Split(ST_Snap(line, point, 1), point) AS snapped_split,ST_Split(line, point) AS not_snapped_not_split FROM data) SELECT ST_AsText(ST_CollectionExtract(snapped_split, 2)) AS snapped_split, ST_AsText(ST_CollectionExtract(not_snapped_not_split, 2)) AS not_snapped_not_split FROM split_data;"""
     )
     split_geom = cursor.fetchone()
@@ -227,29 +227,36 @@ def get_directions(transaction_id, source_dict, destination_dict):
     new_ls = GEOSGeometry(segment_poly_source[0])[-1]
 
     new_ls.srid = 4326
-    print("hehe " ,)
 
     final_segment_poly = segment_polyline(new_ls, interpolated_destination_point)
 
     print(
-    "Interpolated",
-        (final_segment_poly),
-        interpolated_source_point,interpolated_destination_point,
-        # GEOSGeometry(segment_poly_source[0]),
-        GEOSGeometry(segment_poly_source[0])[-1].intersects(interpolated_destination_point),
-    GEOSGeometry(final_segment_poly[0])[0].intersects(interpolated_source_point),
-    GEOSGeometry(final_segment_poly[0])[0].intersects(interpolated_destination_point),
-    GEOSGeometry(final_segment_poly[0])[-1].intersects(interpolated_source_point),
-    GEOSGeometry(final_segment_poly[0])[-1].intersects(interpolated_destination_point),
-    # new_ls.interpolate(interpolated_destination_point)==interpolated_destination_point,
-    # polyline_points_list, "\n",
-    # interpolated_source_point, "\n",
-    # interpolated_destination_point, "\n",
-    # # index_interpolated_source_point, index_interpolated_destination_point,
-    # "segment_poly ", type(GEOSGeometry(final_segment_poly[0])[0]), type(ls),
-    # GEOSGeometry(final_segment_poly[0])[0],
-    # GEOSGeometry(final_segment_poly[0])[1],
-    #     "\n",
+        "Interpolated",
+        segment_poly_source, "\n",
+        final_segment_poly, "\n",
+        interpolated_source_point, interpolated_destination_point,
+
+        new_ls.intersects(Point(23.87291, 90.39078, srid=4326)),
+
+        new_ls.intersects(interpolated_destination_point),
+        new_ls.contains(interpolated_destination_point),
+        new_ls.relate(interpolated_destination_point),
+
+        # GEOSGeometry(final_segment_poly[0])[-1].intersects(interpolated_source_point),
+        # GEOSGeometry(final_segment_poly[0])[0].intersects(interpolated_source_point),
+        # GEOSGeometry(final_segment_poly[0])[0].intersects(interpolated_source_point),
+        # GEOSGeometry(final_segment_poly[0])[0].intersects(interpolated_destination_point),
+        # GEOSGeometry(final_segment_poly[0])[-1].intersects(interpolated_source_point),
+        # GEOSGeometry(final_segment_poly[0])[-1].intersects(interpolated_destination_point),
+        # new_ls.interpolate(interpolated_destination_point)==interpolated_destination_point,
+        # polyline_points_list, "\n",
+        # interpolated_source_point, "\n",
+        # interpolated_destination_point, "\n",
+        # # index_interpolated_source_point, index_interpolated_destination_point,
+        # "segment_poly ", type(GEOSGeometry(final_segment_poly[0])[0]), type(ls),
+        # GEOSGeometry(final_segment_poly[0])[0],
+        # GEOSGeometry(final_segment_poly[0])[1],
+        #     "\n",
     )
     # if interpolated_destination_point in GEOSGeometry(final_segment_poly[0])[0] and interpolated_source_point in GEOSGeometry(final_segment_poly[0])[0]:
     #     final_geom = GEOSGeometry(final_segment_poly[0])[0]
@@ -271,7 +278,7 @@ def get_directions(transaction_id, source_dict, destination_dict):
     )
 
     # if the distance is very short --- revise
-    if GEOSGeometry(final_segment_poly[0])[0] == GEOSGeometry(final_segment_poly[0])[-1] and distance < 40:
+    if GEOSGeometry(final_segment_poly[0])[0] == GEOSGeometry(final_segment_poly[0])[-1] and distance < 20:
         # duplist = LineString(interpolated_destination_point, interpolated_source_point, srid=4326)
         duplist = LineString(interpolated_destination_point, interpolated_destination_point, srid=4326)
 
