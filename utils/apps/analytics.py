@@ -5,7 +5,7 @@ from analytics.models import UserRating
 from django.conf import settings
 from django.contrib.gis.measure import D, Distance
 from datetime import timedelta, time, datetime
-from transactions.models import TransactionHistory
+from transactions.models import TransactionHistory, Transaction
 
 
 def calculate_user_impressions(user):
@@ -41,15 +41,29 @@ def calculate_user_impressions(user):
 
 
 def get_home_analytics_of_user_set(user_set):
-    user_provider_set = user_set.filter(
+    user_provider_set_ini = user_set.filter(
         user_mode__is_provider=True
+    )
+    on_going_txn = list(Transaction.objects.filter(
+        Q(seeker__in=user_provider_set_ini) | Q(provider__in=user_provider_set_ini)
+    ).filter(
+        is_completed=False
+    ).values_list('seeker_id', 'provider_id'))
+
+    on_going_users = [usr for user in on_going_txn for usr in user]
+
+    user_provider_set = user_provider_set_ini.exclude(
+        id__in=on_going_users
     )
     user_seeker_set = user_set.filter(
         user_mode__is_provider=False
     )
+
     total_providers = user_provider_set.count()
     total_seekers = user_seeker_set.count()
-    rating_queryset = UserRating.objects.filter(user__in=user_set)
+    rating_queryset = UserRating.objects.filter(
+        user__in=user_provider_set
+    )
 
     # when nearby users have no rating set
     if not rating_queryset:
@@ -62,7 +76,6 @@ def get_home_analytics_of_user_set(user_set):
             "avg_demanded_vangti": "0",
             "avg_deal_possibility": 0.0
         }
-    # print("rating_queryset", rating_queryset.values())
 
     rating_queryset = rating_queryset.aggregate(
         Avg("deal_success_rate", default=0.0),
@@ -70,7 +83,6 @@ def get_home_analytics_of_user_set(user_set):
         Avg("dislikes", default=0),
         Avg("provider_response_time", default=timedelta(seconds=0))
     )
-    # print("rating_queryset232323", rating_queryset)
 
     time_dur = rating_queryset["provider_response_time__avg"].days * 3600 + rating_queryset[
         "provider_response_time__avg"].seconds
@@ -110,6 +122,6 @@ def get_home_analytics_of_user_set(user_set):
         "rating": rating_queryset["rating__avg"],
         "dislikes": math.ceil(rating_queryset["dislikes__avg"]),
         "provider_response_time": time_dur,
-        "avg_demanded_vangti": f"{avg_demanded}",
+        "avg_demanded_vangti": float(avg_demanded),
         "avg_deal_possibility": float(avg_deal_possibility)
     }

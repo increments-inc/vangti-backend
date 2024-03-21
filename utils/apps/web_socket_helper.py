@@ -12,7 +12,7 @@ def get_user_information(user):
     return {
         "name": user.user_info.person_name if getattr(user, "user_info", None) is not None else None,
         "picture": {
-            "url": f"{settings.DOMAIN_NAME} + {user.user_info.profile_pic.url}" if getattr(user, "user_info",
+            "url": f"{settings.DOMAIN_NAME}{user.user_info.profile_pic.url}" if getattr(user, "user_info",
                                                                                            None) is not None else None,
             "hash": user.user_info.profile_pic_hash
             if getattr(user, "user_info", None) is not None else None,
@@ -66,7 +66,6 @@ def get_providers(user):
             [(user.id, calculate_user_impressions(user)) for user in providers],
             key=lambda x: x[1], reverse=True
         )]
-
     # prov_list = list(provs.filter(
     #     "userrating_user__rating"
     # ).values_list(

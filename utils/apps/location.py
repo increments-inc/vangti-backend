@@ -161,7 +161,7 @@ def call_maps_api(source, destination):
 
 
 def get_directions(transaction_id, source_dict, destination_dict):
-    transaction_id = 787
+    # transaction_id = 787
 
     # initializations of variables
     # into coordinate strings for api call
@@ -225,20 +225,32 @@ def get_directions(transaction_id, source_dict, destination_dict):
     interpolated_destination_point = ls.interpolate(ls.project(destination_point))
     segment_poly_source = segment_polyline(ls, interpolated_source_point)
     new_ls = GEOSGeometry(segment_poly_source[0])[-1]
+
     new_ls.srid = 4326
+    print("hehe " ,)
+
     final_segment_poly = segment_polyline(new_ls, interpolated_destination_point)
 
-    # print(
-    # "Interpolated",
+    print(
+    "Interpolated",
+        (final_segment_poly),
+        interpolated_source_point,interpolated_destination_point,
+        # GEOSGeometry(segment_poly_source[0]),
+        GEOSGeometry(segment_poly_source[0])[-1].intersects(interpolated_destination_point),
+    GEOSGeometry(final_segment_poly[0])[0].intersects(interpolated_source_point),
+    GEOSGeometry(final_segment_poly[0])[0].intersects(interpolated_destination_point),
+    GEOSGeometry(final_segment_poly[0])[-1].intersects(interpolated_source_point),
+    GEOSGeometry(final_segment_poly[0])[-1].intersects(interpolated_destination_point),
+    # new_ls.interpolate(interpolated_destination_point)==interpolated_destination_point,
     # polyline_points_list, "\n",
     # interpolated_source_point, "\n",
     # interpolated_destination_point, "\n",
-    # index_interpolated_source_point, index_interpolated_destination_point,
+    # # index_interpolated_source_point, index_interpolated_destination_point,
     # "segment_poly ", type(GEOSGeometry(final_segment_poly[0])[0]), type(ls),
     # GEOSGeometry(final_segment_poly[0])[0],
     # GEOSGeometry(final_segment_poly[0])[1],
-    #     "\n"
-    # )
+    #     "\n",
+    )
     # if interpolated_destination_point in GEOSGeometry(final_segment_poly[0])[0] and interpolated_source_point in GEOSGeometry(final_segment_poly[0])[0]:
     #     final_geom = GEOSGeometry(final_segment_poly[0])[0]
     # else:
