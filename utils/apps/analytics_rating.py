@@ -73,9 +73,9 @@ def at_transaction_deletion(user, instance):
     return
 
 
-def at_transaction_completion(user, instance):
+def at_transaction_completion(instance):
     # Provider Rating
-    total_success_data = total_success(user, as_provider=True)
+    total_success_data = total_success(instance.provider, as_provider=True)
     print(total_success_data)
     #     return {"total_number": total_count, "total_amount": total_data}
     try:
@@ -94,7 +94,7 @@ def at_transaction_completion(user, instance):
         )
 
     # user as seeker rating
-    total_success_data = total_success(user, as_provider=False)
+    total_success_data = total_success(instance.seeker, as_provider=False)
 
     try:
         seek_data = UserSeekerRating.objects.get(

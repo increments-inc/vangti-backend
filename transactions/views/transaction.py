@@ -169,7 +169,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 send_message_to_channel(request, instance.seeker, message)
 
                 # update ratings
-                at_transaction_completion(request.user, instance)
+                at_transaction_completion(instance)
 
                 return response.Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -225,7 +225,6 @@ class TransactionHistoryViewSet(viewsets.ModelViewSet):
         #     print("no value")
         # serializer = self.get_serializer_class()(queryset, many=True, context={"request": self.request})
         page = self.paginate_queryset(queryset)
-        print(page)
         if page is not None:
             serializer = self.get_serializer(page, many=True, context={"request": self.request})
             return self.get_paginated_response(serializer.data)
