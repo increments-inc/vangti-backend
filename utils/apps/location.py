@@ -99,7 +99,6 @@ def get_user_list(user):
             id__in=user_location_list,
             # user_mode__is_provider=False,
             user_app_mode__is_active=True
-
         )
     )
 

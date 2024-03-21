@@ -428,10 +428,11 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_user_list(self, room_name):
         user = self.user
-        try:
-            return get_providers(user)
-        except:
-            return []
+        # try:
+        #     return get_providers(user)
+        # except:
+        #     return []
+        return get_providers(user)
 
     @database_sync_to_async
     def create_new_transaction(self, data):

@@ -77,7 +77,9 @@ def get_providers(user):
     ).filter(
         is_completed=False
     ).values_list('seeker_id', 'provider_id'))
+
     on_going_users = [usr for user in on_going_txn for usr in user]
-    user_list = [str(id) for id in prov_list if id not in on_going_users]
+
+    user_list = [str(id_) for id_ in prov_list if id_ not in on_going_users]
 
     return user_list

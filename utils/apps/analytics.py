@@ -9,12 +9,21 @@ from transactions.models import TransactionHistory, Transaction
 
 
 def calculate_user_impressions(user):
-    no_of_transaction = user.userrating_user.no_of_transaction if user.userrating_user.no_of_transaction != 0 else 1
+    if getattr(user, "userrating_user", None) is None:
+        UserRating.objects.create(
+            user=user
+        )
+    no_of_transaction = user.userrating_user.no_of_transaction
+    if no_of_transaction == 0:
+        no_of_transaction = 1
     deal_success_rate = user.userrating_user.deal_success_rate
     total_amount_of_transaction = user.userrating_user.total_amount_of_transaction
     cancelled_deals = user.userrating_user.dislikes
     rating = user.userrating_user.rating
     provider_response_time = user.userrating_user.provider_response_time
+    if provider_response_time is None:
+        provider_response_time = timedelta(seconds=1)
+
     acc_type = 1
     # if acc_type == "PERSONAL":
     #     acc_type = 1
@@ -64,7 +73,7 @@ def get_home_analytics_of_user_set(user_set):
     rating_queryset = UserRating.objects.filter(
         user__in=user_provider_set
     )
-
+    # print("rate q", user_provider_set)
     # when nearby users have no rating set
     if not rating_queryset:
         return {

@@ -1,12 +1,13 @@
-from transactions.models import (
-    CancelledTransaction, TransactionHistory, TransactionAsSeekerReview, TransactionAsProviderReview,
-TransactionAsSeekerAbuseReport,
-TransactionAsProviderAbuseReport,
-UserTransactionResponse
-)
-from analytics.models import UserRating, UserSeekerRating
 from django.db.models import Q, Sum, Avg
 from datetime import datetime, timedelta
+from transactions.models import (
+    CancelledTransaction, TransactionHistory,
+    TransactionAsSeekerReview, TransactionAsProviderReview,
+    TransactionAsSeekerAbuseReport, TransactionAsProviderAbuseReport,
+    UserTransactionResponse
+)
+from analytics.models import UserRating, UserSeekerRating
+
 
 def total_cancelled(user, as_provider: bool):
     if as_provider:
@@ -75,6 +76,7 @@ def at_transaction_deletion(user, instance):
 def at_transaction_completion(user, instance):
     # Provider Rating
     total_success_data = total_success(user, as_provider=True)
+    print(total_success_data)
     #     return {"total_number": total_count, "total_amount": total_data}
     try:
         prov_data = UserRating.objects.get(
@@ -219,4 +221,3 @@ def update_response_times(provider):
     prov_rating.provider_response_time = response_avg
     prov_rating.save()
     return
-
