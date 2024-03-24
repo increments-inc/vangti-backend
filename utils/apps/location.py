@@ -314,24 +314,24 @@ def get_directions(transaction_id, source_dict, destination_dict):
 
 # reverse geocoding
 def latlong_to_address(latlong):
-    # url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={latlong}&key={settings.GOOGLE_MAPS_API_KEY}"
-    # re_geo_response = requests.request("GET", url)
-    # try:
-    #     formatted_address = re_geo_response.json()["results"][0]["formatted_address"]
-    #     place_id = re_geo_response.json()["results"][0]["place_id"]
-    # except:
-    #     formatted_address = re_geo_response.json()["results"][0]["formatted_address"]
-    #     place_id = re_geo_response.json()["results"][0]["place_id"]
-    # return {
-    #     "formatted_address": formatted_address,
-    #     "place_id": place_id
-    # }
+    url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={latlong}&key={settings.GOOGLE_MAPS_API_KEY}"
+    re_geo_response = requests.request("GET", url)
+    try:
+        formatted_address = re_geo_response.json()["results"][0]["formatted_address"]
+        place_id = re_geo_response.json()["results"][0]["place_id"]
+    except:
+        formatted_address = re_geo_response.json()["results"][0]["formatted_address"]
+        place_id = re_geo_response.json()["results"][0]["place_id"]
+    return {
+        "formatted_address": formatted_address,
+        "place_id": place_id
+    }
 
     # dev data
-    return {
-        "formatted_address": 'Gareeb-e-Nawaz Ave, Dhaka 1230, Bangladesh',
-        'place_id': 'ChIJVRuudV3FVTcRtpi3AmwBTSI'
-    }
+    # return {
+    #     "formatted_address": 'Gareeb-e-Nawaz Ave, Dhaka 1230, Bangladesh',
+    #     'place_id': 'ChIJVRuudV3FVTcRtpi3AmwBTSI'
+    # }
 
 
 """

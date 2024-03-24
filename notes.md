@@ -33,6 +33,7 @@ GEOS_LIBRARY_PATH = '/opt/homebrew/opt/geos/lib/libgeos_c.dylib'
 #########
 # settings.py
 
+
 INSTALLED_APPS = [
     'daphne',
     'django.contrib.admin',
@@ -41,14 +42,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
     'drf_spectacular',
     'django.contrib.gis',
-
-
     'users',
     'msg',
 ]
