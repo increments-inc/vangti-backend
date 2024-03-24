@@ -139,6 +139,7 @@ def segment_polyline(line_string, point):
     cursor = connection.cursor()
     cursor.execute(
         f"""WITH data AS (SELECT '{line_string}'::geometry AS line, '{point}':: geometry AS point) SELECT ST_AsText( ST_Split( ST_Snap(line, point, 0.0001), point)) AS snapped_split, ST_AsText( ST_Split(line, point)) AS not_snapped_not_split FROM data;"""
+
         # f"""WITH data AS (SELECT '{line_string}'::geometry AS line,'{point}'::geometry AS point),split_data AS (SELECT ST_Split(ST_Snap(line, point, 1), point) AS snapped_split,ST_Split(line, point) AS not_snapped_not_split FROM data) SELECT ST_AsText(ST_CollectionExtract(snapped_split, 2)) AS snapped_split, ST_AsText(ST_CollectionExtract(not_snapped_not_split, 2)) AS not_snapped_not_split FROM split_data;"""
     )
     split_geom = cursor.fetchone()
