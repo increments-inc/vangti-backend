@@ -9,7 +9,7 @@ from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-az+a*smk6&1sm68!hly(zcq@vp)gd6e!*e*e=%gf5!=eb7qpj#'
+SECRET_KEY = config("DJANGO_SECRET_KEY")
 
 DEBUG = True
 
