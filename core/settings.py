@@ -15,7 +15,7 @@ DEBUG = True
 
 SALT = "random"
 
-ALLOWED_HOSTS = ['127.0.0.1', '192.168.27.141', '115.127.97.250']
+ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS").split(",")
 
 INSTALLED_APPS = [
     # async
@@ -122,8 +122,6 @@ SPECTACULAR_SETTINGS = {
     # OTHER SETTINGS
 }
 
-
-
 AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
@@ -141,8 +139,6 @@ MIDDLEWARE = [
     # custom
     'core.custom_middleware.CustomMiddleware'
 ]
-
-
 
 # debug toolbar
 INTERNAL_IPS = [
@@ -222,7 +218,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'Asia/Dhaka'
@@ -270,7 +265,6 @@ CACHES = {
     }
 }
 
-
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -315,17 +309,8 @@ GOOGLE_MAPS_API_KEY = config("GOOGLE_MAPS_API_KEY")
 APP_STORE_DEFAULT_PHONE = "+8801712345678"
 APP_STORE_DEFAULT_OTP = "123456"
 
-
 # provider commission
 PROVIDER_COMMISSION = 10
 
-
 # location
 LOCATION_RADIUS = 100
-
-
-
-
-
-
-
