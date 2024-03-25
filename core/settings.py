@@ -15,7 +15,7 @@ DEBUG = True
 
 SALT = "random"
 
-ALLOWED_HOSTS = ['127.0.0.1', '192.168.27.141']
+ALLOWED_HOSTS = ['127.0.0.1', '192.168.27.141', '115.127.97.250']
 
 INSTALLED_APPS = [
     # async
