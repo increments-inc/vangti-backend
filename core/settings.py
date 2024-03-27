@@ -291,7 +291,8 @@ CELERY_BEAT_SCHEDULE = {
     # },
     'user_deletion_routine_task': {
         'task': 'users.tasks.user_deletion_routine_task',
-        'schedule': crontab(minute='*/5'),
+        # 'schedule': crontab(minute='*/5'),
+        'schedule': crontab(hour=0, minute=0),
     },
 }
 
