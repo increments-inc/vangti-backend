@@ -11,7 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config("DJANGO_SECRET_KEY")
 
-DEBUG = True
+DEBUG = config("OPERATION_MODE")
 
 SALT = "random"
 
@@ -227,6 +227,12 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+
+STATIC_ROOT = 'static/'
+
+# STATICFILES_DIRS = [BASE_DIR / 'static']
+
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

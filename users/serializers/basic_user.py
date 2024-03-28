@@ -28,20 +28,15 @@ from rest_framework_simplejwt.tokens import Token, RefreshToken, AccessToken
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
-        for token in OutstandingToken.objects.filter(user=user):
-            if not hasattr(token, 'blacklistedtoken'):
-                print("hrhfg", token.token)
-                BlacklistedToken.objects.create(token=token)
-                print("blacklist", token)
-            # toke = RefreshToken(token)
-            # print(type(toke), toke.token_type)
-        print(OutstandingToken.objects.all().count())
+        # blacklist previous referesh token
+        # for token in OutstandingToken.objects.filter(user=user):
+        #     if not hasattr(token, 'blacklistedtoken'):
+        #         BlacklistedToken.objects.create(token=token)
+
         token = super().get_token(user)
-        print(OutstandingToken.objects.all().count())
 
         # Add custom claims
         token["is_active"] = user.is_active
-        # token["is_to_be_deleted"] = user.user_delettion_schedule_user.is_to_be_deleted
         token["device"] = str(datetime.now())
         return token
 
