@@ -20,8 +20,40 @@ class NotFoundExtended(APIException):
         self.detail = detail
 
 
+class ButFound(APIException):
+    status_code = status.HTTP_200_OK
+    default_detail = "No data found"
+    default_code = 'ok'
+
+
 class CustomPagination(pagination.PageNumberPagination):
-    page_size_query_param = "size" or 20
+    page_size_query_param = "limit"
+    # page_size = 10
+    # page_size_query_param = 'page_size'
+    max_page_size = 100
+
+    def paginate_queryset(self, queryset, request, view=None):
+        page_size = self.get_page_size(request)
+        if not page_size:
+            return None
+        paginator = self.django_paginator_class(queryset, page_size)
+        page_number = self.get_page_number(request, paginator)
+        try:
+            self.page = paginator.page(page_number)
+        except InvalidPage as exc:
+            msg = self.invalid_page_message.format(
+                page_number=page_number, message=str(exc)
+            )
+            raise ButFound()
+            # raise ButFound()
+
+
+        if paginator.num_pages > 1 and self.template is not None:
+            # The browsable API should display pagination controls.
+            self.display_page_controls = True
+
+        self.request = request
+        return list(self.page)
 
     def get_paginated_response(self, data):
         if hasattr(self, "page"):

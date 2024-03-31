@@ -7,6 +7,7 @@ from rest_framework.views import exception_handler
 class CustomJSONRenderer(JSONRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         messages = detail = errors = links = count = total_pages = None
+        print(data)
         if data is not None:
             detail = (
                 data.pop("detail")
@@ -16,7 +17,6 @@ class CustomJSONRenderer(JSONRenderer):
             messages = (
                 data.pop("messages") if "messages" in data else ""
             )
-            errors = data.pop("errors") if "errors" in data else None
             data = data.pop("data") if "data" in data else data
             links = data.pop("links") if "links" in data else {}
             count = data.pop("count") if "count" in data else 0
@@ -24,6 +24,32 @@ class CustomJSONRenderer(JSONRenderer):
             data = data.pop("results") if "results" in data else data
 
         stats_code = renderer_context["response"].status_code
+        errors = []
+
+        if stats_code >= 400:
+            if detail not in ["", None]:
+                errors.append(detail)
+            if len(messages) != 0:
+                if "message" in messages[0]:
+                    errors.append(messages[0]["message"])
+            if "errors" in data:
+                if type(data["errors"]) != list:
+                    errors.append(data.pop("errors"))
+                else:
+                    errors = data.pop("errors")
+                # errors.append(data.pop("errors"))
+
+            if type(data) == dict:
+                for dat in data.values():
+                    errors.append(dat)
+            if type(data) == list:
+                for dat in data:
+                    errors.append(dat)
+            data = None
+            detail = ""
+            messages = ""
+        else:
+            errors = [data.pop("errors")] if "errors" in data else []
 
         response_data = {
             # "detail": errors[0].split(":")[1].strip() if errors else detail,
@@ -34,7 +60,7 @@ class CustomJSONRenderer(JSONRenderer):
             "links": links,
             "count": count,
             "total_pages": total_pages,
-            "data": data or [],
+            "data": data if data else (None if data == {} else []),
         }
 
         with contextlib.suppress(Exception):
@@ -52,22 +78,13 @@ class CustomJSONRenderer(JSONRenderer):
 # # custom_exception_handler.py
 def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
-    if response is not None:
-        if message := response.data.get("detail"):
-            response.data = {
-                "data": [],
-                "message": message,
-                "error": [message],
-                "success": "failure",
-            }
-        else:
-            errors = [
-                f'{field} : {" ".join(value)}' for field, value in response.data.items()
-            ]
-            response.data = {
-                "data": [],
-                "message": "Validation Error",
-                "errors": errors,
-                "status": "failure",
-            }
+    if response is not None and response.status_code >= 400:
+        data = []
+        for err in response.data.values():
+            if type(err) == list:
+                err = err[0]
+            data.append(err)
+        response.data = {
+            "data": data,
+        }
     return response

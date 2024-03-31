@@ -1,33 +1,39 @@
 from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import AnonymousUser
 import jwt
 from django.conf import settings
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 User = get_user_model()
 
 
 @database_sync_to_async
-def get_user(user_id):
+def check_token_blacklist(token_initial, user):
     try:
-        return User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        return AnonymousUser()
+        for token in OutstandingToken.objects.filter(user_id=user):
+            if token == token_initial:
+                print("here")
+
+        return 0
+    except:
+        return
 
 
 class QueryAuthMiddleware:
-    """
-    Custom middleware (insecure) that takes user IDs from the query string.
-    """
-
     def __init__(self, app):
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        print()
-        token = scope["query_string"].decode("utf-8").split("=")[1]
-        decoded_token = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-        user_id = decoded_token['user_id']
-        scope['user'] = await get_user(user_id)
+        try:
+            token_initial = scope["query_string"].decode("utf-8").split("=")[1]
+            decoded_token = jwt.decode(token_initial, settings.SECRET_KEY, algorithms=['HS256'])
+            user_id = decoded_token['user_id']
+            scope['user'] = await self.get_user(user_id)
+            return await self.app(scope, receive, send)
+        except:
+            return None
 
-        return await self.app(scope, receive, send)
+    @database_sync_to_async
+    def get_user(self, user_id):
+        # try:
+        return User.objects.get(id=user_id)

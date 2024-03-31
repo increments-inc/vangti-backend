@@ -9,13 +9,13 @@ from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-az+a*smk6&1sm68!hly(zcq@vp)gd6e!*e*e=%gf5!=eb7qpj#'
+SECRET_KEY = config("DJANGO_SECRET_KEY")
 
-DEBUG = True
+DEBUG = config("OPERATION_MODE")
 
 SALT = "random"
 
-ALLOWED_HOSTS = ['127.0.0.1', '192.168.27.141']
+ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS").split(",")
 
 INSTALLED_APPS = [
     # async
@@ -68,16 +68,18 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
     ),
-    # "EXCEPTION_HANDLER": "utils.renderer.custom_exception_handler",
+    "EXCEPTION_HANDLER": "utils.renderer.custom_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "utils.custom_pagination.CustomPagination",
-    "PAGE_SIZE": 20,
+    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+
+    "PAGE_SIZE": 10,
     # swagger
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=15),
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
@@ -134,6 +136,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # custom
+    'core.custom_middleware.CustomMiddleware'
 ]
 
 # debug toolbar
@@ -216,13 +220,19 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Dhaka'
 
 USE_I18N = True
 
 USE_TZ = True
 
 STATIC_URL = 'static/'
+
+STATIC_ROOT = 'static/'
+
+# STATICFILES_DIRS = [BASE_DIR / 'static']
+
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -261,9 +271,6 @@ CACHES = {
     }
 }
 
-# location
-LOCATION_RADIUS = 50000
-
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -283,14 +290,34 @@ CELERY_TIMEZONE = "Asia/Dhaka"
 CELERY_BROKER_URL = "redis://localhost:6379"
 CELERY_RESULT_BACKEND = "redis://localhost:6379"
 CELERY_BEAT_SCHEDULE = {
-    'test_task': {
-        'task': 'web_socket.tasks.test_task',
-        'schedule': crontab(minute="0", hour='*/3'),
-        'args': ('hello world',),
-    },
+    # 'test_task': {
+    #     'task': 'web_socket.tasks.test_task',
+    #     'schedule': crontab(minute="0", hour='*/3'),
+    #     'args': ('hello world',),
+    # },
     'user_deletion_routine_task': {
         'task': 'users.tasks.user_deletion_routine_task',
-        'schedule': crontab(minute='*/5'),
+        # 'schedule': crontab(minute='*/5'),
+        'schedule': crontab(hour=0, minute=0),
     },
 }
 
+# DOMAIN
+DOMAIN_NAME = config("DOMAIN")
+
+# SMS
+SMS_URL = config("SMS_URL")
+SMS_API_KEY = config("SMS_API_KEY")
+
+# GOOGLE MAPS API
+GOOGLE_MAPS_API_KEY = config("GOOGLE_MAPS_API_KEY")
+
+# APP STORE DEFAULTS
+APP_STORE_DEFAULT_PHONE = "+8801712345678"
+APP_STORE_DEFAULT_OTP = "123456"
+
+# provider commission
+PROVIDER_COMMISSION = 10
+
+# location
+LOCATION_RADIUS = 100

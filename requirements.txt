@@ -19,7 +19,8 @@ django-filter==23.5
 djangorestframework==3.14.0
 djangorestframework-simplejwt==5.3.0
 drf-spectacular==0.26.5
-GDAL==3.8.0
+#GDAL==3.8.0
+GDAL==3.4.1
 geographiclib==2.0
 geopy==2.4.1
 haversine==2.8.0
@@ -56,3 +57,9 @@ drf-extra-fields==3.7.0
 firebase-admin==6.3.0
 celery==5.3.6
 qrcode==7.4.2
+blurhash-python==1.2.2
+polyline==2.0.1
+drf-extra-fields==3.7.0
+websockets==12.0
+gunicorn==21.2.0
+

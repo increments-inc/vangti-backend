@@ -11,11 +11,8 @@ from ..serializers import *
 from ..app_utils import get_reg_token
 from django.conf import settings
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
-from rest_framework import viewsets
-from rest_framework.views import APIView
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from django.contrib.auth import logout
 from ..auth_jwt import JWTAccessToken
 
 
@@ -26,25 +23,12 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     @staticmethod
     def _otp_login(request, serializer):
         resp = response.Response()
-
-        # setting the jwt cookies
-        # set_jwt_cookies(
-        #     response=resp,
-        #     access_token=serializer.validated_data.get(
-        #         settings.JWT_AUTH_COOKIE
-        #     ),
-        #     refresh_token=serializer.validated_data.get(
-        #         settings.JWT_AUTH_REFRESH_COOKIE
-        #     ),
-        # )
-
         resp.set_cookie('access',
                         str(serializer.validated_data.get(settings.JWT_AUTH_COOKIE)),
                         httponly=True)
         resp.set_cookie('refresh',
                         str(serializer.validated_data.get(settings.JWT_AUTH_REFRESH_COOKIE)),
                         httponly=True)
-
         resp.status_code = status.HTTP_200_OK
         resp.data = {
             "detail": "Login successful",
@@ -66,17 +50,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                     )
                 ],
             ),
-            # 400: OpenApiResponse(
-            #     response=CustomTokenObtainPairSerializer,
-            #     examples=[
-            #         OpenApiExample(
-            #             "login error",
-            #             value={
-            #                 "detail": "No active account found with the given credentials"
-            #             }
-            #         )
-            #     ],
-            # )
         }
     )
     def post(self, request, *args, **kwargs):
@@ -87,16 +60,10 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         )
         # serializer.is_valid(raise_exception=True)
         if serializer.is_valid():
-            try:
-                return self._otp_login(
-                    request=request,
-                    serializer=serializer
-                )
-
-            except Exception as e:
-                # raise InvalidToken(e.args[0]) from e
-                return response.Response("", status=status.HTTP_400_BAD_REQUEST)
-
+            return self._otp_login(
+                request=request,
+                serializer=serializer
+            )
         return response.Response({
             "message": "Username or Password error",
             "errors": "invalid username or password",
@@ -109,98 +76,85 @@ class RegistrationViewSet(viewsets.ModelViewSet):
     permission_classes = []
 
     def get_serializer_class(self):
-        if self.action == "set_pin":
-            return UserPINSerializer
-        if self.action == "reset_pin":
-            return UserPINResetSerializer
+        # if self.action == "set_pin":
+        #     return UserPINSerializer
+        # if self.action == "reset_pin":
+        #     return UserPINResetSerializer
         return self.serializer_class
 
-    @staticmethod
-    def _otp_reg(request, user, serializer):
-        resp = response.Response()
-        reg_token = str(get_reg_token(user))
-        resp.set_cookie('reg_token',
-                        reg_token,
-                        httponly=True)
-
-        resp.status_code = status.HTTP_200_OK
-        resp.data = {
-            "detail": "Registration successful",
-            # "reg_access_token": reg_token,
-        }
-        return resp
-
     def post(self, request, *args, **kwargs):
+        print("data", request.data)
         serializer = self.serializer_class(
             data=request.data,
             context={"request": request}
         )
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        if user == -1:
+        if serializer.is_valid():
+            user = serializer.save()
+            if user == -1:
+                return response.Response({
+                    "message": "Phone numer is not verified",
+                    "data": serializer.validated_data,
+                }, status=status.HTTP_400_BAD_REQUEST)
+            if user == -2:
+                return response.Response({
+                    "message": "OTP doesnt match",
+                    "data": serializer.validated_data,
+                }, status=status.HTTP_404_NOT_FOUND)
+
             return response.Response({
-                "message": "OTP doesnt match",
-                "data": serializer.validated_data,
-            },
-                status=status.HTTP_404_NOT_FOUND
-            )
-        resp = response.Response()
-        try:
-            try:
-                return self._otp_reg(
-                    request=request,
-                    user=user,
-                    serializer=serializer
-                )
+                "detail": "Successful",
+                # "reg_access_token": reg_token,
+            }, status=status.HTTP_200_OK)
 
-            except Exception as e:
-                # raise InvalidToken(e.args[0]) from e
-                return response.Response(e.args[0], status=status.HTTP_400_BAD_REQUEST)
+        return response.Response({
+            "message": "Registration Error",
+            # "reg_access_token": reg_token,
+        }, status=status.HTTP_400_BAD_REQUEST)
 
-        except Exception:
-            resp.data = {
-                "message": "Registration Error",
-                "data": serializer.validated_data,
-            }
-            return response.Response(resp, status=status.HTTP_404_NOT_FOUND)
+    # def set_pin(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer_class()(
+    #         data=request.data,
+    #         context={"request": request}
+    #     )
+    #     serializer.is_valid(raise_exception=True)
+    #     user = serializer.save()
+    #     if user == -1:
+    #         return response.Response({
+    #             "message": "Invalid PIN or invalid device",
+    #             # "data": serializer.validated_data,
+    #         },
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
+    #     if user == -2:
+    #         return response.Response({
+    #             "message": "PIN already set!",
+    #             # "data": serializer.validated_data,
+    #         },
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
+    #     return response.Response(
+    #         "PIN Set Successfully",
+    #         status=status.HTTP_200_OK
+    #     )
 
-    def set_pin(self, request, *args, **kwargs):
-        serializer = self.get_serializer_class()(
-            data=request.data,
-            context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        if user == -1:
-            return response.Response({
-                "message": "Invalid PIN or invalid device",
-                "data": serializer.validated_data,
-            },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        return response.Response(
-            "PIN Set Successfully",
-            status=status.HTTP_200_OK
-        )
-
-    def reset_pin(self, request, *args, **kwargs):
-        serializer = self.get_serializer_class()(
-            data=request.data,
-            context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        if user == -1:
-            return response.Response({
-                "message": "user does not exist",
-                "data": serializer.validated_data,
-            },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        return response.Response(
-            "PIN Set Successfully",
-            status=status.HTTP_200_OK
-        )
+    # def reset_pin(self, request, *args, **kwargs):
+    #     serializer = self.get_serializer_class()(
+    #         data=request.data,
+    #         context={"request": request}
+    #     )
+    #     serializer.is_valid(raise_exception=True)
+    #     user = serializer.save()
+    #     if user == -1:
+    #         return response.Response({
+    #             "message": "user does not exist",
+    #             "data": serializer.validated_data,
+    #         },
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
+    #     return response.Response(
+    #         "PIN Set Successfully",
+    #         status=status.HTTP_200_OK
+    #     )
 
 
 class UserPinViewSet(viewsets.ViewSet):
@@ -236,35 +190,74 @@ class GetNumberViewSet(viewsets.ModelViewSet):
     permission_classes = []
     serializer_class = RegistrationOTPSerializer
     queryset = RegistrationOTPModel.objects.all()
-    http_method_names = ["post"]
+    http_method_names = ["post", "patch"]
+
+    def get_serializer_class(self):
+        if self.action == "verify_otp":
+            return RegistrationOTPVerifySerializer
+        return self.serializer_class
 
     def post(self, request, *args, **kwargs):
-        # serializer = self.serializer_class(data=request.data)
-        data = request.data
-        print(data)
-        serializer = self.serializer_class(data=data)
+        print("data", request.data)
+        serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
             if user == -1:
                 return response.Response(
-                    "User exists!",
+                    {"errors": "User exists!"},
                     status=status.HTTP_302_FOUND
                 )
             if user == -2:
                 return response.Response(
-                    "User does not exist!",
+                    {"errors": "User does not exist!"},
                     status=status.HTTP_404_NOT_FOUND
                 )
-            print(user[-1])
             return response.Response(
-                f"OTP sent - {user[-1]}",
+                f"OTP sent via sms",
                 status=status.HTTP_200_OK
             )
-
-        # serializer.is_valid(raise_exception=True)
         return response.Response(
+            {"details": "Input proper data"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
-            "Input proper data",
+    def verify_otp(self, *args, **kwargs):
+        print( "req data",self.request.data)
+        phone_number = self.request.data.get("phone_number")
+        if phone_number is not None:
+            instance = self.queryset.filter(
+                phone_number=phone_number
+            )
+            if instance.exists():
+                if instance.filter(is_active=True).exists():
+                    return response.Response(
+                        "Phone number already verified",
+                        status=status.HTTP_200_OK
+                    )
+                if not instance.filter(expires_at__gte=datetime.now()).exists():
+                    return response.Response(
+                        {"details": "OTP Expired"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                instance = instance.last()
+                serializer = self.get_serializer_class()(instance, data=self.request.data)
+                if serializer.is_valid():
+                    data = serializer.save()
+                    if data == -1:
+                        return response.Response(
+                            {"errors": "Incorrect OTP, phone number could not be verified"},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    return response.Response(
+                        "Phone number verified",
+                        status=status.HTTP_200_OK
+                    )
+            return response.Response(
+                {"details": "Phone number invalid"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return response.Response(
+            {"details": "Input proper data"},
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -299,6 +292,11 @@ class UserViewSet(viewsets.ModelViewSet):
                     {"message": "PIN is not valid"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            if user == -2:
+                return response.Response(
+                    {"message": "PIN could not be validated"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             return response.Response(
                 "User Deactivated",
                 status=status.HTTP_200_OK
@@ -311,8 +309,13 @@ class UserViewSet(viewsets.ModelViewSet):
     def delete_user(self, request, *args, **kwargs):
         serializer = self.get_serializer_class()(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
-            return response.Response(serializer.data, status=status.HTTP_200_OK)
+            user = serializer.save()
+            if user == -2:
+                return response.Response({"errors": "pin not verified"}, status=status.HTTP_400_BAD_REQUEST)
+            if user == -3:
+                return response.Response({"errors": "pin could not be validated"}, status=status.HTTP_400_BAD_REQUEST)
+
+            return response.Response("User to be deleted in 30 days", status=status.HTTP_200_OK)
         return response.Response(
             {"message": "User Deletion failed"},
             status=status.HTTP_400_BAD_REQUEST
@@ -358,7 +361,7 @@ class PhoneUserViewSet(viewsets.ModelViewSet):
         )
 
 
-class LogoutView(APIView):
+class LogoutView(views.APIView):
     serializer_class = LogoutSerializer
     permission_classes = (permissions.IsAuthenticated,)
 
@@ -370,4 +373,7 @@ class LogoutView(APIView):
             access_token_blacklist = JWTAccessToken(token).blacklist()
             return response.Response("Logout successful", status=status.HTTP_200_OK)
         except:
-            return response.Response("Logout not successful, check refresh token", status=status.HTTP_400_BAD_REQUEST)
+            return response.Response(
+                {"errors": "Logout not successful, check refresh token"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
