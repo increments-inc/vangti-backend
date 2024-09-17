@@ -52,7 +52,9 @@ class LocationViewSet(viewsets.ModelViewSet):
             instance = UserLocation.objects.create(
                 user=self.request.user.id,
                 user_phone_number=self.request.user.phone_number,
-                **self.request.data
+                latitude=self.request.data["latitude"],
+                longitude=self.request.data["longitude"],
+                # **self.request.data
             )
             serializer = self.serializer_class(instance, context={"request": self.request})
 
