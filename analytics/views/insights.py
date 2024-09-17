@@ -1,12 +1,13 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
-from django.db.models import Sum
+from django.db.models import Sum, Avg
 from datetime import datetime, timedelta, time
 from transactions.models import TransactionHistory
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes
 from ..serializers import *
 import random
 from collections import Counter
+import calendar
 
 
 class InsightsViewSet(viewsets.ModelViewSet):
@@ -22,17 +23,14 @@ class InsightsViewSet(viewsets.ModelViewSet):
             return AvgTransactionSerializer
         return InsightsListSerializer
 
-    @extend_schema(
-        parameters=[
-            OpenApiParameter("interval", OpenApiTypes.STR, OpenApiParameter.QUERY),
-        ],
-    )
-    def profit_by_time(self, *args, **kwargs):
-        interval = self.request.query_params.get("interval")
-        if interval is None:
+    def profit_by_time0(self, *args, **kwargs):
+        q_month = self.request.query_params.get("month", None)
+        q_year = self.request.query_params.get("year", None)
+        if q_month is None or q_year is None:
             return Response({"message": "no interval provided"}, status=status.HTTP_400_BAD_REQUEST)
-        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
+        today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        interval = "monthly"
         interval_day = 1
         date_list = ["0", "3", "6", "9", "12", "15", "18", "21"]
         scan_list = []
@@ -104,14 +102,75 @@ class InsightsViewSet(viewsets.ModelViewSet):
             scan_list.append(data)
         return Response(scan_list, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("month", OpenApiTypes.STR, OpenApiParameter.QUERY),
+            OpenApiParameter("year", OpenApiTypes.STR, OpenApiParameter.QUERY),
+
+        ],
+    )
+    def profit_by_time(self, *args, **kwargs):
+        q_month = self.request.query_params.get("month", None)
+        q_year = self.request.query_params.get("year", None)
+
+        if q_month is None or q_year is None:
+            return Response({"message": "no month and year provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+        month_list = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+                      "November", "December"]
+        month_in_numerical = int(month_list.index(q_month) + 1)
+        scan_list = []
+
+        user_analytics = self.queryset.filter(
+            user=self.request.user,
+            created_at__month=month_in_numerical,
+            created_at__year=int(q_year),
+        ).values("no_of_transaction", "total_amount_of_transaction", "profit", "created_at")
+        print("user analytics:", user_analytics)
+        num_days = calendar.monthrange(int(q_year), int(month_in_numerical))[1]
+
+        date_list = [datetime(int(q_year), int(month_in_numerical), day) for day in range(1, num_days + 1)]
+        for date in date_list:
+            total_amount_of_transaction = 0.0
+            profit = 0.0
+            no_of_transaction = 0
+            # calculations
+            for stat in user_analytics:
+                # default
+                total_amount_of_transaction = 0.0
+                profit = 0.0
+                no_of_transaction = 0
+
+                if stat["created_at"].day == date.day:
+                    total_amount_of_transaction = stat["total_amount_of_transaction"]
+                    profit = stat["profit"]
+                    no_of_transaction = stat["no_of_transaction"]
+                    break
+
+            data = {
+                "date": str(date),
+                "total_amount_of_transaction": float(total_amount_of_transaction),
+                "profit": float(profit),
+                "no_of_transaction": no_of_transaction,
+            }
+            # dev data
+            # data = {
+            #     "date": str(date),
+            #     "total_amount_of_transaction": float(random.randint(10000, 500000)),
+            #     "profit": float(random.randint(100, 5000)),
+            #     "no_of_transaction": random.randint(100, 5000000),
+            # }
+            scan_list.append(data)
+        return Response(scan_list, status=status.HTTP_200_OK)
+
     def transaction_by_week(self, *args, **kwargs):
         user_analytics = (
-            self.queryset.filter(user=self.request.user,
-                                       )
+            self.queryset.filter(user=self.request.user)
             .values("no_of_transaction", "total_amount_of_transaction", "profit", "created_at")
         )
-        this_week = datetime.now() - timedelta(days=7)
-        last_week = this_week - timedelta(days=7)
+        this_week = datetime.now() - timedelta(days=14)
+        last_week = this_week - timedelta(days=14)
+
         this_week_trans = user_analytics.filter(
             created_at__gte=this_week
         )
@@ -120,13 +179,8 @@ class InsightsViewSet(viewsets.ModelViewSet):
             created_at__gte=last_week,
             created_at__lte=this_week
         )
+        # print("huhu", "\n", this_week_trans, "\n", last_week_trans)
         if not this_week_trans and not last_week_trans:
-            data = {
-                "no_of_transaction": 0,
-                "total_amount_of_transaction": float(0),
-                "amount_stat": float(0),
-                "num_stat": float(0),
-            }
             # dev data
             # data = {
             #     "no_of_transaction": 10000,
@@ -135,42 +189,47 @@ class InsightsViewSet(viewsets.ModelViewSet):
             #     "num_stat": float(-20.999),
             #
             # }
-            return Response(data, status=status.HTTP_200_OK)
+            return Response({
+                "no_of_transaction": 0,
+                "total_amount_of_transaction": float(0),
+                "amount_stat": float(0),
+                "num_stat": float(0),
+            }, status=status.HTTP_200_OK)
 
         this_week_trans_number = this_week_trans.aggregate(
-            Sum("no_of_transaction", default=0),
-            Sum("total_amount_of_transaction", default=0)
+            Avg("no_of_transaction", default=0),
+            Avg("total_amount_of_transaction", default=0)
         )
         last_week_trans_number = last_week_trans.aggregate(
-            Sum("no_of_transaction", default=0),
-            Sum("total_amount_of_transaction", default=0)
+            Avg("no_of_transaction", default=0),
+            Avg("total_amount_of_transaction", default=0)
         )
-        print(this_week_trans_number, last_week_trans_number)
+        # print(this_week_trans_number, last_week_trans_number)
         total_amount_transaction_stat = (
                                                 (
-                                                        this_week_trans_number["total_amount_of_transaction__sum"] -
-                                                        last_week_trans_number["total_amount_of_transaction__sum"]
+                                                        this_week_trans_number["total_amount_of_transaction__avg"] -
+                                                        last_week_trans_number["total_amount_of_transaction__avg"]
                                                 ) /
                                                 (
-                                                        this_week_trans_number["total_amount_of_transaction__sum"] +
-                                                        last_week_trans_number["total_amount_of_transaction__sum"]
+                                                        this_week_trans_number["total_amount_of_transaction__avg"] +
+                                                        last_week_trans_number["total_amount_of_transaction__avg"]
                                                 )
                                         ) * 100
 
         total_num_transaction_stat = (
                                              (
-                                                     this_week_trans_number["no_of_transaction__sum"] -
-                                                     last_week_trans_number["no_of_transaction__sum"]
+                                                     this_week_trans_number["no_of_transaction__avg"] -
+                                                     last_week_trans_number["no_of_transaction__avg"]
                                              ) /
                                              (
-                                                     this_week_trans_number["no_of_transaction__sum"] +
-                                                     last_week_trans_number["no_of_transaction__sum"]
+                                                     this_week_trans_number["no_of_transaction__avg"] +
+                                                     last_week_trans_number["no_of_transaction__avg"]
                                              )
                                      ) * 100
 
         data = {
-            "no_of_transaction": int(this_week_trans_number["no_of_transaction__sum"]),
-            "total_amount_of_transaction": float(this_week_trans_number["total_amount_of_transaction__sum"]),
+            "no_of_transaction": int(this_week_trans_number["no_of_transaction__avg"]),
+            "total_amount_of_transaction": float(this_week_trans_number["total_amount_of_transaction__avg"]),
             "amount_stat": float(total_amount_transaction_stat),
             "num_stat": float(total_num_transaction_stat),
         }
@@ -214,14 +273,13 @@ class InsightsViewSet(viewsets.ModelViewSet):
 
         past_note_list = past_transactions.filter(
             created_at__lte=today - interval_day,
-            created_at__gte=today - interval_day*2,
+            created_at__gte=today - interval_day * 2,
         ).aggregate(
             Sum("total_amount", default=0)
         )
 
         print(this_note_list, past_note_list)
         try:
-            print("here")
             stat = (
                            (
                                    this_note_list["total_amount__sum"] -

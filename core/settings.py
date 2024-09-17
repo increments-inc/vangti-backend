@@ -9,13 +9,13 @@ from celery.schedules import crontab
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-az+a*smk6&1sm68!hly(zcq@vp)gd6e!*e*e=%gf5!=eb7qpj#'
+SECRET_KEY = config("DJANGO_SECRET_KEY")
 
-DEBUG = True
+DEBUG = config("OPERATION_MODE")
 
 SALT = "random"
 
-ALLOWED_HOSTS = ['127.0.0.1', '192.168.27.141']
+ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS").split(",")
 
 INSTALLED_APPS = [
     # async
@@ -122,8 +122,6 @@ SPECTACULAR_SETTINGS = {
     # OTHER SETTINGS
 }
 
-
-
 AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
@@ -141,8 +139,6 @@ MIDDLEWARE = [
     # custom
     'core.custom_middleware.CustomMiddleware'
 ]
-
-
 
 # debug toolbar
 INTERNAL_IPS = [
@@ -222,7 +218,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'Asia/Dhaka'
@@ -232,6 +227,12 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+
+STATIC_ROOT = 'static/'
+
+# STATICFILES_DIRS = [BASE_DIR / 'static']
+
+
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -270,7 +271,6 @@ CACHES = {
     }
 }
 
-
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -297,7 +297,8 @@ CELERY_BEAT_SCHEDULE = {
     # },
     'user_deletion_routine_task': {
         'task': 'users.tasks.user_deletion_routine_task',
-        'schedule': crontab(minute='*/5'),
+        # 'schedule': crontab(minute='*/5'),
+        'schedule': crontab(hour=0, minute=0),
     },
 }
 
@@ -315,17 +316,8 @@ GOOGLE_MAPS_API_KEY = config("GOOGLE_MAPS_API_KEY")
 APP_STORE_DEFAULT_PHONE = "+8801712345678"
 APP_STORE_DEFAULT_OTP = "123456"
 
-
 # provider commission
 PROVIDER_COMMISSION = 10
 
-
 # location
-LOCATION_RADIUS = 10
-
-
-
-
-
-
-
+LOCATION_RADIUS = 100

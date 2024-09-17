@@ -27,18 +27,18 @@ def create_instance(sender, instance, created, **kwargs):
                 user=instance
             )
             # location
-            UserLocation.objects.create(
-                user=instance.id,
-                user_phone_number=instance.phone_number,
-            )
+            # UserLocation.objects.create(
+            #     user=instance.id,
+            #     user_phone_number=instance.phone_number,
+            # )
 
             # analytics rating
-            UserRating.objects.create(
-                user=instance
-            )
-            UserSeekerRating.objects.create(
-                user=instance
-            )
+            # UserRating.objects.create(
+            #     user=instance
+            # )
+            # UserSeekerRating.objects.create(
+            #     user=instance
+            # )
         except:
             pass
 

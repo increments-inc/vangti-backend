@@ -2,11 +2,14 @@
 media/
 .env
 db.sqlite3
-steps.txt
+#notes.md
 credentials2.json
 credentials.json
 celerybeat-schedule.db
 send_request.py
 management/
-message.txt
+#web_socket/consumers/message.txt
 loca.py
+py-history.txt
+message.txt
+static/

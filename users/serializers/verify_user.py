@@ -3,7 +3,7 @@ from .. import models
 from drf_extra_fields.fields import Base64ImageField
 from utils.helper import get_hash, get_original_hash
 from drf_spectacular.utils import extend_schema_serializer, OpenApiExample, extend_schema_field
-from analytics.serializers import ProviderModeSerializer, SeekerModeSerializer
+from analytics.serializers import ProviderModeSerializer, SeekerModeSerializer, UserRating, UserSeekerRating
 
 
 class AddNidSerializer(serializers.ModelSerializer):
@@ -218,6 +218,11 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
     @extend_schema_field(SeekerModeSerializer)
     def get_analytics_as_seeker(self, obj):
         try:
+            if getattr(obj.user, "seeker_rating_user", None) is None:
+                instance = UserSeekerRating.objects.create(
+                    user=obj.user
+                )
+                return SeekerModeSerializer(instance).data
             return SeekerModeSerializer(obj.user.seeker_rating_user).data
         except:
             return {
@@ -230,20 +235,25 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(ProviderModeSerializer)
     def get_analytics_as_provider(self, obj):
-        return ProviderModeSerializer(obj.user.userrating_user).data
+        try:
+            if getattr(obj.user, "userrating_user", None) is None:
+                instance = UserRating.objects.create(
+                    user=obj.user
+                )
+                return ProviderModeSerializer(instance).data
+            return ProviderModeSerializer(obj.user.userrating_user).data
+        except:
+            return {
+                "rating": 0.0,
+                "total_deals_count": 0,
+                "transaction_amount": 0.0,
+                "deals_success_rate": 0.0,
+                "cancel_deals_count": 0
+            }
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
-        # if rep.get('transactions') is None:
-        #     rep['transactions'] = 0
-        # if rep.get('rating') is None:
-        #     rep['rating'] = 0.0
-        # if rep.get('deal_success_rate') is None:
-        #     rep['deal_success_rate'] = 0.0
-        # if rep.get('total_amount') is None:
-        #     rep['total_amount'] = 0.0
-        # if rep.get('cancelled_deals') is None:
-        #     rep['cancelled_deals'] = 0.0
+
         if rep.get('is_provider') is None:
             rep['is_provider'] = False
 

@@ -1,47 +1,79 @@
+import math
 from django.db.models import Q, Sum, Avg, Count
 from locations.models import UserLocation
 from analytics.models import UserRating
 from django.conf import settings
 from django.contrib.gis.measure import D, Distance
 from datetime import timedelta, time, datetime
-from transactions.models import TransactionHistory
+from transactions.models import TransactionHistory, Transaction
 
 
 def calculate_user_impressions(user):
+    if getattr(user, "userrating_user", None) is None:
+        UserRating.objects.create(
+            user=user
+        )
     no_of_transaction = user.userrating_user.no_of_transaction
+    if no_of_transaction == 0:
+        no_of_transaction = 1
     deal_success_rate = user.userrating_user.deal_success_rate
     total_amount_of_transaction = user.userrating_user.total_amount_of_transaction
     cancelled_deals = user.userrating_user.dislikes
     rating = user.userrating_user.rating
     provider_response_time = user.userrating_user.provider_response_time
+    if provider_response_time is None:
+        provider_response_time = timedelta(seconds=1)
 
     acc_type = 1
     # if acc_type == "PERSONAL":
     #     acc_type = 1
-    if acc_type == "BUSINESS":
-        acc_type = 10
+    # if acc_type == "BUSINESS":
+    #     acc_type = 10
+
+    # print("here",
+    #       deal_success_rate ,
+    #       rating ,
+    #       (1 / provider_response_time.total_seconds()) ,
+    #       (total_amount_of_transaction / no_of_transaction) ,
+    #       acc_type
+    #       )
 
     user_impression = (
             deal_success_rate *
             rating *
-            (1 / provider_response_time) *
+            (1 / provider_response_time.total_seconds()) *
             (total_amount_of_transaction / no_of_transaction) *  # avg amount in transaction
             acc_type
     )
+    # print(user.id, user_impression)
     return user_impression
 
 
 def get_home_analytics_of_user_set(user_set):
-    user_provider_set = user_set.filter(
+    user_provider_set_ini = user_set.filter(
         user_mode__is_provider=True
+    )
+    on_going_txn = list(Transaction.objects.filter(
+        Q(seeker__in=user_provider_set_ini) | Q(provider__in=user_provider_set_ini)
+    ).filter(
+        is_completed=False
+    ).values_list('seeker_id', 'provider_id'))
+
+    on_going_users = [usr for user in on_going_txn for usr in user]
+
+    user_provider_set = user_provider_set_ini.exclude(
+        id__in=on_going_users
     )
     user_seeker_set = user_set.filter(
         user_mode__is_provider=False
     )
+
     total_providers = user_provider_set.count()
     total_seekers = user_seeker_set.count()
-    rating_queryset = UserRating.objects.filter(user__in=user_set)
-
+    rating_queryset = UserRating.objects.filter(
+        user__in=user_provider_set
+    )
+    # print("rate q", user_provider_set)
     # when nearby users have no rating set
     if not rating_queryset:
         return {
@@ -50,23 +82,19 @@ def get_home_analytics_of_user_set(user_set):
             "rating": 0.0,
             "dislikes": 0,
             "provider_response_time": "0 sec",
-            "avg_demanded_vangti": "0",
+            "avg_demanded_vangti": 0.0,
             "avg_deal_possibility": 0.0
         }
 
-    rating_queryset = rating_queryset.annotate(
-        avg_success_rate=Avg("deal_success_rate", default=0.0),
-        avg_rating=Avg("rating", default=0.0),
-        total_dislikes=Count("dislikes"),
-        avg_response_time=Avg("provider_response_time", default=timedelta(seconds=0)),
-    ).values(
-        "avg_success_rate",
-        "avg_rating",
-        "avg_response_time",
-        "total_dislikes"
+    rating_queryset = rating_queryset.aggregate(
+        Avg("deal_success_rate", default=0.0),
+        Avg("rating", default=0.0),
+        Avg("dislikes", default=0),
+        Avg("provider_response_time", default=timedelta(seconds=0))
     )
 
-    time_dur = rating_queryset[0]["avg_response_time"].days * 3600 + rating_queryset[0]["avg_response_time"].seconds
+    time_dur = rating_queryset["provider_response_time__avg"].days * 3600 + rating_queryset[
+        "provider_response_time__avg"].seconds
     if time_dur > 3600:
         time_dur /= 3600
         time_dur = f"{int(time_dur)} hr"
@@ -75,14 +103,12 @@ def get_home_analytics_of_user_set(user_set):
         time_dur = f"{int(time_dur)} min"
     else:
         time_dur = f"{time_dur} sec"
-
     # t_history = TransactionHistory.objects.filter(
     #     created_at__gte=datetime.now() - timedelta(days=90),
     #     provider__in=user_set,
     # ).aggregate(Avg("total_amount"))
-
     avg_deal_possibility = 0
-    if total_providers == 0 and total_seekers > 0:
+    if (total_providers == 0) or (total_seekers == 0):
         avg_deal_possibility = 0
     # check
     elif total_providers > 0 and total_seekers > 0:
@@ -101,10 +127,10 @@ def get_home_analytics_of_user_set(user_set):
 
     return {
         "total_active_provider": total_providers,
-        "deal_success_rate": rating_queryset[0]["avg_success_rate"],
-        "rating": rating_queryset[0]["avg_rating"],
-        "dislikes": float(rating_queryset[0]["total_dislikes"]),
+        "deal_success_rate": rating_queryset["deal_success_rate__avg"],
+        "rating": rating_queryset["rating__avg"],
+        "dislikes": math.ceil(rating_queryset["dislikes__avg"]),
         "provider_response_time": time_dur,
-        "avg_demanded_vangti": f"{avg_demanded}",
+        "avg_demanded_vangti": float(avg_demanded),
         "avg_deal_possibility": float(avg_deal_possibility)
     }
