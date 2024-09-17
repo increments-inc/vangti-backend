@@ -1,0 +1,25 @@
+name: In-House update CI
+
+on:
+  push:
+    branches: [ staging ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute remote SSH commands
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          password: ${{ secrets.STAGING_PASS }}
+          script: |
+            cd /var/www/vangti
+            source venv/bin/activate
+            cd /var/www/vangti/vangti-backend
+            echo ${{ secrets.STAGING_PASS }} | sudo -S git pull
+            python3 manage.py makemigrations
+            python3 manage.py migrate
+            echo ${{ secrets.STAGING_PASS }} | sudo -S systemctl restart nginx
+            echo ${{ secrets.STAGING_PASS }} | sudo -S supervisorctl restart all
