@@ -14,6 +14,8 @@ jobs:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           password: ${{ secrets.STAGING_PASS }}
+          key: ${{ secrets.STAGING_PRIVATE_KEY }}
+
           script: |
             cd /var/www/vangti
             echo ${{ secrets.STAGING_PASS }} | sudo -S git pull
