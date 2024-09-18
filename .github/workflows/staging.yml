@@ -13,7 +13,6 @@ jobs:
         with:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
-          password: ${{ secrets.STAGING_PASS }}
           key: ${{ secrets.STAGING_PRIVATE_KEY }}
 
           script: |
