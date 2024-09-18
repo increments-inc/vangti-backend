@@ -16,9 +16,8 @@ jobs:
           password: ${{ secrets.STAGING_PASS }}
           script: |
             cd /var/www/vangti
-            source venv/bin/activate
-            cd /var/www/vangti/vangti-backend
             echo ${{ secrets.STAGING_PASS }} | sudo -S git pull
+            source venv/bin/activate
             python3 manage.py makemigrations
             python3 manage.py migrate
             echo ${{ secrets.STAGING_PASS }} | sudo -S systemctl restart nginx
