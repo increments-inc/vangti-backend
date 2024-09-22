@@ -113,7 +113,7 @@ def at_transaction_completion(instance):
     return
 
 
-def at_seeker_rating_update(user):
+def at_provider_rating_update(user):
     all_reviews = TransactionAsSeekerReview.objects.filter(
         seeker=user
     ).aggregate(
@@ -140,7 +140,7 @@ def at_seeker_rating_update(user):
     return
 
 
-def at_provider_rating_update(user):
+def at_seeker_rating_update(user):
     all_reviews = TransactionAsProviderReview.objects.filter(
         provider=user
     ).aggregate(
@@ -166,7 +166,7 @@ def at_provider_rating_update(user):
     return
 
 
-def at_seeker_abuse_rep_update(user):
+def at_provider_abuse_rep_update(user):
     all_reviews = TransactionAsSeekerAbuseReport.objects.filter(
         seeker=user
     ).count()
@@ -184,7 +184,7 @@ def at_seeker_abuse_rep_update(user):
     return
 
 
-def at_provider_abuse_rep_update(user):
+def at_seeker_abuse_rep_update(user):
     all_reviews = TransactionAsProviderAbuseReport.objects.filter(
         provider=user
     ).count()
