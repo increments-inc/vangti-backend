@@ -14,7 +14,7 @@ from utils.apps.analytics import get_home_analytics_of_user_set
 from utils.apps.web_socket_helper import get_user_information, get_transaction_instance, create_transaction_instance, \
     get_providers
 from utils.apps.location import get_user_list, update_user_location_instance, get_user_location_instance, get_directions
-from ..tasks import update_providers_timestamps
+from ..tasks import update_providers_timestamps, send_push_notif
 
 
 class VangtiRequestConsumer(AsyncWebsocketConsumer):
@@ -149,7 +149,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({'message': receive_dict, "user": str(self.user.id)}))
 
     async def delayed_message(self, receive_dict):
-        for i in range(0, 10):
+        for i in range(0, 30):  # time 30 sec/provider
             await asyncio.sleep(1)
             print("cache log", i)
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
@@ -222,6 +222,10 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 'receive_dict': receive_dict,
             }
         )
+
+        # send push notification to provider
+        send_push_notif.delay(receive_dict['data']['provider'], receive_dict)
+
         # send for timeout counting
         await self.delayed_message(receive_dict)
 
@@ -307,6 +311,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             # cache.get(f'{receive_dict["data"]["seeker"]}-timestamp')
             timestamp_list
         )
+
+        # send push notification to seeker
+        send_push_notif.delay(receive_dict['data']['seeker'], receive_dict)
 
         cache.delete(
             f'{receive_dict["data"]["seeker"]}-request'
@@ -424,6 +431,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     'receive_dict': receive_dict,
                 }
             )
+
+            # send push notification to user
+            send_push_notif.delay(self.user.id, receive_dict)
 
     @database_sync_to_async
     def get_user_list(self, room_name):

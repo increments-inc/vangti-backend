@@ -18,7 +18,7 @@ from utils.apps.location import get_user_list
 from utils.apps.analytics import get_home_analytics_of_user_set
 from utils.apps.analytics_rating import update_response_times
 from utils.apps.web_socket import send_message_to_user
-
+from utils.fcm import send_fcm
 
 @shared_task
 def post_timestamp(seeker, provider):
@@ -123,3 +123,13 @@ def update_providers_timestamps(seeker_id, user_list):
 
     return
 
+
+@shared_task
+def send_push_notif(user_id, data):
+    user = User.objects.get(id=user_id)
+
+    try:
+        send_fcm(user, data)
+    except Exception as e:
+        pass
+    return
