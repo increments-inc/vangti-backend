@@ -13,30 +13,35 @@ class Command(BaseCommand):
         print(f"starting batch processing of user rating...")
         for user in all_users:
             # user as provider
-            all_reviews = TransactionAsSeekerReview.objects.filter(
-                provider=user
-            ).aggregate(
-                Avg("rating", default=0)
-            )
-            user_as_prov = UserRating.objects.get(
-                user=user
-            )
-            user_as_prov.rating = all_reviews["rating__avg"]
-            user_as_prov.save()
+            try:
+                all_reviews = TransactionAsSeekerReview.objects.filter(
+                    provider=user
+                ).aggregate(
+                    Avg("rating", default=0)
+                )
+                user_as_prov = UserRating.objects.get(
+                    user=user
+                )
+                user_as_prov.rating = all_reviews["rating__avg"]
+                user_as_prov.save()
+            except:
+                print(f"user{user} does not have review as provider")
 
             # user as seeker
-
-            all_reviews = TransactionAsProviderReview.objects.filter(
-                seeker=user
-            ).aggregate(
-                Avg("rating", default=0)
-            )
-            new_rating = (5 + all_reviews["rating__avg"]) / 2
-            user_as_seek = UserSeekerRating.objects.get(
-                user=user
-            )
-            user_as_seek.rating = new_rating
-            user_as_seek.save()
+            try:
+                all_reviews = TransactionAsProviderReview.objects.filter(
+                    seeker=user
+                ).aggregate(
+                    Avg("rating", default=0)
+                )
+                new_rating = (5 + all_reviews["rating__avg"]) / 2
+                user_as_seek = UserSeekerRating.objects.get(
+                    user=user
+                )
+                user_as_seek.rating = new_rating
+                user_as_seek.save()
+            except:
+                print(f"user{user} does not have review as seeker")
 
             print(f"rating for user {user}")
 
