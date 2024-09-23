@@ -42,8 +42,8 @@ def send_fcm(user, data):
                     'body': body
                 },
                 notification=messaging.Notification(
-                    msg_title,
-                    body
+                    title=msg_title,
+                    body=body
                 ),
                 android=messaging.AndroidConfig(
                     ttl=timedelta(seconds=3600),
