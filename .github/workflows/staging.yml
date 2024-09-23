@@ -21,5 +21,6 @@ jobs:
             source .venv/bin/activate
             python3 manage.py makemigrations
             python3 manage.py migrate
+            python3 manage.py migrate --database=location
             echo ${{ secrets.STAGING_PASS }} | sudo -S systemctl restart nginx
             echo ${{ secrets.STAGING_PASS }} | sudo -S supervisorctl restart all
