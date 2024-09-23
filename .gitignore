@@ -8,7 +8,6 @@ credentials2.json
 credentials.json
 celerybeat-schedule.db
 send_request.py
-management/
 #web_socket/consumers/message.txt
 loca.py
 py-history.txt
@@ -16,7 +15,7 @@ message.txt
 static/
 venv/
 env/
-
+ana.py
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
