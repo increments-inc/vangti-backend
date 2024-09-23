@@ -1,6 +1,4 @@
 from firebase_admin import credentials, messaging, auth
-from pyarmor.examples.testpkg.mypkg import title
-
 from users.models import UserFirebaseToken
 from datetime import datetime, timedelta
 
