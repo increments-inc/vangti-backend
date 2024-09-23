@@ -8,7 +8,6 @@ from django.contrib.gis.measure import Distance
 from locations.models import UserLocation
 from django.conf import settings
 from ..serializers import *
-from web_socket.fcm import send_push2
 
 
 class HomeAnalyticsViewSet(viewsets.ModelViewSet):
