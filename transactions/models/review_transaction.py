@@ -11,6 +11,9 @@ class TransactionAsProviderReview(BaseModel):
     provider = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="txn_provider_review_provider"
     )
+    seeker = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="txn_provider_review_seeker", null=True
+    )
     rating = models.FloatField(default=0.0)
     message = models.TextField(null=True, blank=True)
 
@@ -20,6 +23,9 @@ class TransactionAsProviderReview(BaseModel):
 
 class TransactionAsSeekerReview(BaseModel):
     transaction = models.OneToOneField(Transaction, on_delete=models.CASCADE)
+    provider = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="txn_seeker_review_provider", null=True
+    )
     seeker = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="txn_seeker_review_seeker"
     )
@@ -50,6 +56,9 @@ class TransactionAsProviderAbuseReport(BaseModel):
     provider = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="txn_prov_abuse_rep_provider"
     )
+    seeker = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="txn_prov_abuse_rep_seeker", null=True
+    )
     message = models.TextField(null=True, blank=True)
 
     class Meta:
@@ -58,6 +67,9 @@ class TransactionAsProviderAbuseReport(BaseModel):
 
 class TransactionAsSeekerAbuseReport(BaseModel):
     transaction = models.OneToOneField(Transaction, on_delete=models.CASCADE)
+    provider = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="txn_seek_abuse_rep_provider", null=True
+    )
     seeker = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="txn_seek_abuse_rep_seeker"
     )

@@ -75,7 +75,7 @@ class TransactionAsSeekerReviewViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN)
 
             # update rating
-            at_seeker_rating_update(request.user)
+            at_seeker_rating_update(review.transaction)
 
             transaction_serializer = TransactionSerializer(review.transaction, context={"request": request})
 
@@ -110,7 +110,7 @@ class TransactionAsProviderReviewViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN)
 
             # update rating
-            at_provider_rating_update(request.user)
+            at_provider_rating_update(review.transaction)
 
             transaction_serializer = TransactionSerializer(review.transaction, context={"request": request})
 
@@ -144,7 +144,7 @@ class TransactionAsProviderAbuseReportViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN)
 
             # update abuse rep count
-            at_provider_abuse_rep_update(self.request.user)
+            at_provider_abuse_rep_update(review.transaction)
 
             transaction_serializer = TransactionSerializer(review.transaction, context={"request": request})
 
@@ -179,7 +179,8 @@ class TransactionAsSeekerAbuseReportViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_403_FORBIDDEN)
 
             # update abuse rep count
-            at_seeker_abuse_rep_update(self.request.user)
+            at_seeker_abuse_rep_update(review.transaction)
+
             transaction_serializer = TransactionSerializer(review.transaction, context={"request": request})
 
             return response.Response(transaction_serializer.data, status=status.HTTP_201_CREATED)
