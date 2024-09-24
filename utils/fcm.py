@@ -22,7 +22,7 @@ def send_fcm(user, data):
             amount = data["data"]["amount"]
             preferred_notes = data["data"]["preferred"]
             msg_title = 'Vangti Request'
-            body = f'A new request has been made for {amount} and preferred notes are {preferred_notes}'
+            body = f'A new request has been made for {amount} in your area'
         elif status == "ACCEPTED":
             msg_title = 'Vangti Request Accepted!'
             body = f'Your vangti request has been accepted. Check Vangti app for transaction.'
