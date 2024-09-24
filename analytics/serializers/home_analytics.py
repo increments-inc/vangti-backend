@@ -32,6 +32,8 @@ class ProviderModeSerializer(serializers.ModelSerializer):
         rep = super().to_representation(instance)
         if rep.get('rating') is None:
             rep['rating'] = 0.0
+        else:
+            rep['rating'] = round(rep['rating'], 1)
         if rep.get('transaction_amount') is None:
             rep['transaction_amount'] = 0.0
         if rep.get('total_deals_count') is None:
@@ -63,6 +65,8 @@ class SeekerModeSerializer(serializers.ModelSerializer):
         rep = super().to_representation(instance)
         if rep.get('rating') is None:
             rep['rating'] = 0.0
+        else:
+            rep['rating'] = round(rep['rating'], 1)
         if rep.get('transaction_amount') is None:
             rep['transaction_amount'] = 0.0
         if rep.get('total_deals_count') is None:
