@@ -6,25 +6,36 @@ from utils.apps.transaction import get_transaction_id
 
 from .location import get_user_list_provider
 from .analytics import calculate_user_impressions
-import os
 
 
 def get_user_information(user):
+    name = ""
+    profile_pic = f"{settings.DOMAIN_NAME}/media/avatars/1.png"
+    pic_hash = None
+    rating = 5.0
+    deals = 0
+
+    try:
+        if getattr(user, "user_info", None) is not None:
+            name = user.user_info.person_name
+        if getattr(user, "seeker_rating_user", None) is not None:
+            rating = round(user.seeker_rating_user.rating, 1)
+            deals = user.seeker_rating_user.no_of_transaction
+        if getattr(user, "user_info", None) is not None:
+            if bool(user.user_info.profile_pic):
+                profile_pic = f"{settings.DOMAIN_NAME}{user.user_info.profile_pic.url}"
+            pic_hash = user.user_info.profile_pic_hash
+    except:
+        pass
+
     return {
-        "name": user.user_info.person_name if getattr(user, "user_info", None) is not None else None,
-
+        "name": name,
         "picture": {
-            "url": f"{settings.DOMAIN_NAME}{user.user_info.profile_pic.url}" if getattr(user, "user_info",
-                                                                                        None) is not None else (
-                f"{settings.DOMAIN_NAME}/media/avatars/1.png" if os.path.exists(
-                    f"{os.path.abspath(os.getcwd())}/media/avatars/1.png") else None),
-            "hash": user.user_info.profile_pic_hash if getattr(user, "user_info", None) is not None else None,
+            "url": profile_pic,
+            "hash": pic_hash,
         },
-
-        "rating": round(user.seeker_rating_user.rating, 1) if getattr(user, "seeker_rating_user", None) is not None else 5.0,
-
-        "total_deals": user.seeker_rating_user.no_of_transaction if getattr(user, "seeker_rating_user", None) is not None else 0
-
+        "rating": rating,
+        "total_deals": deals
     }
 
 

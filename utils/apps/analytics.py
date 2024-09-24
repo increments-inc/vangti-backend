@@ -128,7 +128,7 @@ def get_home_analytics_of_user_set(user_set):
     return {
         "total_active_provider": total_providers,
         "deal_success_rate": rating_queryset["deal_success_rate__avg"],
-        "rating": rating_queryset["rating__avg"],
+        "rating": round(rating_queryset["rating__avg"], 1),
         "dislikes": math.ceil(rating_queryset["dislikes__avg"]),
         "provider_response_time": time_dur,
         "avg_demanded_vangti": float(avg_demanded),
