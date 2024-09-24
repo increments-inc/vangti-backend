@@ -4,6 +4,7 @@ from drf_extra_fields.fields import Base64ImageField
 from utils.helper import get_hash, get_original_hash
 from drf_spectacular.utils import extend_schema_serializer, OpenApiExample, extend_schema_field
 from analytics.serializers import ProviderModeSerializer, SeekerModeSerializer, UserRating, UserSeekerRating
+import os, random
 
 
 class AddNidSerializer(serializers.ModelSerializer):
@@ -253,6 +254,7 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
+        request = self.context.get('request')
 
         if rep.get('is_provider') is None:
             rep['is_provider'] = False
@@ -261,8 +263,8 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
             "url": None,
             "hash": None
         }
+
         if instance.profile_pic:
-            request = self.context.get('request')
             try:
                 image = request.build_absolute_uri(instance.profile_pic.url)
                 url_hash = instance.profile_pic_hash
@@ -273,5 +275,13 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
                 "url": image,
                 "hash": url_hash
             }
+        else:
+            # serving default images
+            file_path = f"/media/avatars/{random.randrange(1, 9)}.png"
+            if os.path.exists(f"{os.path.abspath(os.getcwd())}{file_path}"):
+                rep['profile_pic'] = {
+                    "url": request.build_absolute_uri(file_path),
+                    "hash": "LsOg6a-S?+S_]}kAtPNI7dbZm?r]"
+                }
 
         return rep
