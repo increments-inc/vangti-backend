@@ -20,7 +20,6 @@ def send_fcm(user, data):
     if type_msg == "TRANSACTION":
         if status == "PENDING":
             amount = data["data"]["amount"]
-            preferred_notes = data["data"]["preferred"]
             msg_title = 'Vangti Request'
             body = f'A new request has been made for {amount} in your area'
         elif status == "ACCEPTED":
@@ -28,8 +27,8 @@ def send_fcm(user, data):
             body = f'Your vangti request has been accepted. Check Vangti app for transaction.'
 
     elif type_msg == "MESSAGE" and status == "ON_GOING_TRANSACTION":
-        msg_title = 'New Message From Vangti Provider'
-        body = f'message : {data["data"]["message"]}'
+        msg_title = 'New Message From Vangti'
+        body = f'{user.user_info.person_name} : {data["data"]["message"]}'
 
     else:
         return
