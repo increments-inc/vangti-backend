@@ -523,7 +523,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_seeker_info(self, seeker):
         try:
-            return get_user_information(User.objects.get(id=self.user.id))
+            return get_user_information(User.objects.get(id=seeker))
         except:
             return {
                 "name": "",
