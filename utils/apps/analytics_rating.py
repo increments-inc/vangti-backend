@@ -146,6 +146,8 @@ def at_provider_rating_update(txn):
         Avg("rating", default=0)
     )
     new_rating = (5 + all_reviews["rating__avg"]) / 2
+    if all_reviews["rating__avg"] == 0:
+        new_rating = 5
 
     try:
         seek_data = UserSeekerRating.objects.get(
