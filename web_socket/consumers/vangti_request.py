@@ -433,7 +433,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             )
 
             # send push notification to user
-            send_push_notif.delay(self.user.id, receive_dict)
+            send_push_notif.delay(transaction_obj_user, receive_dict)
 
     @database_sync_to_async
     def get_user_list(self, room_name):
