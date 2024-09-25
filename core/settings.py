@@ -190,10 +190,21 @@ DATABASES = {
         'PASSWORD': config("DB_PASSWORD_LOC", default=""),
         'HOST': config("DB_HOST_LOC", default=""),
         'PORT': config("DB_PORT_LOC", default=""),
+    },
+    'credits': {
+        'ENGINE': config("DB_ENGINE_CRE", default="django.db.backends.sqlite3"),
+        'NAME': config("DB_NAME_CRE", default=BASE_DIR / "db1.sqlite3"),
+        'USER': config("DB_USER", default=""),
+        'PASSWORD': config("DB_PASSWORD", default=""),
+        'HOST': config("DB_HOST", default=""),
+        'PORT': config("DB_PORT", default=""),
     }
 }
 
-DATABASE_ROUTERS = ['core.db_router.LocationRouter']
+DATABASE_ROUTERS = [
+    'core.db_router.LocationRouter',
+    'core.db_router.CreditRouter',
+]
 
 # firebase
 FIREBASE_API_KEY = config("FIREBASE_API_KEY")
