@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'web_socket',
     'locations',
     'user_setting',
+    'txn_credits',
 ]
 
 SITE_ID = 1
@@ -332,3 +333,4 @@ PROVIDER_COMMISSION = 10
 
 # location
 LOCATION_RADIUS = config("LOCATION_RADIUS", default=1)
+

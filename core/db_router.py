@@ -23,7 +23,7 @@ class LocationRouter:
 
 
 class CreditRouter:
-    route_app_labels = {"credits", }
+    route_app_labels = {"txn_credits", }
 
     def db_for_read(self, model, **hints):
         if model._meta.app_label in self.route_app_labels:
