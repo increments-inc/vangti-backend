@@ -331,6 +331,9 @@ APP_STORE_DEFAULT_OTP = "123456"
 # provider commission
 PROVIDER_COMMISSION = 0.01
 
+# provider commission
+PLATFORM_CHARGE = 0.1
+
 # location
 LOCATION_RADIUS = config("LOCATION_RADIUS", default=1)
 
