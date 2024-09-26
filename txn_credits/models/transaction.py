@@ -21,13 +21,13 @@ class ProviderTxnPlatform(BaseModel):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         try:
-            platform_receivable = PlatformReceivable.objects.get(
+            platform_receivable = PlatformReceivable.objects.using("credits").get(
                 user=self.provider
             )
             platform_receivable.amount += self.platform_fee
             platform_receivable.save()
         except PlatformReceivable.DoesNotExist:
-            PlatformReceivable.objects.create(
+            PlatformReceivable.objects.using("credits").create(
                 user=self.provider,
                 amount=self.platform_fee
             )
@@ -46,13 +46,13 @@ class PlatformReceivable(BaseModel):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
         try:
-            user_acc_credit = AccumulatedCredits.objects.get(
+            user_acc_credit = AccumulatedCredits.objects.using("credits").get(
                 user=self.user
             )
             user_acc_credit.credit_as_provider = self.amount
             user_acc_credit.save()
         except AccumulatedCredits.DoesNotExist:
-            AccumulatedCredits.objects.create(
+            AccumulatedCredits.objects.using("credits").create(
                 user=self.user,
                 credit_as_provider=self.amount
             )
