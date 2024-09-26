@@ -28,6 +28,7 @@ urlpatterns = [
     path('api/analytics/', include('analytics.urls')),
     path('api/location/', include('locations.urls')),
     path('api/setting/', include('user_setting.urls')),
+    path('api/txn-credits/', include('txn_credits.urls')),
 
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns = urlpatterns + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

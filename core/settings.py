@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'web_socket',
     'locations',
     'user_setting',
+    'txn_credits',
 ]
 
 SITE_ID = 1
@@ -190,10 +191,21 @@ DATABASES = {
         'PASSWORD': config("DB_PASSWORD_LOC", default=""),
         'HOST': config("DB_HOST_LOC", default=""),
         'PORT': config("DB_PORT_LOC", default=""),
+    },
+    'credits': {
+        'ENGINE': config("DB_ENGINE_CRE", default="django.db.backends.sqlite3"),
+        'NAME': config("DB_NAME_CRE", default=BASE_DIR / "db1.sqlite3"),
+        'USER': config("DB_USER", default=""),
+        'PASSWORD': config("DB_PASSWORD", default=""),
+        'HOST': config("DB_HOST", default=""),
+        'PORT': config("DB_PORT", default=""),
     }
 }
 
-DATABASE_ROUTERS = ['core.db_router.LocationRouter']
+DATABASE_ROUTERS = [
+    'core.db_router.LocationRouter',
+    'core.db_router.CreditRouter',
+]
 
 # firebase
 FIREBASE_API_KEY = config("FIREBASE_API_KEY")
@@ -317,7 +329,11 @@ APP_STORE_DEFAULT_PHONE = "+8801712345678"
 APP_STORE_DEFAULT_OTP = "123456"
 
 # provider commission
-PROVIDER_COMMISSION = 10
+PROVIDER_COMMISSION = 0.01
+
+# provider commission
+PLATFORM_CHARGE = 0.1
 
 # location
 LOCATION_RADIUS = config("LOCATION_RADIUS", default=1)
+

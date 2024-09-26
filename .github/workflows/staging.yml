@@ -22,5 +22,6 @@ jobs:
             python3 manage.py makemigrations
             python3 manage.py migrate
             python3 manage.py migrate --database=location
+            python3 manage.py migrate --database=credits
             echo ${{ secrets.STAGING_PASS }} | sudo -S systemctl restart nginx
             echo ${{ secrets.STAGING_PASS }} | sudo -S supervisorctl restart all
