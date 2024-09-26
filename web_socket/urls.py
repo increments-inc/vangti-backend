@@ -10,5 +10,5 @@ router = DefaultRouter()
 
 urlpatterns = [
         path('cancel-request/', CancelSearch.as_view()),
-        path('preferred-notes/', PreferredSearch.as_view()),
+        # path('preferred-notes/', PreferredSearch.as_view()),
               ] + router.urls

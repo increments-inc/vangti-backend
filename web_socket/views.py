@@ -15,22 +15,6 @@ class CancelSearchSerializer(serializers.Serializer):
     cancel = serializers.BooleanField(default=False)
 
 
-class PreferredNoteSearchResponse(serializers.Serializer):
-    note_list = serializers.ListField(child=serializers.CharField())
-    total = serializers.FloatField(default=0.0)
-    commission = serializers.FloatField(default=0.0)
-
-
-class PreferredNoteSearch(serializers.Serializer):
-    initial_note = serializers.CharField()
-    five_hundred = serializers.IntegerField(allow_null=True)
-    two_hundred = serializers.IntegerField(allow_null=True)
-    one_hundred = serializers.IntegerField(allow_null=True)
-    fifty = serializers.IntegerField(allow_null=True)
-    twenty = serializers.IntegerField(allow_null=True)
-    ten = serializers.IntegerField(allow_null=True)
-
-
 class CancelSearch(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -48,6 +32,23 @@ class CancelSearch(views.APIView):
                 status=status.HTTP_400_BAD_REQUEST)
 
 
+"""
+class PreferredNoteSearchResponse(serializers.Serializer):
+    note_list = serializers.ListField(child=serializers.CharField())
+    total = serializers.FloatField(default=0.0)
+    commission = serializers.FloatField(default=0.0)
+
+
+class PreferredNoteSearch(serializers.Serializer):
+    initial_note = serializers.CharField()
+    five_hundred = serializers.IntegerField(allow_null=True)
+    two_hundred = serializers.IntegerField(allow_null=True)
+    one_hundred = serializers.IntegerField(allow_null=True)
+    fifty = serializers.IntegerField(allow_null=True)
+    twenty = serializers.IntegerField(allow_null=True)
+    ten = serializers.IntegerField(allow_null=True)
+
+
 class PreferredSearch(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = PreferredNoteSearch
@@ -63,7 +64,6 @@ class PreferredSearch(views.APIView):
             initial_note = int(initial_note)
         except:
             return response.Response({"detail": "Enter Valid data"}, status=status.HTTP_400_BAD_REQUEST)
-
 
         five_hundred = self.request.data.get("five_hundred", 0)
         two_hundred = self.request.data.get("two_hundred", 0)
@@ -84,8 +84,6 @@ class PreferredSearch(views.APIView):
             return response.Response(
                 {"detail": "Amount Exceeded"},
                 status=status.HTTP_400_BAD_REQUEST)
-
-
 
         note_list = coin_change(
             initial_note,
@@ -113,3 +111,4 @@ class PreferredSearch(views.APIView):
                 "commission": settings.PROVIDER_COMMISSION
             },
             status=status.HTTP_200_OK)
+"""
