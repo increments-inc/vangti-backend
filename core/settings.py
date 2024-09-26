@@ -69,6 +69,12 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
     ),
+
+    # versioning
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
+    'ALLOWED_VERSIONS': ['v1', 'v2'],
+    'DEFAULT_VERSION': 'v1',
+
     "EXCEPTION_HANDLER": "utils.renderer.custom_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "utils.custom_pagination.CustomPagination",
     # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -120,7 +126,7 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'its in the name',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
-    # OTHER SETTINGS
+    'SCHEMA_PATH_PREFIX': r'/api/(?P<version>(v1|v2))',
 }
 
 AUTH_USER_MODEL = "users.User"
@@ -245,7 +251,6 @@ STATIC_ROOT = 'static/'
 # STATICFILES_DIRS = [BASE_DIR / 'static']
 
 
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 GDAL_LIBRARY_PATH = config("GDAL_LIBRARY_PATH")
@@ -336,4 +341,3 @@ PLATFORM_CHARGE = 0.1
 
 # location
 LOCATION_RADIUS = config("LOCATION_RADIUS", default=1)
-

@@ -22,13 +22,13 @@ urlpatterns = [
     # apps
     path('admin/', admin.site.urls),
 
-    path('api/users/', include('users.urls')),
-    path('api/sockets/', include('web_socket.urls')),
-    path('api/transaction/', include('transactions.urls')),
-    path('api/analytics/', include('analytics.urls')),
-    path('api/location/', include('locations.urls')),
-    path('api/setting/', include('user_setting.urls')),
-    path('api/txn-credits/', include('txn_credits.urls')),
+    path('api/v1/users/', include('users.urls')),
+    path('api/v1/sockets/', include('web_socket.urls')),
+    path('api/v1/transaction/', include('transactions.urls')),
+    path('api/v1/analytics/', include('analytics.urls')),
+    path('api/v1/location/', include('locations.urls')),
+    path('api/v1/setting/', include('user_setting.urls')),
+    path('api/v1/txn-credits/', include('txn_credits.urls')),
 
               ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 urlpatterns = urlpatterns + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
