@@ -49,10 +49,10 @@ class PlatformReceivable(BaseModel):
             user_acc_credit = AccumulatedCredits.objects.using("credits").get(
                 user=self.user
             )
-            user_acc_credit.credit_as_provider = self.amount
+            user_acc_credit.credit_as_provider = -abs(self.amount)
             user_acc_credit.save()
         except AccumulatedCredits.DoesNotExist:
             AccumulatedCredits.objects.using("credits").create(
                 user=self.user,
-                credit_as_provider=self.amount
+                credit_as_provider=-abs(self.amount)
             )
