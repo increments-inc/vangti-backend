@@ -1,7 +1,8 @@
 from core.abstract_models import models, BaseModel
 from django.contrib.auth.models import BaseUserManager
+from django.core.files import File
 from utils.helper import content_file_path, ImageCompress
-from utils.model_helpers.user import get_picture_hash
+from utils.model_helpers.user import get_picture_hash, get_default_picture
 from .basic_user import User
 
 GENDER = [
@@ -46,6 +47,10 @@ class UserInformation(BaseModel):
         self.__original_image = self.profile_pic
 
     def save(self, force_insert=False, force_update=False, *args, **kwargs):
+        if not bool(self.profile_pic):
+            stream = get_default_picture()
+            self.profile_pic = File(stream, name=f"{self.user.id}.png")
+
         self.profile_pic_hash = get_picture_hash(self.profile_pic)
 
         if self.profile_pic != self.__original_image:
