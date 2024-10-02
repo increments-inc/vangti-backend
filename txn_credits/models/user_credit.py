@@ -9,6 +9,9 @@ class CreditUser(BaseModel):
     class Meta:
         ordering = ("user_uid",)
 
+    def __str__(self):
+        return f"{self.user_uid}"
+
 
 class AccumulatedCredits(BaseModel):
     user = models.OneToOneField(CreditUser, on_delete=models.CASCADE)
@@ -17,3 +20,6 @@ class AccumulatedCredits(BaseModel):
 
     class Meta:
         ordering = ("user",)
+
+    def __str__(self):
+        return f"{self.user.user_uid}"
