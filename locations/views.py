@@ -42,7 +42,6 @@ class LocationViewSet(viewsets.ModelViewSet):
     #     return response.Response("", status=status.HTTP_400_BAD_REQUEST)
 
     def update_location(self, *args, **kwargs):
-        # print("helo", self.request.META.get('HTTP_AUTHORIZATION') )
         try:
             instance = self.get_queryset().get(user=self.request.user.id)
             serializer = self.serializer_class(instance, data=self.request.data, context={"request": self.request})

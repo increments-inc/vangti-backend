@@ -14,7 +14,6 @@ class UserFirebaseToken(BaseModel):
 
     def save(self, *args, **kwargs):
         if self._state.adding:
-            print("new!", self.user)
             try:
                 UserFirebaseToken.objects.filter(user=self.user).delete()
             except UserFirebaseToken.DoesNotExist:

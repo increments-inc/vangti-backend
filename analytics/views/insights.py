@@ -8,6 +8,7 @@ from ..serializers import *
 import random
 from collections import Counter
 import calendar
+from utils.log import logger
 
 
 class InsightsViewSet(viewsets.ModelViewSet):
@@ -126,7 +127,7 @@ class InsightsViewSet(viewsets.ModelViewSet):
             created_at__month=month_in_numerical,
             created_at__year=int(q_year),
         ).values("no_of_transaction", "total_amount_of_transaction", "profit", "created_at")
-        print("user analytics:", user_analytics)
+        logger.info("user analytics:", user_analytics)
         num_days = calendar.monthrange(int(q_year), int(month_in_numerical))[1]
 
         date_list = [datetime(int(q_year), int(month_in_numerical), day) for day in range(1, num_days + 1)]
@@ -179,7 +180,7 @@ class InsightsViewSet(viewsets.ModelViewSet):
             created_at__gte=last_week,
             created_at__lte=this_week
         )
-        # print("huhu", "\n", this_week_trans, "\n", last_week_trans)
+        # logger.info("huhu", "\n", this_week_trans, "\n", last_week_trans)
         if not this_week_trans and not last_week_trans:
             # dev data
             # data = {
@@ -204,7 +205,7 @@ class InsightsViewSet(viewsets.ModelViewSet):
             Avg("no_of_transaction", default=0),
             Avg("total_amount_of_transaction", default=0)
         )
-        # print(this_week_trans_number, last_week_trans_number)
+        # logger.info(this_week_trans_number, last_week_trans_number)
         total_amount_transaction_stat = (
                                                 (
                                                         this_week_trans_number["total_amount_of_transaction__avg"] -
@@ -278,7 +279,7 @@ class InsightsViewSet(viewsets.ModelViewSet):
             Sum("total_amount", default=0)
         )
 
-        print(this_note_list, past_note_list)
+        logger.info(this_note_list, past_note_list)
         try:
             stat = (
                            (
@@ -292,7 +293,7 @@ class InsightsViewSet(viewsets.ModelViewSet):
                    ) * 100
         except:
             stat = 0
-        # print("demanded vangti",Counter(note_list).most_common(1))
+        # logger.info("demanded vangti",Counter(note_list).most_common(1))
         data = {
             "note": "0",
             "interval": interval,

@@ -13,6 +13,7 @@ def send_message_to_channel(request, user, message):
     )
     return
 
+
 def send_message_to_user(user, message):
     channel_layer = get_channel_layer()
     async_to_sync(channel_layer.group_send)(
@@ -25,6 +26,7 @@ def send_message_to_user(user, message):
     return
 
 
+"""
 def coin_change_combinations(coins, amount):
     dp = [[] for _ in range(amount + 1)]
     dp[0] = [[]]
@@ -50,7 +52,7 @@ def coin_change(initial_amount, **kwargs):
         return [x for x in coins if not x >= initial_amount]
 
     all_combinations = coin_change_combinations(coins, initial_amount)
-    print(len(all_combinations))
+    logger.info(len(all_combinations))
 
     sum_note = (
             (five_hundred * 500) +
@@ -72,7 +74,7 @@ def coin_change(initial_amount, **kwargs):
                 combin.count(20) >= twenty and
                 combin.count(10) >= ten
         ):
-            print("here", combin)
+            logger.info("here", combin)
             for x in combin:
                 empty_notes.append(x)
             # break
@@ -87,3 +89,4 @@ def coin_change(initial_amount, **kwargs):
     note_list = sorted(list(set(note_list)))
 
     return note_list
+"""

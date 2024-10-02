@@ -14,6 +14,7 @@ import blurhash
 # image compression
 from rest_framework.exceptions import ValidationError
 from decimal import Decimal
+from utils.log import logger
 
 
 def ImageCompress(file):
@@ -51,12 +52,10 @@ def validate_ids(data, field="id", unique=True):
 def send_sms(numbers: list, message: str):
     for number in numbers:
         # requests.post(f"http://10.27.27.147:8000/?number={number}&message={message}")
-
         url = f"http://10.27.27.147:8000/?number={number}&message={message}"
-
         response = requests.request("POST", url)
-
-        print(response.text)
+        logger.info(response.text)
+    return
 
 
 def create_token(payload: dict):

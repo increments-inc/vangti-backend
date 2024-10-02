@@ -8,6 +8,7 @@ from django.contrib.gis.measure import Distance
 from locations.models import UserLocation
 from django.conf import settings
 from ..serializers import *
+from utils.log import logger
 
 
 class HomeAnalyticsViewSet(viewsets.ModelViewSet):
@@ -26,7 +27,7 @@ class HomeAnalyticsViewSet(viewsets.ModelViewSet):
                     "user", flat=True
                 )
             )
-            print(user_location_list)
+            logger.info(user_location_list)
             user_provider_list = list(
                 User.objects.filter(
                     id__in=user_location_list,
@@ -38,7 +39,7 @@ class HomeAnalyticsViewSet(viewsets.ModelViewSet):
                     'phone_number', flat=True
                 )
             )
-            print(user_provider_list)
+            logger.info(user_provider_list)
             return user_provider_list
         except:
             return []
@@ -49,9 +50,9 @@ class HomeAnalyticsViewSet(viewsets.ModelViewSet):
             # user_list = cache.get(f"{user.phone_number}")
             user_list = self.get_user_list(*args, **kwargs)
             count_user = len(user_list)
-            print(user_list)
+            logger.info(user_list)
             ratings = UserRating.objects.filter(user__phone_number__in=user_list, user__user_mode__is_provider=True)
-            print(ratings)
+            logger.info(ratings)
             user_ratings = ratings.aggregate(
                 Avg("deal_success_rate"),
                 Avg("total_amount_of_transaction"),
@@ -72,7 +73,7 @@ class HomeAnalyticsViewSet(viewsets.ModelViewSet):
                 "avg_demanded_vangti": "0",
                 "avg_deal_possibility": 0.0
             }
-            print("data", data)
+            logger.info("data", data)
         except:
             data = {
                 "total_active_provider": 0,
@@ -89,7 +90,7 @@ class HomeAnalyticsViewSet(viewsets.ModelViewSet):
         try:
             user_list = self.get_user_list(*args, **kwargs)
             count_user = len(user_list)
-            print(user_list, "user_list", count_user)
+            logger.info(user_list, "user_list", count_user)
             nearby_users = User.objects.filter(
                 phone_number__in=user_list,
             )
@@ -104,7 +105,7 @@ class HomeAnalyticsViewSet(viewsets.ModelViewSet):
                 seeker__phone_number__in=user_list,
                 seeker__user_mode__is_provider=False
             ).aggregate(Avg("total_amount"))
-            print(t_history)
+            logger.info(t_history)
             avg_demanded = t_history["total_amount__avg"]
             avg_deal_possibility = 0
             if total_providers == 0 and total_seekers > 0:

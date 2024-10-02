@@ -4,7 +4,7 @@ import qrcode
 from PIL import Image
 
 
-def generate(url, **kwargs):
+def generate_qr(url, **kwargs):
     fill_color = "black"
     back_color = "white"
     qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_H)

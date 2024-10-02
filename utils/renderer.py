@@ -2,12 +2,13 @@ import contextlib
 from rest_framework.renderers import JSONRenderer
 from rest_framework.utils import json
 from rest_framework.views import exception_handler
+from utils.log import logger
 
 
 class CustomJSONRenderer(JSONRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         messages = detail = errors = links = count = total_pages = None
-        print(data)
+        # logger.info(data)
         if data is not None:
             detail = (
                 data.pop("detail")

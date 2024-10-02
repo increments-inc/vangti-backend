@@ -12,8 +12,7 @@ def check_token_blacklist(token_initial, user):
     try:
         for token in OutstandingToken.objects.filter(user_id=user):
             if token == token_initial:
-                print("here")
-
+                pass
         return 0
     except:
         return

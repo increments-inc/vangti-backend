@@ -5,8 +5,9 @@ from .models import *
 from datetime import datetime
 from utils.apps.location import get_user_list
 from utils.apps.analytics import get_home_analytics_of_user_set
-
+from utils.log import logger
 from utils.apps.web_socket import send_message_to_user
+
 
 @app.task
 def user_deletion_routine_task():
@@ -15,16 +16,16 @@ def user_deletion_routine_task():
         user__is_active=False,
         time_of_deletion=datetime.now().date()
     ).values_list('user__id', flat=True))
-    print("users to be deleted", users_to_be_deleted_final)
+    logger.info("users to be deleted", users_to_be_deleted_final)
     user_deleted = User.objects.filter(id__in=users_to_be_deleted_final).delete()
     users_to_be_deleted.delete()
-    print("users has been deleted", user_deleted)
+    logger.info("users has been deleted", user_deleted)
 
 
 @shared_task
 def send_own_users_home_analytics(user):
     user_set = get_user_list(user)
-    rate_data  = get_home_analytics_of_user_set(user_set)
+    rate_data = get_home_analytics_of_user_set(user_set)
     message = {
         "request": "ANALYTICS",
         "status": "ACTIVE",

@@ -5,7 +5,6 @@ from rest_framework import (
     views,
     serializers,
 )
-from utils.apps.web_socket import send_message_to_channel, coin_change
 from django.core.cache import cache
 from django.conf import settings
 from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse, extend_schema_serializer
@@ -58,7 +57,7 @@ class PreferredSearch(views.APIView):
         responses=PreferredNoteSearchResponse,
     )
     def post(self, *args, **kwargs):
-        print(self.request.data, self.request.user)
+        logger.info(self.request.data, self.request.user)
         initial_note = self.request.data.get("initial_note")
         try:
             initial_note = int(initial_note)
@@ -101,7 +100,7 @@ class PreferredSearch(views.APIView):
 
         # note_message = f"note list is {x}"
         # note_list =
-        # print("x".join([f"{x}" for x in note_list]))
+        # logger.info("x".join([f"{x}" for x in note_list]))
         return response.Response(
             # {"detail": f'Note combination is {"x".join([f"{x}" for x in note_list])}'},
             {

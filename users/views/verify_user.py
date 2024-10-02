@@ -13,6 +13,7 @@ from ..serializers import *
 from ..app_utils import get_reg_token
 from django.conf import settings
 from ..tasks import send_own_users_home_analytics
+from utils.log import logger
 
 
 class UserInformationViewSet(viewsets.ModelViewSet):
@@ -31,13 +32,13 @@ class UserInformationViewSet(viewsets.ModelViewSet):
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
     def change_profile(self, request, *args, **kwargs):
-        print(request.data)
+        logger.info(request.data)
         data = request.data
         if data:
             for key in data.copy():
                 if data[key] in ['', "", " ", None]:
                     del data[key]
-        print(request.data)
+        logger.info(request.data)
         user = request.user
         serializer = self.serializer_class(
             instance=user.user_info,
@@ -204,7 +205,7 @@ class UserKYCInformationViewSet(viewsets.ModelViewSet):
 
     def update_kyc_information(self, request, *args, **kwargs):
         instance = self.queryset.get(user=request.user)
-        print(instance)
+        logger.info(instance)
         serializer = self.get_serializer_class()(
             instance, data=self.request.data, partial=True)
         if serializer.is_valid():

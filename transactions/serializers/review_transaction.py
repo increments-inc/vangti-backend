@@ -2,6 +2,7 @@ from rest_framework import exceptions, serializers, validators
 from ..models import *
 from utils.apps.transaction import get_transaction_id
 from utils.helper import secret_decode
+from utils.log import logger
 
 
 class TransactionMessagesSerializer(serializers.ModelSerializer):
@@ -40,7 +41,7 @@ class TransactionAsSeekerReviewSerializer(serializers.ModelSerializer):
         fields = ("transaction_no", "rating", "review_message",)
 
     def create(self, validated_data):
-        print(validated_data)
+        logger.info(validated_data)
         user = self.context.get("request").user
         transaction_no = validated_data.pop("transaction")["get_transaction_unique_no"]
         transaction_id = get_transaction_id(transaction_no)
@@ -83,7 +84,7 @@ class TransactionAsProviderReviewSerializer(serializers.ModelSerializer):
         fields = ("transaction_no", "rating", "review_message",)
 
     def create(self, validated_data):
-        print(validated_data)
+        logger.info(validated_data)
         user = self.context.get("request").user
         transaction_no = validated_data.pop("transaction")["get_transaction_unique_no"]
         transaction_id = get_transaction_id(transaction_no)
