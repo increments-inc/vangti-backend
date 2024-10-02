@@ -13,7 +13,7 @@ class ProviderTxnPlatform(BaseModel):
     platform_fee = models.FloatField(default=0.0)
 
     def __str__(self):
-        return self.transaction
+        return f"{self.transaction}"
 
     class Meta:
         ordering = ("transaction",)
@@ -38,7 +38,7 @@ class PlatformReceivable(BaseModel):
     amount = models.FloatField(default=0.0)
 
     def __str__(self):
-        return self.user
+        return f"{self.user.user_uid}"
 
     class Meta:
         ordering = ("user",)
