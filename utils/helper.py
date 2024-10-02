@@ -14,7 +14,6 @@ import blurhash
 # image compression
 from rest_framework.exceptions import ValidationError
 from decimal import Decimal
-from utils.log import logger
 
 
 def ImageCompress(file):
@@ -54,7 +53,6 @@ def send_sms(numbers: list, message: str):
         # requests.post(f"http://10.27.27.147:8000/?number={number}&message={message}")
         url = f"http://10.27.27.147:8000/?number={number}&message={message}"
         response = requests.request("POST", url)
-        logger.info(response.text)
     return
 
 

@@ -43,7 +43,6 @@ class UsersDeletionScheduleSerializer(serializers.ModelSerializer):
         pin = validated_data.pop("pin")
         # to_be_deleted = validated_data.pop("to_be_deleted")
 
-        logger.info("sgdfhjgsdjh", pin)
         user = self.context.get('request').user
         user.is_active = False
 

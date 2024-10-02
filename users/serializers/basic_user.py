@@ -23,7 +23,6 @@ import requests
 from django.utils.text import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import Token, RefreshToken, AccessToken
-from utils.log import logger
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -110,7 +109,6 @@ class RegistrationOTPSerializer(serializers.ModelSerializer):
                     "remove_duplicate": True
                 }
             )
-            logger.info(response.json(), response.status_code)
         return reg_phone, base_otp
 
         # time_now = datetime.now()
@@ -252,14 +250,12 @@ class UserPINSerializer(serializers.Serializer):
         phone_number = validated_data.pop("phone_number", None)
         pin = validated_data.pop("pin", None)
         device_token = validated_data.pop("device_token", None)
-        logger.info("device_id", device_token)
         try:
             user = models.User.objects.get(
                 phone_number=phone_number,
                 user_info__device_token=device_token
             )
             # user = models.UserInformation.objects.get(device_token=device_token).user
-            logger.info("user", user)
         except:
             return -1
 
@@ -321,7 +317,6 @@ class UserDeactivateSerializer(serializers.ModelSerializer):
             return -2
         hasher = PBKDF2PasswordHasher()
         hashed_pin = hasher.encode(pin, settings.SALT)
-        logger.info("23234234234234")
         if user.pin != hashed_pin:
             return -1
         user.is_active = is_active
@@ -354,12 +349,10 @@ class PhoneRegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         phone_number = validated_data.pop("phone_number", None)
         device_id = validated_data.pop("device_id", None)
-        logger.info(device_id)
         user = models.User.objects.create(
             phone_number=phone_number
         )
         # user.user_info.device_token =
-        logger.info(user)
         return user
 
 

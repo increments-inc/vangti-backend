@@ -23,8 +23,6 @@ def send_message_to_channel(user_id, message):
 
 @shared_task
 def send_out_analytics_mesg(some_list):
-    logger.info(some_list)
-    # logger.info(request.user)
     for ins in some_list:
         user = ins.pop("user")
         message = {
