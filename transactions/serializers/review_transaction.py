@@ -40,7 +40,6 @@ class TransactionAsSeekerReviewSerializer(serializers.ModelSerializer):
         fields = ("transaction_no", "rating", "review_message",)
 
     def create(self, validated_data):
-        print(validated_data)
         user = self.context.get("request").user
         transaction_no = validated_data.pop("transaction")["get_transaction_unique_no"]
         transaction_id = get_transaction_id(transaction_no)
@@ -83,7 +82,6 @@ class TransactionAsProviderReviewSerializer(serializers.ModelSerializer):
         fields = ("transaction_no", "rating", "review_message",)
 
     def create(self, validated_data):
-        print(validated_data)
         user = self.context.get("request").user
         transaction_no = validated_data.pop("transaction")["get_transaction_unique_no"]
         transaction_id = get_transaction_id(transaction_no)

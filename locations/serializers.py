@@ -10,6 +10,7 @@ from django.core.cache import cache
 from django.db.models import Q
 from utils.apps.location import latlong_to_address
 from drf_spectacular.utils import extend_schema_field
+from utils.log import logger
 
 
 class MapsSerializer(serializers.Serializer):
@@ -65,10 +66,10 @@ class LocationSerializer(serializers.ModelSerializer):
         users = list(UserLocation.objects.exclude(user=user.id).filter(
             centre__distance_lte=(center, Distance(km=radius))
         ).values_list("user", flat=True))
-        print(users)
+        logger.info(users)
         user_phone_list = User.objects.filter(id__in=users).values_list("phone_number", flat=True)
         try:
-            print(user_phone_list)
+            logger.info(user_phone_list)
             user_loc = LocationRadius.objects.get(
                 location=obj
             )

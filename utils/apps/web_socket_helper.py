@@ -4,8 +4,8 @@ from transactions.models import Transaction
 from users.models import User
 from utils.apps.transaction import get_transaction_id
 
-from .location import get_user_list_provider
-from .analytics import calculate_user_impressions
+from utils.apps.location import get_user_list_provider
+from utils.apps.analytics import calculate_user_impressions
 
 
 def get_user_information(user):

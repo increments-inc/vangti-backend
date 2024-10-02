@@ -76,7 +76,6 @@ def at_transaction_deletion(user, instance):
 def at_transaction_completion(instance):
     # Provider Rating
     total_success_data = total_success(instance.provider, as_provider=True)
-    print(total_success_data)
     #     return {"total_number": total_count, "total_amount": total_data}
     try:
         prov_data = UserRating.objects.get(

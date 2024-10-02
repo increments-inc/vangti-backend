@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'import_export',
 
     # apps
     'users',
@@ -341,3 +342,12 @@ PLATFORM_CHARGE = 0.1
 
 # location
 LOCATION_RADIUS = config("LOCATION_RADIUS", default=1)
+
+# session
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 1800
+SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
+
+# log file location
+LOG_DIR = config("LOG_LOCATION")
+

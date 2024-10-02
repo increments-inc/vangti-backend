@@ -30,7 +30,7 @@ def calculate_user_impressions(user):
     # if acc_type == "BUSINESS":
     #     acc_type = 10
 
-    # print("here",
+    # logger.info("here",
     #       deal_success_rate ,
     #       rating ,
     #       (1 / provider_response_time.total_seconds()) ,
@@ -45,7 +45,6 @@ def calculate_user_impressions(user):
             (total_amount_of_transaction / no_of_transaction) *  # avg amount in transaction
             acc_type
     )
-    # print(user.id, user_impression)
     return user_impression
 
 
@@ -73,7 +72,6 @@ def get_home_analytics_of_user_set(user_set):
     rating_queryset = UserRating.objects.filter(
         user__in=user_provider_set
     )
-    # print("rate q", user_provider_set)
     # when nearby users have no rating set
     if not rating_queryset:
         return {

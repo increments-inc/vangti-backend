@@ -25,6 +25,8 @@ class Command(BaseCommand):
                     profit=txn.charge,
                     platform_fee=(txn.charge * settings.PLATFORM_CHARGE)
                 )
-                print(f"credit added for {txn.provider}")
+                self.stdout.write(
+                    self.style.SUCCESS(f"credit added for {txn.provider}"))
             except:
-                print(f"ERROR !!!!!  {txn.provider}")
+                self.stdout.write(
+                    self.style.ERROR(f"ERROR !!!!!  {txn.provider}"))
