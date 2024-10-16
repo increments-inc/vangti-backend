@@ -1,6 +1,5 @@
 import asyncio
 import json
-from attr.filters import exclude
 from django.core.cache import cache
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -68,7 +67,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
         logger.info("all data!!!!\n %s", f"{receive_dict}")
         status = receive_dict["status"]
-        print(status)
         if "seeker" in receive_dict["data"]:
             if receive_dict["data"]["seeker"] == str(self.user.id) and status == "PENDING":
                 user_list = await self.fetch_user_list(receive_dict)

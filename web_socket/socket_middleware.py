@@ -2,9 +2,8 @@ from channels.db import database_sync_to_async
 from django.contrib.auth import get_user_model
 import jwt
 from django.conf import settings
-from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
-from rest_framework_simplejwt.tokens import RefreshToken
 import re
+
 User = get_user_model()
 
 
