@@ -87,7 +87,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 cache.set(
                     receive_dict["data"]["seeker"],
                     user_list,
-                    timeout=None
+                    timeout=900
                 )
                 # receive_dict["status"] = "SEARCHING"
                 receive_dict.update({"status": "SEARCHING"})
@@ -199,7 +199,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         cache.set(
             f'{receive_dict["data"]["seeker"]}-timestamp',
             [[user_list[0], datetime.now()]],
-            timeout=None
+            timeout=300
         )
 
         # user list
@@ -214,7 +214,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         cache.set(
             f'{receive_dict["data"]["seeker"]}-request',
             receive_dict["data"]["provider"],
-            timeout=None
+            timeout=300
         )
 
         await self.channel_layer.group_send(
@@ -246,7 +246,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 timestamp_list[-1].append(datetime.now())
                 if user_list_length != 0:
                     timestamp_list.append([user_list[0], datetime.now()])
-                cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=None)
+                cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=300)
                 logger.info("in reject timestamp list %s", f"{timestamp_list}")
 
         if user_list_length != 0:
@@ -305,7 +305,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         # timestamp'
         timestamp_list = cache.get(f'{receive_dict["data"]["seeker"]}-timestamp')
         timestamp_list[-1].append(datetime.now())
-        cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=None)
+        cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=300)
         logger.info("in accept timestamp list %s", f"{timestamp_list}")
 
         update_providers_timestamps.delay(
