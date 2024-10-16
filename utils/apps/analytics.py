@@ -5,7 +5,8 @@ from analytics.models import UserRating
 from django.conf import settings
 from django.contrib.gis.measure import D, Distance
 from datetime import timedelta, time, datetime
-from transactions.models import TransactionHistory, Transaction
+from transactions.models import (
+    TransactionHistory, Transaction, TransactionAsSeekerReview)
 
 
 def calculate_user_impressions(user):
@@ -30,7 +31,7 @@ def calculate_user_impressions(user):
     # if acc_type == "BUSINESS":
     #     acc_type = 10
 
-    # print("here",
+    # logger.info("here",
     #       deal_success_rate ,
     #       rating ,
     #       (1 / provider_response_time.total_seconds()) ,
@@ -45,11 +46,14 @@ def calculate_user_impressions(user):
             (total_amount_of_transaction / no_of_transaction) *  # avg amount in transaction
             acc_type
     )
-    # print(user.id, user_impression)
     return user_impression
 
 
-def get_home_analytics_of_user_set(user_set):
+def get_home_analytics_of_user_set(user_set_data):
+    # omitting users who were never had any reviews
+    user_set = user_set_data.filter(
+        txn_seeker_review_provider__isnull=False
+    ).distinct()
     user_provider_set_ini = user_set.filter(
         user_mode__is_provider=True
     )
@@ -73,7 +77,6 @@ def get_home_analytics_of_user_set(user_set):
     rating_queryset = UserRating.objects.filter(
         user__in=user_provider_set
     )
-    # print("rate q", user_provider_set)
     # when nearby users have no rating set
     if not rating_queryset:
         return {

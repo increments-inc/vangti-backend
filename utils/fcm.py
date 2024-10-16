@@ -1,6 +1,7 @@
 from firebase_admin import credentials, messaging, auth
 from users.models import UserFirebaseToken
 from datetime import datetime, timedelta
+from utils.log import logger
 
 
 def send_fcm(user, data):
@@ -55,8 +56,8 @@ def send_fcm(user, data):
                 token=tok,
             )
             response = messaging.send(message)
-            print(f"fcm sent to {user}")
+            logger.info(f"fcm sent to {user}")
             break
         except:
-            print(f"error sending fcm to {user}")
+            logger.info(f"error sending fcm to {user}")
     return

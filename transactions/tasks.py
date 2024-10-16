@@ -6,6 +6,7 @@ from celery import shared_task
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from utils.apps.location import get_user_location, get_directions
+from utils.log import logger
 
 
 def send_message_to_channel(user_id, message):
@@ -22,8 +23,6 @@ def send_message_to_channel(user_id, message):
 
 @shared_task
 def send_out_analytics_mesg(some_list):
-    print(some_list)
-    # print(request.user)
     for ins in some_list:
         user = ins.pop("user")
         message = {
@@ -71,5 +70,5 @@ def send_out_location_data(user, instance_id):
     # for i in range(3):
     send_message_to_channel(str(instance.seeker.id), message)
     send_message_to_channel(str(instance.provider.id), message)
-    print("in transaction")
+    logger.info("in transaction")
     return

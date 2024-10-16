@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'import_export',
 
     # apps
     'users',
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
     'web_socket',
     'locations',
     'user_setting',
+    'txn_credits',
 ]
 
 SITE_ID = 1
@@ -68,6 +70,12 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
     ),
+
+    # versioning
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
+    'ALLOWED_VERSIONS': ['v1', 'v2'],
+    'DEFAULT_VERSION': 'v1',
+
     "EXCEPTION_HANDLER": "utils.renderer.custom_exception_handler",
     "DEFAULT_PAGINATION_CLASS": "utils.custom_pagination.CustomPagination",
     # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
@@ -79,8 +87,8 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": False,
     "UPDATE_LAST_LOGIN": False,
@@ -119,7 +127,7 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'its in the name',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
-    # OTHER SETTINGS
+    'SCHEMA_PATH_PREFIX': r'/api/(?P<version>(v1|v2))',
 }
 
 AUTH_USER_MODEL = "users.User"
@@ -190,10 +198,21 @@ DATABASES = {
         'PASSWORD': config("DB_PASSWORD_LOC", default=""),
         'HOST': config("DB_HOST_LOC", default=""),
         'PORT': config("DB_PORT_LOC", default=""),
+    },
+    'credits': {
+        'ENGINE': config("DB_ENGINE_CRE", default="django.db.backends.sqlite3"),
+        'NAME': config("DB_NAME_CRE", default=BASE_DIR / "db1.sqlite3"),
+        'USER': config("DB_USER", default=""),
+        'PASSWORD': config("DB_PASSWORD", default=""),
+        'HOST': config("DB_HOST", default=""),
+        'PORT': config("DB_PORT", default=""),
     }
 }
 
-DATABASE_ROUTERS = ['core.db_router.LocationRouter']
+DATABASE_ROUTERS = [
+    'core.db_router.LocationRouter',
+    'core.db_router.CreditRouter',
+]
 
 # firebase
 FIREBASE_API_KEY = config("FIREBASE_API_KEY")
@@ -231,7 +250,6 @@ STATIC_URL = 'static/'
 STATIC_ROOT = 'static/'
 
 # STATICFILES_DIRS = [BASE_DIR / 'static']
-
 
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
@@ -317,7 +335,19 @@ APP_STORE_DEFAULT_PHONE = "+8801712345678"
 APP_STORE_DEFAULT_OTP = "123456"
 
 # provider commission
-PROVIDER_COMMISSION = 10
+PROVIDER_COMMISSION = 0.01
+
+# provider commission
+PLATFORM_CHARGE = 0.1
 
 # location
 LOCATION_RADIUS = config("LOCATION_RADIUS", default=1)
+
+# session
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 1800
+SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
+
+# log file location
+LOG_DIR = config("LOG_LOCATION")
+

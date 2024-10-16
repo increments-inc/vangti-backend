@@ -10,7 +10,8 @@ from users.models import User
 class Command(BaseCommand):
     def handle(self, *args, **options):
         all_users = User.objects.all()
-        print(f"starting batch processing of user rating...")
+        self.stdout.write(
+                self.style.NOTICE(f"starting batch processing of user rating..."))
         for user in all_users:
             # user as provider
             try:
@@ -25,7 +26,8 @@ class Command(BaseCommand):
                 user_as_prov.rating = all_reviews["rating__avg"]
                 user_as_prov.save()
             except:
-                print(f"user{user} does not have review as provider")
+                self.stdout.write(
+                self.style.ERROR(f"user{user} does not have review as provider"))
 
             # user as seeker
             try:
@@ -41,8 +43,11 @@ class Command(BaseCommand):
                 user_as_seek.rating = new_rating
                 user_as_seek.save()
             except:
-                print(f"user{user} does not have review as seeker")
+                self.stdout.write(
+                self.style.ERROR(f"user{user} does not have review as seeker"))
 
-            print(f"rating for user {user}")
+            self.stdout.write(
+                self.style.SUCCESS(f"rating for user {user}"))
 
-        print(f"...ending batch processing of transaction review")
+        self.stdout.write(
+                self.style.NOTICE(f"...ending batch processing of transaction review"))

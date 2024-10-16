@@ -4,8 +4,8 @@ from transactions.models import Transaction
 from users.models import User
 from utils.apps.transaction import get_transaction_id
 
-from .location import get_user_list_provider
-from .analytics import calculate_user_impressions
+from utils.apps.location import get_user_list_provider
+from utils.apps.analytics import calculate_user_impressions
 
 
 def get_user_information(user):
@@ -58,7 +58,7 @@ def create_transaction_instance(dict_data):
         )
         transaction_instance.total_amount = dict_data["amount"]
         transaction_instance.preferred_notes = dict_data["preferred"]
-        transaction_instance.charge = settings.PROVIDER_COMMISSION
+        transaction_instance.charge = (dict_data["amount"]*settings.PROVIDER_COMMISSION)
         transaction_instance.save()
     except Transaction.DoesNotExist:
         transaction_instance = Transaction.objects.create(
@@ -66,7 +66,7 @@ def create_transaction_instance(dict_data):
             preferred_notes=dict_data["preferred"],
             provider=provider,
             seeker=seeker,
-            charge=settings.PROVIDER_COMMISSION
+            charge=(dict_data["amount"]*settings.PROVIDER_COMMISSION)
         )
     transaction_hex_id = transaction_instance.get_transaction_unique_no
     return str(transaction_hex_id)

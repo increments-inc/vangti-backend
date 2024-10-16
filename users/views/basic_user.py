@@ -53,7 +53,6 @@ class CustomTokenObtainPairView(TokenObtainPairView):
         }
     )
     def post(self, request, *args, **kwargs):
-        print(request.data)
         serializer = self.serializer_class(
             data=request.data,
             context={"request": request}
@@ -83,7 +82,6 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         return self.serializer_class
 
     def post(self, request, *args, **kwargs):
-        print("data", request.data)
         serializer = self.serializer_class(
             data=request.data,
             context={"request": request}
@@ -198,7 +196,6 @@ class GetNumberViewSet(viewsets.ModelViewSet):
         return self.serializer_class
 
     def post(self, request, *args, **kwargs):
-        print("data", request.data)
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
             user = serializer.save()
@@ -222,7 +219,6 @@ class GetNumberViewSet(viewsets.ModelViewSet):
         )
 
     def verify_otp(self, *args, **kwargs):
-        print( "req data",self.request.data)
         phone_number = self.request.data.get("phone_number")
         if phone_number is not None:
             instance = self.queryset.filter(

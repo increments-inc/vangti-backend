@@ -14,6 +14,7 @@ from utils.apps.analytics import get_home_analytics_of_user_set
 from utils.apps.web_socket_helper import get_user_information, get_transaction_instance, create_transaction_instance, \
     get_providers
 from utils.apps.location import get_user_list, update_user_location_instance, get_user_location_instance, get_directions
+from utils.log import logger
 from ..tasks import update_providers_timestamps, send_push_notif
 
 
@@ -64,12 +65,13 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 receive_dict = json.loads(text_data)
         except:
             return
-        print("all data!!!!\n", receive_dict)
+        logger.info("all data!!!!\n", receive_dict)
         status = receive_dict["status"]
         if "seeker" in receive_dict["data"]:
             if receive_dict["data"]["seeker"] == str(self.user.id) and status == "PENDING":
-                user_list = await self.fetch_user_list(receive_dict)
-                print("user list", user_list)
+                user_list = await self.get_user_list(receive_dict)
+                logger.info("user list", user_list)
+
                 # cache set for nearby users
                 if len(user_list) == 0:
                     receive_dict.update({"status": "NO_PROVIDER"})
@@ -142,7 +144,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 await self.receive_message_user(receive_dict)
 
     async def send_to_receiver_data(self, event):
-        print("event", event)
+        logger.info("event", event)
         receive_dict = event['receive_dict']
         if type(receive_dict) == str:
             receive_dict = json.loads(receive_dict)
@@ -151,7 +153,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     async def delayed_message(self, receive_dict):
         for i in range(0, 30):  # time 30 sec/provider
             await asyncio.sleep(1)
-            print("cache log", i)
+            logger.info("cache log", i)
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
             if (cancelled_request := cache.get(f'{receive_dict["data"]["seeker"]}')) is None:
@@ -245,7 +247,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 if user_list_length != 0:
                     timestamp_list.append([user_list[0], datetime.now()])
                 cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=None)
-                print("in reject", "timestamp list", timestamp_list)
+                logger.info("in reject", "timestamp list", timestamp_list)
 
         if user_list_length != 0:
             receive_dict["data"]["provider"] = user_list[0]
@@ -304,7 +306,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         timestamp_list = cache.get(f'{receive_dict["data"]["seeker"]}-timestamp')
         timestamp_list[-1].append(datetime.now())
         cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=None)
-        print("in accept", "timestamp list", timestamp_list)
+        logger.info("in accept", "timestamp list", timestamp_list)
 
         update_providers_timestamps.delay(
             receive_dict["data"]["seeker"],
