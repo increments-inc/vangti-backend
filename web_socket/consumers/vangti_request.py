@@ -15,7 +15,10 @@ from utils.apps.web_socket_helper import get_user_information, get_transaction_i
     get_providers
 from utils.apps.location import get_user_list, update_user_location_instance, get_user_location_instance, get_directions
 from utils.log import logger
-from ..tasks import update_providers_timestamps, send_push_notif
+from ..tasks import (
+    update_providers_timestamps, send_push_notif,
+    create_on_req_user, delete_on_req_user
+)
 
 
 class VangtiRequestConsumer(AsyncWebsocketConsumer):
@@ -201,6 +204,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             [[user_list[0], datetime.now()]],
             timeout=300
         )
+        # create on req user
+        create_on_req_user.delay(user_list[0])
 
         # user list
         receive_dict["data"]["provider"] = user_list[0]
@@ -238,15 +243,31 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         if user_list_length != 0:
             if user_list[0] == receive_dict["data"]["provider"]:
                 user_list.pop(0)
+                # delete req user
+                delete_on_req_user.delay(receive_dict["data"]["provider"])
+
+                # after popping user
                 user_list_length = len(user_list)
                 cache.set(receive_dict["data"]["seeker"], user_list)
 
                 # timestamp'
-                timestamp_list = cache.get(f'{receive_dict["data"]["seeker"]}-timestamp')
+                timestamp_list = cache.get(
+                    f'{receive_dict["data"]["seeker"]}-timestamp'
+                )
                 timestamp_list[-1].append(datetime.now())
+
+                # delete user req
+                delete_on_req_user.delay(timestamp_list[-1][0])
+                
+                print(timestamp_list)
+                print("hi there")
                 if user_list_length != 0:
                     timestamp_list.append([user_list[0], datetime.now()])
+                    # create user req
+                    create_on_req_user.delay(user_list[0])
+
                 cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=300)
+
                 logger.info("in reject timestamp list %s", f"{timestamp_list}")
 
         if user_list_length != 0:
@@ -272,6 +293,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             update_providers_timestamps.delay(
                 receive_dict["data"]["seeker"],
                 cache.get(f'{receive_dict["data"]["seeker"]}-timestamp'))
+
             receive_dict.update({"status": "NO_PROVIDER"})
             # receive_dict["status"] = "NO_PROVIDER"
             cache.delete(f'{receive_dict["data"]["seeker"]}-request')
@@ -305,6 +327,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         # timestamp'
         timestamp_list = cache.get(f'{receive_dict["data"]["seeker"]}-timestamp')
         timestamp_list[-1].append(datetime.now())
+        # delete user req
+        delete_on_req_user.delay(timestamp_list[-1][0])
+
         cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=300)
         logger.info("in accept timestamp list %s", f"{timestamp_list}")
 
@@ -573,4 +598,3 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             is_active=False
         )
         return
-

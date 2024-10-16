@@ -25,3 +25,16 @@ class UserTransactionResponse(BaseModel):
         if self.response_time is not None:
             self.response_duration = self.response_time - self.created_at
         super().save(*args, **kwargs)
+
+
+class UserOnTxnRequest(BaseModel):
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE
+    )
+
+    class Meta:
+        ordering = ("user",)
+
+    def __str__(self):
+        return f"{self.user.id}"
+

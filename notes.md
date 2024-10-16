@@ -11,6 +11,7 @@
 
 celery -A core.celery beat --loglevel=info
 celery -A core worker --loglevel=info
+--concurrency=4
 
 
 python3 manage.py migrate --database=location
