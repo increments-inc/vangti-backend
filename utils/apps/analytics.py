@@ -5,7 +5,8 @@ from analytics.models import UserRating
 from django.conf import settings
 from django.contrib.gis.measure import D, Distance
 from datetime import timedelta, time, datetime
-from transactions.models import TransactionHistory, Transaction
+from transactions.models import (
+    TransactionHistory, Transaction, TransactionAsSeekerReview)
 
 
 def calculate_user_impressions(user):
@@ -48,7 +49,11 @@ def calculate_user_impressions(user):
     return user_impression
 
 
-def get_home_analytics_of_user_set(user_set):
+def get_home_analytics_of_user_set(user_set_data):
+    # omitting users who were never had any reviews
+    user_set = user_set_data.filter(
+        txn_seeker_review_provider__isnull=False
+    ).distinct()
     user_provider_set_ini = user_set.filter(
         user_mode__is_provider=True
     )
