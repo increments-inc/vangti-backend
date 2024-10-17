@@ -159,7 +159,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({'message': receive_dict, "user": str(self.user.id)}))
 
     async def delayed_message(self, receive_dict):
-        for i in range(0, 10):  # time 30 sec/provider
+        for i in range(0, 30):  # time 30 sec/provider
             await asyncio.sleep(1)
             logger.info("cache log %s", f"{i}")
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
