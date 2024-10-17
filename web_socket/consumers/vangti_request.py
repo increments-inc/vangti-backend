@@ -7,14 +7,17 @@ from channels.exceptions import StopConsumer
 from django.db import transaction
 from asgiref.sync import async_to_sync, sync_to_async
 from datetime import datetime, timedelta
+from itertools import cycle
 from transactions.models import (
     Transaction, TransactionMessages, UserTransactionResponse, UserAppActivityMode, UserOnTxnRequest
 )
 from users.models import User
 from utils.apps.transaction import get_transaction_id
 from utils.apps.analytics import get_home_analytics_of_user_set
-from utils.apps.web_socket_helper import get_user_information, get_transaction_instance, create_transaction_instance, \
-    get_providers
+from utils.apps.web_socket_helper import (
+    get_user_information, get_transaction_instance,
+    create_transaction_instance, get_providers, iterate_over_cycle
+)
 from utils.apps.location import get_user_list, update_user_location_instance, get_user_location_instance, get_directions
 from utils.log import logger
 from ..tasks import (
@@ -199,10 +202,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     async def receive_pending(self, receive_dict):
         # cache get
         user_list = cache.get(receive_dict["data"]["seeker"])
-        print("here in receive pending", user_list)
-        await self.lookup_user_list(user_list)
-        print("after looking up user_list", user_list)
-
+        print("before iterating user_list", user_list)
+        user_list = await self.lookup_user_list(receive_dict["data"]["seeker"], user_list)
+        print("after iterating user_list", user_list)
         # cache set for timestamps for providers
         cache.set(
             f'{receive_dict["data"]["seeker"]}-timestamp',
@@ -605,18 +607,37 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         return
 
     @database_sync_to_async
-    def lookup_user_list(self, user_list):
-        print("here in look upppppp")
-        provider = user_list[0]
-        for user in user_list:
-            try:
-                print(user, "looking up")
-                provider_on_req = UserOnTxnRequest.objects.get(user_id=user)
-                print("found! on provider request", provider_on_req)
-                # if provider_on_req:
-                #     return
-            except:
-                # return provider
-                print("in exception")
+    def lookup_user_list(self, seeker, user_list):
+        print("here in look up.........")
+        new_list = iterate_over_cycle(user_list)
+        # if not new_list:
+        #     new_prov_list = get_providers(seeker)
+        #     final_list = iterate_over_cycle(new_prov_list)
+        #     if final_list:
+        #         return final_list
+        return new_list
 
-        return
+
+        # for user in user_list:
+        #     provider_on_req = UserOnTxnRequest.objects.filter(user_id=user)
+        #     print("found! on provider request", provider_on_req)
+        #     if provider_on_req.exists():
+        #         continue
+            # user
+        # for user in user_list:
+        #     try:
+        #         print(user, "looking up")
+        #         provider_on_req = UserOnTxnRequest.objects.get(user_id__str=user)
+        #         print("found! on provider request", provider_on_req)
+        #         # if provider_on_req:
+        #         #     return
+        #     except UserOnTxnRequest.DoesNotExist:
+        #         print(user, "looking up")
+        #         provider_on_req = UserOnTxnRequest.objects.get(user_id__str=user)
+        #         print("found! on provider request", provider_on_req)
+        #         # if provider_on_req:
+        #         #     return
+        #
+        #         # return provider
+        #         print("in exception")
+
