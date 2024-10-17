@@ -542,7 +542,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     def get_home_analytics(self, user):
         user_set = get_user_list(user)
         # excluding the requesting user
-        user_set = user_set.exclude(id=user.id)
+        # user_set = user_set.exclude(id=user.id)
         message = {
             "request": "ANALYTICS",
             "status": "ACTIVE",
