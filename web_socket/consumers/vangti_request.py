@@ -73,7 +73,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         except:
             return
 
-        logger.info("all data!!!!\n %s", f"{receive_dict}")
+        # logger.info("all data!!!!\n %s", f"{receive_dict}")
         status = receive_dict["status"]
         if "seeker" in receive_dict["data"]:
             if receive_dict["data"]["seeker"] == str(self.user.id) and status == "PENDING":
@@ -159,7 +159,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({'message': receive_dict, "user": str(self.user.id)}))
 
     async def delayed_message(self, receive_dict):
-        for i in range(0, 30):  # time 30 sec/provider
+        for i in range(0, 10):  # time 30 sec/provider
             await asyncio.sleep(1)
             logger.info("cache log %s", f"{i}")
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
@@ -245,13 +245,19 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
     async def receive_reject(self, receive_dict):
         user_list = cache.get(receive_dict["data"]["seeker"])
+
+
         user_list_length = len(user_list)
 
         if user_list_length != 0:
             if user_list[0] == receive_dict["data"]["provider"]:
                 user_list.pop(0)
-                # delete req user
                 delete_on_req_user.delay(receive_dict["data"]["provider"])
+
+                print("before iterating user_list", user_list)
+                user_list = await self.lookup_user_list(receive_dict["data"]["seeker"], user_list)
+                print("after iterating user_list", user_list)
+                # delete req user
 
                 # after popping user
                 user_list_length = len(user_list)
@@ -266,8 +272,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 # delete user req
                 delete_on_req_user.delay(timestamp_list[-1][0])
                 
-                print(timestamp_list)
-                print("hi there")
+                # print(timestamp_list)
+                # print("hi there")
                 if user_list_length != 0:
                     timestamp_list.append([user_list[0], datetime.now()])
                     # create user req
@@ -275,7 +281,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
                 cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=300)
 
-                logger.info("in reject timestamp list %s", f"{timestamp_list}")
+                # logger.info("in reject timestamp list %s", f"{timestamp_list}")
 
         if user_list_length != 0:
             receive_dict["data"]["provider"] = user_list[0]
@@ -338,7 +344,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         delete_on_req_user.delay(timestamp_list[-1][0])
 
         cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=300)
-        logger.info("in accept timestamp list %s", f"{timestamp_list}")
+        # logger.info("in accept timestamp list %s", f"{timestamp_list}")
 
         update_providers_timestamps.delay(
             receive_dict["data"]["seeker"],
@@ -608,8 +614,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def lookup_user_list(self, seeker, user_list):
-        print("here in look up.........")
+        # print("here in look up.........")
         new_list = iterate_over_cycle(user_list)
+
         # if not new_list:
         #     new_prov_list = get_providers(seeker)
         #     final_list = iterate_over_cycle(new_prov_list)

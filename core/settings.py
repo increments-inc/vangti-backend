@@ -351,3 +351,12 @@ SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
 # log file location
 LOG_DIR = config("LOG_LOCATION")
 
+
+
+
+
+
+
+
+
+
