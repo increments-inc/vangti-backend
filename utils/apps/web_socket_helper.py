@@ -125,12 +125,12 @@ def iterate_over_cycle(user_list: list) -> list:
         # time_remaining = timedelta(seconds=10) - (datetime.now() - provider_on_req.created_at)
         wait_time = 0
         if provider_on_req.exists():
-            print("time no",
-                  timedelta(seconds=10)-
-                  (datetime.utcnow()- provider_on_req.first().created_at.utcnow())
-                  )
+            # print("time no",
+            #       timedelta(seconds=30)-
+            #       (datetime.utcnow()- provider_on_req.first().created_at.utcnow())
+            #       )
 
-            wait_time = (timedelta(seconds=10)-(datetime.utcnow()- provider_on_req.first().created_at.utcnow())).seconds
+            wait_time = (timedelta(seconds=30)-(datetime.utcnow()- provider_on_req.first().created_at.utcnow())).seconds
 
             print("found! on provider request", provider_on_req)
             counter += 1
