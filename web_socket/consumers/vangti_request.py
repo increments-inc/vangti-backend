@@ -7,7 +7,9 @@ from channels.exceptions import StopConsumer
 from django.db import transaction
 from asgiref.sync import async_to_sync, sync_to_async
 from datetime import datetime, timedelta
-from transactions.models import Transaction, TransactionMessages, UserTransactionResponse, UserAppActivityMode
+from transactions.models import (
+    Transaction, TransactionMessages, UserTransactionResponse, UserAppActivityMode, UserOnTxnRequest
+)
 from users.models import User
 from utils.apps.transaction import get_transaction_id
 from utils.apps.analytics import get_home_analytics_of_user_set
@@ -197,6 +199,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     async def receive_pending(self, receive_dict):
         # cache get
         user_list = cache.get(receive_dict["data"]["seeker"])
+        print("here in receive pending", user_list)
+        await self.lookup_user_list(user_list)
+        print("after looking up user_list", user_list)
 
         # cache set for timestamps for providers
         cache.set(
@@ -597,4 +602,21 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             user=user,
             is_active=False
         )
+        return
+
+    @database_sync_to_async
+    def lookup_user_list(self, user_list):
+        print("here in look upppppp")
+        provider = user_list[0]
+        for user in user_list:
+            try:
+                print(user, "looking up")
+                provider_on_req = UserOnTxnRequest.objects.get(user_id=user)
+                print("found! on provider request", provider_on_req)
+                # if provider_on_req:
+                #     return
+            except:
+                # return provider
+                print("in exception")
+
         return
