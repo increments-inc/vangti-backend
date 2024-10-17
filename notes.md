@@ -1,4 +1,6 @@
 ## notes from developer
+#### credit mode
+
 
     after each txn, provider owes platform 10% credit
     after each txn, platform gets from provider 10% credit
@@ -19,6 +21,15 @@
         ledger
 
 
+### suggestions for future development
+- vpn disability
+- multiple device unable
+- phone number detection 
+
+
+###
+###
+###
 
 
 
