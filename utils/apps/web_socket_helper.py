@@ -1,3 +1,6 @@
+import pytz
+import time
+
 from django.conf import settings
 from django.db.models import Q
 from transactions.models import Transaction, UserOnTxnRequest
@@ -7,7 +10,7 @@ from utils.apps.transaction import get_transaction_id
 from utils.apps.location import get_user_list_provider
 from utils.apps.analytics import calculate_user_impressions
 
-from datetime import datetime
+from datetime import datetime, timedelta, tzinfo
 from itertools import cycle
 
 
@@ -110,21 +113,38 @@ def iterate_over_cycle(user_list: list) -> list:
     user_cycle = cycle(user_list)
     length_user_list = len(user_list)
     list_index = -1
-    for i in user_cycle:
+    for i in user_list:
         list_index += 1
         if list_index == length_user_list:
             list_index = 0
-        print("im iterating", i )
-        if counter > 500:
-            return []
+            time.sleep(1)
+        print("im iterating", i)
+        # if counter > 500:
+        #     return user_list
         provider_on_req = UserOnTxnRequest.objects.filter(user_id=i)
+        # time_remaining = timedelta(seconds=10) - (datetime.now() - provider_on_req.created_at)
+        wait_time = 0
         if provider_on_req.exists():
+            print("time no",
+                  timedelta(seconds=10)-
+                  (datetime.utcnow()- provider_on_req.first().created_at.utcnow())
+                  )
+
+            wait_time = (timedelta(seconds=10)-(datetime.utcnow()- provider_on_req.first().created_at.utcnow())).seconds
+
             print("found! on provider request", provider_on_req)
             counter += 1
+            # time.sleep(time_remaining.seconds)
             continue
+
+
         dummy_index = list_index
+        dummy_element = user_list[dummy_index]
+        user_list[dummy_index] = user_list[0]
+        user_list[0] = dummy_element
+        if dummy_index == 0:
+            time.sleep(wait_time)
+            continue
         break
-    dummy_element = user_list[dummy_index]
-    user_list[dummy_index] = user_list[0]
-    user_list[0] = dummy_element
+
     return user_list
