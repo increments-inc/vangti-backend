@@ -81,16 +81,36 @@ def get_home_analytics_of_user_set(user_set):
     rating_queryset = UserRating.objects.filter(
         user__in=reviewed_provider_set
     )
+
+    # total amount
+    t_history = list(TransactionHistory.objects.filter(
+        created_at__gte=datetime.now() - timedelta(days=90),
+        provider__in=user_set,
+    ).values_list("total_amount", flat=True))
+    avg_demanded = "0" if len(t_history) == 0 else max(t_history, key=t_history.count)
+
+    # average deals
+    avg_deal_possibility = 0
+    if (total_providers == 0) or (total_seekers == 0):
+        avg_deal_possibility = 0
+    # check
+    elif total_providers > 0 and total_seekers > 0:
+        if total_providers >= total_seekers:
+            avg_deal_possibility = (total_seekers / total_providers) * 100
+        else:
+            avg_deal_possibility = 100
+        # avg_deal_possibility = (1 / total_providers) * 100
+
     # when nearby users have no rating set
     if not rating_queryset:
         return {
-            "total_active_provider": 0,
+            "total_active_provider": total_providers,
             "deal_success_rate": 0.0,
             "rating": 0.0,
             "dislikes": 0,
             "provider_response_time": "0 sec",
-            "avg_demanded_vangti": 0.0,
-            "avg_deal_possibility": 0.0
+            "avg_demanded_vangti": float(avg_demanded),
+            "avg_deal_possibility": float(avg_deal_possibility)
         }
 
     rating_queryset = rating_queryset.aggregate(
@@ -114,23 +134,6 @@ def get_home_analytics_of_user_set(user_set):
     #     created_at__gte=datetime.now() - timedelta(days=90),
     #     provider__in=user_set,
     # ).aggregate(Avg("total_amount"))
-    avg_deal_possibility = 0
-    if (total_providers == 0) or (total_seekers == 0):
-        avg_deal_possibility = 0
-    # check
-    elif total_providers > 0 and total_seekers > 0:
-        if total_providers >= total_seekers:
-            avg_deal_possibility = (total_seekers / total_providers) * 100
-        else:
-            avg_deal_possibility = 100
-        # avg_deal_possibility = (1 / total_providers) * 100
-
-    # total amount
-    t_history = list(TransactionHistory.objects.filter(
-        created_at__gte=datetime.now() - timedelta(days=90),
-        provider__in=user_set,
-    ).values_list("total_amount", flat=True))
-    avg_demanded = "0" if len(t_history) == 0 else max(t_history, key=t_history.count)
 
     return {
         "total_active_provider": total_providers,
@@ -141,8 +144,6 @@ def get_home_analytics_of_user_set(user_set):
         "avg_demanded_vangti": float(avg_demanded),
         "avg_deal_possibility": float(avg_deal_possibility)
     }
-
-
 
 
 """
