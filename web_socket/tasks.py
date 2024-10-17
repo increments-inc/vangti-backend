@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login
 import requests
 import asyncio
 import json
-from transactions.models import UserTransactionResponse
+from transactions.models import UserTransactionResponse, UserOnTxnRequest
 from datetime import datetime, timedelta
 from users.models import User
 
@@ -122,7 +122,34 @@ def update_providers_timestamps(seeker_id, user_list):
 
         # rating calculation
         update_response_times(provider)
+        # user in request model deletion
+        try:
+            UserOnTxnRequest.objects.filter(user_id=provider).delete()
+            logger.info("deleted obj - user on txn request")
+        except:
+            logger.warning("error: no user found on txn request")
 
+    return
+
+
+@shared_task
+def create_on_req_user(provider):
+    try:
+        UserOnTxnRequest.objects.get(user_id=provider)
+        logger.info("user is already on the user on txn request model")
+    except UserOnTxnRequest.DoesNotExist:
+        UserOnTxnRequest.objects.create(user_id=provider)
+        logger.info("user is added on user on txn request")
+    return
+
+
+@shared_task
+def delete_on_req_user(provider):
+    try:
+        UserOnTxnRequest.objects.get(user_id=provider).delete()
+        logger.info("user is already on the user on txn request model")
+    except:
+        logger.warning("error: no user found on txn request")
     return
 
 
