@@ -1,9 +1,6 @@
 ## notes from developer
 #### credit mode
 
-
-    after each txn, provider owes platform 10% credit
-    after each txn, platform gets from provider 10% credit
     
     lets see
     we have digital wallet after each txn
@@ -27,6 +24,8 @@
 - phone number detection 
 
 
+
+for celery : --concurrency=4
 ###
 ###
 ###
