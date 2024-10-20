@@ -22,7 +22,8 @@ from utils.apps.location import get_user_list, update_user_location_instance, ge
 from utils.log import logger
 from ..tasks import (
     update_providers_timestamps, send_push_notif,
-    create_on_req_user, delete_on_req_user
+    # create_on_req_user,
+    delete_on_req_user_task
 )
 
 
@@ -78,6 +79,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         if "seeker" in receive_dict["data"]:
             if receive_dict["data"]["seeker"] == str(self.user.id) and status == "PENDING":
                 user_list = await self.fetch_user_list(receive_dict)
+                user_list = await self.lookup_user_list(
+                    receive_dict["data"]["seeker"], user_list
+                )
                 logger.info("user list %s", f"{user_list}")
 
                 # cache set for nearby users
@@ -161,7 +165,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     async def delayed_message(self, receive_dict):
         for i in range(0, 30):  # time 30 sec/provider
             await asyncio.sleep(1)
-            logger.info("cache log %s", f"{i}")
+            # logger.info("cache log %s", f"{i}")
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
             if (cancelled_request := cache.get(f'{receive_dict["data"]["seeker"]}')) is None:
@@ -195,6 +199,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                         'receive_dict': receive_dict,
                     }
                 )
+                # delete on req user in celery
+                delete_on_req_user_task.delay(receive_dict["data"]["provider"])
+
                 receive_dict.update({"status": "REJECTED"})
                 # receive_dict["status"] = "REJECTED"
                 await self.receive_reject(receive_dict)
@@ -202,9 +209,6 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     async def receive_pending(self, receive_dict):
         # cache get
         user_list = cache.get(receive_dict["data"]["seeker"])
-        print("before iterating user_list", user_list)
-        user_list = await self.lookup_user_list(receive_dict["data"]["seeker"], user_list)
-        print("after iterating user_list", user_list)
         # cache set for timestamps for providers
         cache.set(
             f'{receive_dict["data"]["seeker"]}-timestamp',
@@ -212,7 +216,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             timeout=300
         )
         # create on req user
-        create_on_req_user.delay(user_list[0])
+        # create_on_req_user.delay(user_list[0])
+        _ = await self.create_on_req_user(user_list[0])
 
         # user list
         receive_dict["data"]["provider"] = user_list[0]
@@ -246,17 +251,17 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     async def receive_reject(self, receive_dict):
         user_list = cache.get(receive_dict["data"]["seeker"])
 
-
         user_list_length = len(user_list)
 
         if user_list_length != 0:
             if user_list[0] == receive_dict["data"]["provider"]:
                 user_list.pop(0)
-                delete_on_req_user.delay(receive_dict["data"]["provider"])
+                # delete_on_req_user.delay(receive_dict["data"]["provider"])
+                _ = await self.delete_on_req_user(receive_dict["data"]["provider"])
 
-                print("before iterating user_list", user_list)
+                logger.info(f"before iterating user_list %s", user_list)
                 user_list = await self.lookup_user_list(receive_dict["data"]["seeker"], user_list)
-                print("after iterating user_list", user_list)
+                logger.info(f"after iterating user_list %s", user_list)
                 # delete req user
 
                 # after popping user
@@ -270,14 +275,14 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 timestamp_list[-1].append(datetime.now())
 
                 # delete user req
-                delete_on_req_user.delay(timestamp_list[-1][0])
-                
-                # print(timestamp_list)
-                # print("hi there")
+                # delete_on_req_user.delay(timestamp_list[-1][0])
+                # print("timestamp","deleted provider", timestamp_list[-1][0])
+
                 if user_list_length != 0:
                     timestamp_list.append([user_list[0], datetime.now()])
                     # create user req
-                    create_on_req_user.delay(user_list[0])
+                    # create_on_req_user.delay(user_list[0])
+                    _ = await self.create_on_req_user(user_list[0])
 
                 cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=300)
 
@@ -341,7 +346,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         timestamp_list = cache.get(f'{receive_dict["data"]["seeker"]}-timestamp')
         timestamp_list[-1].append(datetime.now())
         # delete user req
-        delete_on_req_user.delay(timestamp_list[-1][0])
+        # delete_on_req_user.delay(timestamp_list[-1][0])
+        _ = await self.delete_on_req_user(timestamp_list[-1][0])
 
         cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=300)
         # logger.info("in accept timestamp list %s", f"{timestamp_list}")
@@ -614,37 +620,25 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def lookup_user_list(self, seeker, user_list):
-        # print("here in look up.........")
         new_list = iterate_over_cycle(user_list)
-
-        # if not new_list:
-        #     new_prov_list = get_providers(seeker)
-        #     final_list = iterate_over_cycle(new_prov_list)
-        #     if final_list:
-        #         return final_list
         return new_list
 
+    @database_sync_to_async
+    def create_on_req_user(self, provider):
+        try:
+            UserOnTxnRequest.objects.get(user_id=provider)
+            logger.info(f" ON REQ {provider} created")
+        except UserOnTxnRequest.DoesNotExist:
+            UserOnTxnRequest.objects.create(user_id=provider)
+            logger.info(f" ON REQ {provider} created")
+        return None
 
-        # for user in user_list:
-        #     provider_on_req = UserOnTxnRequest.objects.filter(user_id=user)
-        #     print("found! on provider request", provider_on_req)
-        #     if provider_on_req.exists():
-        #         continue
-            # user
-        # for user in user_list:
-        #     try:
-        #         print(user, "looking up")
-        #         provider_on_req = UserOnTxnRequest.objects.get(user_id__str=user)
-        #         print("found! on provider request", provider_on_req)
-        #         # if provider_on_req:
-        #         #     return
-        #     except UserOnTxnRequest.DoesNotExist:
-        #         print(user, "looking up")
-        #         provider_on_req = UserOnTxnRequest.objects.get(user_id__str=user)
-        #         print("found! on provider request", provider_on_req)
-        #         # if provider_on_req:
-        #         #     return
-        #
-        #         # return provider
-        #         print("in exception")
+    @database_sync_to_async
+    def delete_on_req_user(self, provider):
+        try:
+            UserOnTxnRequest.objects.get(user_id=provider).delete()
+            logger.info(" ON REQ {provider} deleted")
+        except:
+            logger.warning("err")
+        return None
 
