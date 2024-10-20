@@ -17,7 +17,6 @@ def get_user_location_instance(user_id):
 
 
 def update_user_location_instance(user_id, location_dict):
-    logger.info(location_dict)
     location_instance = get_user_location_instance(user_id)
     location_instance.latitude = location_dict["latitude"]
     location_instance.longitude = location_dict["longitude"]
@@ -231,16 +230,16 @@ def get_directions(transaction_id, source_dict, destination_dict):
     final_segment_poly = segment_polyline(new_ls, interpolated_destination_point)
 
     logger.info(
-        "Interpolated",
-        segment_poly_source, "\n",
-        final_segment_poly, "\n",
-        interpolated_source_point, interpolated_destination_point,
-
-        new_ls.intersects(Point(23.87291, 90.39078, srid=4326)),
-
-        new_ls.intersects(interpolated_destination_point),
-        new_ls.contains(interpolated_destination_point),
-        new_ls.relate(interpolated_destination_point),
+        # "Interpolated",
+        # segment_poly_source, "\n",
+        # final_segment_poly, "\n",
+        # interpolated_source_point, interpolated_destination_point,
+        #
+        # new_ls.intersects(Point(23.87291, 90.39078, srid=4326)),
+        #
+        # new_ls.intersects(interpolated_destination_point),
+        # new_ls.contains(interpolated_destination_point),
+        # new_ls.relate(interpolated_destination_point),
 
         # GEOSGeometry(final_segment_poly[0])[-1].intersects(interpolated_source_point),
         # GEOSGeometry(final_segment_poly[0])[0].intersects(interpolated_source_point),

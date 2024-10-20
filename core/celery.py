@@ -1,5 +1,6 @@
 import os
 from celery import Celery
+from utils.log import logger
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'core.settings')
 
@@ -10,5 +11,5 @@ app.autodiscover_tasks()
 
 @app.task(bind=True, ignore_result=True)
 def debug_task(self):
-    print(f'Request: {self.request!r}')
+    logger.info(f'Request: {self.request!r}')
 
