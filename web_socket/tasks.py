@@ -144,12 +144,13 @@ def create_on_req_user(provider):
 
 
 @shared_task
-def delete_on_req_user(provider):
+def delete_on_req_user_task(provider):
     try:
         UserOnTxnRequest.objects.get(user_id=provider).delete()
-        logger.info("user is already on the user on txn request model")
+        logger.info("deleted on task")
     except:
-        logger.warning("error: no user found on txn request")
+        UserOnTxnRequest.objects.filter(user_id=provider).delete()
+        logger.warning("deleted on task")
     return
 
 
