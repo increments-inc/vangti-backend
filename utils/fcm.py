@@ -39,7 +39,8 @@ def send_fcm(user, data):
             message = messaging.Message(
                 data={
                     'title': msg_title,
-                    'body': body
+                    'body': body,
+                    'sound': "coin"
                 },
                 notification=messaging.Notification(
                     title=msg_title,
