@@ -129,6 +129,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     receive_dict["status"] == "REJECTED"
             ):
                 # sent to self
+                logger.info(f"SEARCHING {receive_dict}")
                 await self.send(text_data=json.dumps({
                     'message': receive_dict,
                     "user": str(self.user.id)
@@ -170,6 +171,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 break
             if (cancelled_request := cache.get(f'{receive_dict["data"]["seeker"]}')) is None:
                 receive_dict.update({"status": "CANCELLED"})
+                logger.info(f"CANCELLED {receive_dict}")
                 await self.send(text_data=json.dumps({
                     'message': receive_dict, "user": str(self.user.id)
                 }))
