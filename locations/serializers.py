@@ -66,10 +66,10 @@ class LocationSerializer(serializers.ModelSerializer):
         users = list(UserLocation.objects.exclude(user=user.id).filter(
             centre__distance_lte=(center, Distance(km=radius))
         ).values_list("user", flat=True))
-        logger.info(users)
+        logger.info(f"{users}")
         user_phone_list = User.objects.filter(id__in=users).values_list("phone_number", flat=True)
         try:
-            logger.info(user_phone_list)
+            logger.info(f"{user_phone_list}")
             user_loc = LocationRadius.objects.get(
                 location=obj
             )

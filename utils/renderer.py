@@ -8,7 +8,7 @@ from utils.log import logger
 class CustomJSONRenderer(JSONRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         messages = detail = errors = links = count = total_pages = None
-        logger.info(data)
+        logger.info(f"{data}")
         if data is not None:
             detail = (
                 data.pop("detail")
