@@ -22,6 +22,8 @@ class CancelSearch(views.APIView):
         #     if self.request.data.get("cancel"):
         try:
             cache.delete(str(self.request.user.id))
+            cache.delete(f"{str(self.request.user.id)}-timestamp")
+
             return response.Response(
                 {"detail": "cancel request sent to socket"},
                 status=status.HTTP_200_OK)

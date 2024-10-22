@@ -9,6 +9,7 @@ from ..serializers import *
 from ..tasks import *
 from utils.apps.location import get_user_list as get_user_set
 from utils.apps.analytics import get_home_analytics_of_user_set
+from django.core.cache import cache
 
 
 class UserServiceModeViewSet(viewsets.ModelViewSet):
@@ -40,10 +41,17 @@ class UserServiceModeViewSet(viewsets.ModelViewSet):
         ).filter(
             is_completed=False
         ).exists():
-            print("open deals exists")
+            logger.info("open deals exists")
             return response.Response(
                 {
                     "errors": "Cannot change mode while transaction is ongoing"
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if cache.get(f"{str(self.request.user.id)}-timestamp") is not None:
+            return response.Response(
+                {
+                    "errors": "Cannot change mode while search is ongoing"
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )

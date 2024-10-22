@@ -16,10 +16,10 @@ def user_deletion_routine_task():
         user__is_active=False,
         time_of_deletion=datetime.now().date()
     ).values_list('user__id', flat=True))
-    logger.info("users to be deleted", users_to_be_deleted_final)
+    logger.info("users to be deleted %s", users_to_be_deleted_final)
     user_deleted = User.objects.filter(id__in=users_to_be_deleted_final).delete()
     users_to_be_deleted.delete()
-    logger.info("users has been deleted", user_deleted)
+    logger.info("users has been deleted %s", user_deleted)
 
 
 @shared_task

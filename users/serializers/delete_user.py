@@ -39,7 +39,7 @@ class UsersDeletionScheduleSerializer(serializers.ModelSerializer):
         read_only_fields = ["time_of_deletion", "user__phone_number"]
 
     def create(self, validated_data):
-        logger.info(validated_data)
+        logger.info(f"{validated_data}")
         pin = validated_data.pop("pin")
         # to_be_deleted = validated_data.pop("to_be_deleted")
 
