@@ -291,12 +291,21 @@ CACHES = {
 
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        # "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "BACKEND": "channels_redis.pubsub.RedisPubSubChannelLayer",
+
         "CONFIG": {
             "hosts": [("127.0.0.1", 6379)],
+            "capacity": 5000,
+            "channel_capacity": {
+                "websocket.send": 50000,
+            },
+            "expiry": 60,
+            "group_expiry": 86400,
         },
     },
 }
+# ASGI_THREADS = 1000
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = "media"
@@ -350,13 +359,4 @@ SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
 
 # log file location
 LOG_DIR = config("LOG_LOCATION")
-
-
-
-
-
-
-
-
-
 

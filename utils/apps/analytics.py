@@ -84,7 +84,7 @@ def get_home_analytics_of_user_set(user_set):
 
     # total amount
     t_history = list(TransactionHistory.objects.filter(
-        created_at__gte=datetime.now() - timedelta(days=90),
+        created_at__gte=datetime.now().astimezone() - timedelta(days=90),
         provider__in=user_set,
     ).values_list("total_amount", flat=True))
     avg_demanded = "0" if len(t_history) == 0 else max(t_history, key=t_history.count)
