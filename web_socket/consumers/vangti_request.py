@@ -317,6 +317,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             receive_dict.update({"status": "NO_PROVIDER"})
             # receive_dict["status"] = "NO_PROVIDER"
             cache.delete(f'{receive_dict["data"]["seeker"]}-request')
+            cache.delete(f'{receive_dict["data"]["seeker"]}-timestamp')
             await self.channel_layer.group_send(
                 f'{receive_dict["data"]["seeker"]}-room',
                 {
