@@ -346,8 +346,8 @@ APP_STORE_DEFAULT_OTP = "123456"
 # provider commission
 PROVIDER_COMMISSION = 0.01
 
-# platform commission
-PLATFORM_CHARGE = PROVIDER_COMMISSION
+# provider commission
+PLATFORM_CHARGE = 0.1
 
 # location
 LOCATION_RADIUS = config("LOCATION_RADIUS", default=1)
@@ -359,4 +359,3 @@ SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
 
 # log file location
 LOG_DIR = config("LOG_LOCATION")
-
