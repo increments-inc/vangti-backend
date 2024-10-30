@@ -9,7 +9,7 @@ class Command(BaseCommand):
         transaction_ids = TransactionHistory.objects.values_list('transaction__id', flat=True)
         all_txn = Transaction.objects.filter(id__in=transaction_ids)
         self.stdout.write(
-            self.style.NOTICE(transaction_ids, "\n", all_txn))
+            self.style.NOTICE(f"{transaction_ids}, \n, {all_txn}"))
 
         for txn in all_txn:
             txn.is_completed = False
