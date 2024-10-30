@@ -246,8 +246,8 @@ class InsightsViewSet(viewsets.ModelViewSet):
 
         # corrections by PM - to regard it with whole user base
         # until decision from business team
-        past_transactions = TransactionHistory.objects.all(
-            # provider=self.request.user
+        past_transactions = TransactionHistory.objects.filter(
+            provider=self.request.user
         )
 
         interval_day = timedelta(hours=24)
