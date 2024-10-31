@@ -128,6 +128,10 @@ SPECTACULAR_SETTINGS = {
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'SCHEMA_PATH_PREFIX': r'/api/(?P<version>(v1|v2))',
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAdminUser"],
+    "SERVE_AUTHENTICATION": [
+        "rest_framework.authentication.BasicAuthentication"
+    ],
 }
 
 AUTH_USER_MODEL = "users.User"
@@ -155,11 +159,13 @@ INTERNAL_IPS = [
 ]
 
 # cors
-# CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_ALL_ORIGINS = False
-CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = config("CORS_HOSTS").split(",")
-CSRF_TRUSTED_ORIGINS = config("CORS_TRUSTED_ORIGIN").split(",")
+if DEBUG:
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOW_CREDENTIALS = True
+    CORS_ALLOWED_ORIGINS = config("CORS_HOSTS").split(",")
+    CSRF_TRUSTED_ORIGINS = config("CORS_TRUSTED_ORIGIN").split(",")
 
 ROOT_URLCONF = 'core.urls'
 
@@ -262,7 +268,7 @@ EMAIL_HOST = config("EMAIL_HOST")
 EMAIL_PORT = config("EMAIL_PORT")
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
-# EMAIL_USE_TLS = config("EMAIL_USE_TLS") == "True"
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", True)
 # EMAIL_USE_SSL = config('EMAIL_USE_SSL') == 'True'
 DEFAULT_FROM_EMAIL = "Organization Name <demo@domain.com>"
 
@@ -324,7 +330,6 @@ CELERY_BEAT_SCHEDULE = {
     # },
     'user_deletion_routine_task': {
         'task': 'users.tasks.user_deletion_routine_task',
-        # 'schedule': crontab(minute='*/5'),
         'schedule': crontab(hour=0, minute=0, day_of_month='1'),
     },
 }
