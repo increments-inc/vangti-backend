@@ -3,7 +3,7 @@ from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from django.conf.urls.static import static
 from django.conf import settings
-
+from utils.custom.admin.admin_otp_view import admin_otp_page
 urlpatterns = []
 
 if settings.DEBUG:
@@ -20,6 +20,8 @@ if settings.DEBUG:
 
 urlpatterns += [
     # apps
+    path('admin/otp-page/', admin_otp_page, name='admin_otp_page'),
+
     path('admin/', admin.site.urls),
 
     path('api/v1/users/', include('users.urls')),

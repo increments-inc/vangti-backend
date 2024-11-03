@@ -23,13 +23,13 @@ INSTALLED_APPS = [
 
     # default
     "django.contrib.sites",
-    'django.contrib.admin',
+    # 'django.contrib.admin',
+    'utils.custom.admin.admin_site.MyAdminConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'django.contrib.gis',
 
     # packages
@@ -172,7 +172,7 @@ ROOT_URLCONF = 'core.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -364,3 +364,6 @@ SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
 
 # log file location
 LOG_DIR = config("LOG_LOCATION")
+
+
+
