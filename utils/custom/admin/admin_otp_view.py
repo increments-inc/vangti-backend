@@ -1,5 +1,6 @@
 from django.http import Http404, HttpResponsePermanentRedirect, HttpResponseRedirect, HttpResponse
 from django.shortcuts import render, redirect, reverse
+from django.contrib.auth import login as auth_login
 
 from django import forms
 
@@ -9,7 +10,7 @@ class MyArticleAdminForm(forms.Form):
 
 
 def admin_otp_page(request):
-    print("in dummy")
+    print("in dummy", request)
     form = MyArticleAdminForm()
     if request.method == "POST":
         form = MyArticleAdminForm(request.POST)
