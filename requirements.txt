@@ -51,7 +51,7 @@ sqlparse==0.5.0
 Twisted==23.10.0
 txaio==23.1.1
 typing_extensions==4.8.0
-urllib3==2.2.2
+urllib3>=2.2.2
 zope.interface==6.1
 drf-extra-fields==3.7.0
 firebase-admin==6.3.0
@@ -65,3 +65,4 @@ gunicorn==22.0.0
 django-import-export==4.1.1
 uvicorn==0.32.0
 uvicorn-worker==0.2.0
+django-otp==1.5.4

@@ -41,6 +41,9 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'import_export',
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'django_otp.plugins.otp_static',
 
     # apps
     'users',
@@ -142,6 +145,7 @@ MIDDLEWARE = [
     # debug
     "debug_toolbar.middleware.DebugToolbarMiddleware",
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django_otp.middleware.OTPMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # custom
@@ -359,3 +363,4 @@ SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
 
 # log file location
 LOG_DIR = config("LOG_LOCATION")
+

@@ -3,6 +3,9 @@ from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from django.conf.urls.static import static
 from django.conf import settings
+from django_otp.admin import OTPAdminSite
+
+admin.site.__class__ = OTPAdminSite
 
 urlpatterns = [
     # swagger
