@@ -14,7 +14,18 @@ from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiResponse
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from ..auth_jwt import JWTAccessToken
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.contrib.auth import get_user_model
+from ..serializers.basic_user import (
+    CustomTokenObtainPairSerializer,
+    RegistrationSerializer,
+    FirebasePhoneAuthSerializer,
+    UserDeactivateSerializer,
+)
+from drf_spectacular.types import OpenApiTypes
 
+User = get_user_model()
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = []
@@ -57,16 +68,45 @@ class CustomTokenObtainPairView(TokenObtainPairView):
             data=request.data,
             context={"request": request}
         )
-        # serializer.is_valid(raise_exception=True)
         if serializer.is_valid():
             return self._otp_login(
                 request=request,
                 serializer=serializer
             )
-        return response.Response({
+        return Response({
             "message": "Username or Password error",
             "errors": "invalid username or password",
         }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class FirebasePhoneAuthView(APIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = FirebasePhoneAuthSerializer
+
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(
+                response=FirebasePhoneAuthSerializer,
+                examples=[
+                    OpenApiExample(
+                        "Phone verification successful",
+                        value={
+                            "message": "Phone number verified successfully"
+                        }
+                    )
+                ],
+            ),
+        }
+    )
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({
+                "message": "Phone number verified successfully",
+                "user_id": str(user.id)
+            }, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class RegistrationViewSet(viewsets.ModelViewSet):
@@ -88,25 +128,12 @@ class RegistrationViewSet(viewsets.ModelViewSet):
         )
         if serializer.is_valid():
             user = serializer.save()
-            if user == -1:
-                return response.Response({
-                    "message": "Phone numer is not verified",
-                    "data": serializer.validated_data,
-                }, status=status.HTTP_400_BAD_REQUEST)
-            if user == -2:
-                return response.Response({
-                    "message": "OTP doesnt match",
-                    "data": serializer.validated_data,
-                }, status=status.HTTP_404_NOT_FOUND)
-
-            return response.Response({
+            return Response({
                 "detail": "Successful",
-                # "reg_access_token": reg_token,
             }, status=status.HTTP_200_OK)
 
-        return response.Response({
+        return Response({
             "message": "Registration Error",
-            # "reg_access_token": reg_token,
         }, status=status.HTTP_400_BAD_REQUEST)
 
     # def set_pin(self, request, *args, **kwargs):

@@ -3,6 +3,10 @@ from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from django.conf.urls.static import static
 from django.conf import settings
+from .admin_config import configure_admin_site
+
+# Configure admin site
+configure_admin_site()
 
 urlpatterns = [
     # swagger
