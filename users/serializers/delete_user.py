@@ -26,7 +26,7 @@ import requests
 from django.utils.text import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
-
+from utils.log import logger
 
 
 class UsersDeletionScheduleSerializer(serializers.ModelSerializer):
@@ -39,11 +39,10 @@ class UsersDeletionScheduleSerializer(serializers.ModelSerializer):
         read_only_fields = ["time_of_deletion", "user__phone_number"]
 
     def create(self, validated_data):
-        print(validated_data)
+        logger.info(f"{validated_data}")
         pin = validated_data.pop("pin")
         # to_be_deleted = validated_data.pop("to_be_deleted")
 
-        print("sgdfhjgsdjh", pin)
         user = self.context.get('request').user
         user.is_active = False
 

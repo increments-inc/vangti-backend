@@ -40,7 +40,6 @@ class TransactionAsSeekerReviewSerializer(serializers.ModelSerializer):
         fields = ("transaction_no", "rating", "review_message",)
 
     def create(self, validated_data):
-        print(validated_data)
         user = self.context.get("request").user
         transaction_no = validated_data.pop("transaction")["get_transaction_unique_no"]
         transaction_id = get_transaction_id(transaction_no)
@@ -57,7 +56,7 @@ class TransactionAsSeekerReviewSerializer(serializers.ModelSerializer):
         try:
             review = TransactionAsSeekerReview.objects.get(
                 transaction=transaction_instance,
-                # provider=transaction_instance.provider,
+                provider=transaction_instance.provider,
                 seeker=transaction_instance.seeker
             )
             review.rating = rating
@@ -66,7 +65,7 @@ class TransactionAsSeekerReviewSerializer(serializers.ModelSerializer):
         except TransactionAsSeekerReview.DoesNotExist:
             review = TransactionAsSeekerReview.objects.create(
                 transaction=transaction_instance,
-                # provider=transaction_instance.provider,
+                provider=transaction_instance.provider,
                 seeker=transaction_instance.seeker,
                 rating=rating,
                 message=message
@@ -83,7 +82,6 @@ class TransactionAsProviderReviewSerializer(serializers.ModelSerializer):
         fields = ("transaction_no", "rating", "review_message",)
 
     def create(self, validated_data):
-        print(validated_data)
         user = self.context.get("request").user
         transaction_no = validated_data.pop("transaction")["get_transaction_unique_no"]
         transaction_id = get_transaction_id(transaction_no)
@@ -101,7 +99,7 @@ class TransactionAsProviderReviewSerializer(serializers.ModelSerializer):
             review = TransactionAsProviderReview.objects.get(
                 transaction=transaction_instance,
                 provider=transaction_instance.provider,
-                # seeker=transaction_instance.seeker
+                seeker=transaction_instance.seeker
             )
             review.rating = rating
             review.message = message
@@ -110,7 +108,7 @@ class TransactionAsProviderReviewSerializer(serializers.ModelSerializer):
             review = TransactionAsProviderReview.objects.create(
                 transaction=transaction_instance,
                 provider=transaction_instance.provider,
-                # seeker=transaction_instance.seeker,
+                seeker=transaction_instance.seeker,
                 rating=rating,
                 message=message
             )
@@ -142,7 +140,7 @@ class TransactionAsProviderAbuseReportSerializer(serializers.ModelSerializer):
             review = TransactionAsProviderAbuseReport.objects.get(
                 transaction=transaction_instance,
                 provider=transaction_instance.provider,
-                # seeker=transaction_instance.seeker
+                seeker=transaction_instance.seeker
             )
             review.message = message
             review.save()
@@ -150,7 +148,7 @@ class TransactionAsProviderAbuseReportSerializer(serializers.ModelSerializer):
             review = TransactionAsProviderAbuseReport.objects.create(
                 transaction=transaction_instance,
                 provider=transaction_instance.provider,
-                # seeker=transaction_instance.seeker,
+                seeker=transaction_instance.seeker,
                 message=message
             )
         return review
@@ -180,7 +178,7 @@ class TransactionAsSeekerAbuseReportSerializer(serializers.ModelSerializer):
         try:
             review = TransactionAsSeekerAbuseReport.objects.get(
                 transaction=transaction_instance,
-                # provider=transaction_instance.provider,
+                provider=transaction_instance.provider,
                 seeker=transaction_instance.seeker
             )
             review.message = message
@@ -188,7 +186,7 @@ class TransactionAsSeekerAbuseReportSerializer(serializers.ModelSerializer):
         except TransactionAsSeekerAbuseReport.DoesNotExist:
             review = TransactionAsSeekerAbuseReport.objects.create(
                 transaction=transaction_instance,
-                # provider=transaction_instance.provider,
+                provider=transaction_instance.provider,
                 seeker=transaction_instance.seeker,
                 message=message
             )

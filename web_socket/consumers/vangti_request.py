@@ -7,14 +7,24 @@ from channels.exceptions import StopConsumer
 from django.db import transaction
 from asgiref.sync import async_to_sync, sync_to_async
 from datetime import datetime, timedelta
-from transactions.models import Transaction, TransactionMessages, UserTransactionResponse, UserAppActivityMode
+from itertools import cycle
+from transactions.models import (
+    Transaction, TransactionMessages, UserTransactionResponse, UserAppActivityMode, UserOnTxnRequest
+)
 from users.models import User
 from utils.apps.transaction import get_transaction_id
 from utils.apps.analytics import get_home_analytics_of_user_set
-from utils.apps.web_socket_helper import get_user_information, get_transaction_instance, create_transaction_instance, \
-    get_providers
+from utils.apps.web_socket_helper import (
+    get_user_information, get_transaction_instance,
+    create_transaction_instance, get_providers, iterate_over_cycle
+)
 from utils.apps.location import get_user_list, update_user_location_instance, get_user_location_instance, get_directions
-from ..tasks import update_providers_timestamps
+from utils.log import logger
+from ..tasks import (
+    update_providers_timestamps, send_push_notif,
+    # create_on_req_user,
+    delete_on_req_user_task
+)
 
 
 class VangtiRequestConsumer(AsyncWebsocketConsumer):
@@ -57,19 +67,23 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 'message': "pong",
             }))
             return
-
         receive_dict = {}
         try:
             if type(text_data) == str:
                 receive_dict = json.loads(text_data)
         except:
             return
-        print("all data!!!!\n", receive_dict)
+
+        # logger.info("all data!!!!\n %s", f"{receive_dict}")
         status = receive_dict["status"]
         if "seeker" in receive_dict["data"]:
             if receive_dict["data"]["seeker"] == str(self.user.id) and status == "PENDING":
-                user_list = await self.get_user_list(receive_dict)
-                print("user list", user_list)
+                user_list = await self.fetch_user_list(receive_dict)
+                user_list = await self.lookup_user_list(
+                    receive_dict["data"]["seeker"], user_list
+                )
+                logger.info("user list %s", f"{user_list}")
+
                 # cache set for nearby users
                 if len(user_list) == 0:
                     receive_dict.update({"status": "NO_PROVIDER"})
@@ -85,7 +99,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 cache.set(
                     receive_dict["data"]["seeker"],
                     user_list,
-                    timeout=None
+                    timeout=900
                 )
                 # receive_dict["status"] = "SEARCHING"
                 receive_dict.update({"status": "SEARCHING"})
@@ -115,6 +129,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     receive_dict["status"] == "REJECTED"
             ):
                 # sent to self
+                logger.info(f"SEARCHING {receive_dict}")
                 await self.send(text_data=json.dumps({
                     'message': receive_dict,
                     "user": str(self.user.id)
@@ -142,20 +157,21 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 await self.receive_message_user(receive_dict)
 
     async def send_to_receiver_data(self, event):
-        print("event", event)
+        logger.info("event %s", f"{event}")
         receive_dict = event['receive_dict']
         if type(receive_dict) == str:
             receive_dict = json.loads(receive_dict)
         await self.send(text_data=json.dumps({'message': receive_dict, "user": str(self.user.id)}))
 
     async def delayed_message(self, receive_dict):
-        for i in range(0, 10):
+        for i in range(0, 30):  # time 30 sec/provider
             await asyncio.sleep(1)
-            print("cache log", i)
+            # logger.info("cache log %s", f"{i}")
             if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
                 break
             if (cancelled_request := cache.get(f'{receive_dict["data"]["seeker"]}')) is None:
                 receive_dict.update({"status": "CANCELLED"})
+                logger.info(f"CANCELLED {receive_dict}")
                 await self.send(text_data=json.dumps({
                     'message': receive_dict, "user": str(self.user.id)
                 }))
@@ -185,6 +201,9 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                         'receive_dict': receive_dict,
                     }
                 )
+                # delete on req user in celery
+                delete_on_req_user_task.delay(receive_dict["data"]["provider"])
+
                 receive_dict.update({"status": "REJECTED"})
                 # receive_dict["status"] = "REJECTED"
                 await self.receive_reject(receive_dict)
@@ -192,13 +211,15 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     async def receive_pending(self, receive_dict):
         # cache get
         user_list = cache.get(receive_dict["data"]["seeker"])
-
         # cache set for timestamps for providers
         cache.set(
             f'{receive_dict["data"]["seeker"]}-timestamp',
             [[user_list[0], datetime.now()]],
-            timeout=None
+            timeout=300
         )
+        # create on req user
+        # create_on_req_user.delay(user_list[0])
+        _ = await self.create_on_req_user(user_list[0])
 
         # user list
         receive_dict["data"]["provider"] = user_list[0]
@@ -212,7 +233,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         cache.set(
             f'{receive_dict["data"]["seeker"]}-request',
             receive_dict["data"]["provider"],
-            timeout=None
+            timeout=300
         )
 
         await self.channel_layer.group_send(
@@ -222,26 +243,52 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 'receive_dict': receive_dict,
             }
         )
+
+        # send push notification to provider
+        send_push_notif.delay(receive_dict['data']['provider'], receive_dict)
+
         # send for timeout counting
         await self.delayed_message(receive_dict)
 
     async def receive_reject(self, receive_dict):
         user_list = cache.get(receive_dict["data"]["seeker"])
+
         user_list_length = len(user_list)
 
         if user_list_length != 0:
             if user_list[0] == receive_dict["data"]["provider"]:
                 user_list.pop(0)
+                # delete_on_req_user.delay(receive_dict["data"]["provider"])
+                _ = await self.delete_on_req_user(receive_dict["data"]["provider"])
+
+                logger.info(f"before iterating user_list %s", user_list)
+                user_list = await self.lookup_user_list(receive_dict["data"]["seeker"], user_list)
+                logger.info(f"after iterating user_list %s", user_list)
+                # delete req user
+
+                # after popping user
                 user_list_length = len(user_list)
                 cache.set(receive_dict["data"]["seeker"], user_list)
 
                 # timestamp'
-                timestamp_list = cache.get(f'{receive_dict["data"]["seeker"]}-timestamp')
+                timestamp_list = cache.get(
+                    f'{receive_dict["data"]["seeker"]}-timestamp'
+                )
                 timestamp_list[-1].append(datetime.now())
+
+                # delete user req
+                # delete_on_req_user.delay(timestamp_list[-1][0])
+                # print("timestamp","deleted provider", timestamp_list[-1][0])
+
                 if user_list_length != 0:
                     timestamp_list.append([user_list[0], datetime.now()])
-                cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=None)
-                print("in reject", "timestamp list", timestamp_list)
+                    # create user req
+                    # create_on_req_user.delay(user_list[0])
+                    _ = await self.create_on_req_user(user_list[0])
+
+                cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=300)
+
+                # logger.info("in reject timestamp list %s", f"{timestamp_list}")
 
         if user_list_length != 0:
             receive_dict["data"]["provider"] = user_list[0]
@@ -266,6 +313,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
             update_providers_timestamps.delay(
                 receive_dict["data"]["seeker"],
                 cache.get(f'{receive_dict["data"]["seeker"]}-timestamp'))
+
             receive_dict.update({"status": "NO_PROVIDER"})
             # receive_dict["status"] = "NO_PROVIDER"
             cache.delete(f'{receive_dict["data"]["seeker"]}-request')
@@ -299,14 +347,21 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         # timestamp'
         timestamp_list = cache.get(f'{receive_dict["data"]["seeker"]}-timestamp')
         timestamp_list[-1].append(datetime.now())
-        cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=None)
-        print("in accept", "timestamp list", timestamp_list)
+        # delete user req
+        # delete_on_req_user.delay(timestamp_list[-1][0])
+        _ = await self.delete_on_req_user(timestamp_list[-1][0])
+
+        cache.set(f'{receive_dict["data"]["seeker"]}-timestamp', timestamp_list, timeout=300)
+        # logger.info("in accept timestamp list %s", f"{timestamp_list}")
 
         update_providers_timestamps.delay(
             receive_dict["data"]["seeker"],
             # cache.get(f'{receive_dict["data"]["seeker"]}-timestamp')
             timestamp_list
         )
+
+        # send push notification to seeker
+        send_push_notif.delay(receive_dict['data']['seeker'], receive_dict)
 
         cache.delete(
             f'{receive_dict["data"]["seeker"]}-request'
@@ -416,7 +471,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                     'user': str(self.user.id)
                 }))
                 return
-            receive_dict["data"]["created_at"] = str(msg_obj.created_at)
+            receive_dict["data"]["created_at"] = str(msg_obj.created_at.astimezone())
+
             await self.channel_layer.group_send(
                 f"{transaction_obj_user}-room",
                 {
@@ -425,8 +481,11 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
                 }
             )
 
+            # send push notification to user
+            send_push_notif.delay(transaction_obj_user, receive_dict)
+
     @database_sync_to_async
-    def get_user_list(self, room_name):
+    def fetch_user_list(self, room_name):
         user = self.user
         # try:
         #     return get_providers(user)
@@ -513,7 +572,7 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_seeker_info(self, seeker):
         try:
-            return get_user_information(User.objects.get(id=self.user.id))
+            return get_user_information(User.objects.get(id=seeker))
         except:
             return {
                 "name": "",
@@ -528,6 +587,8 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def get_home_analytics(self, user):
         user_set = get_user_list(user)
+        # excluding the requesting user
+        # user_set = user_set.exclude(id=user.id)
         message = {
             "request": "ANALYTICS",
             "status": "ACTIVE",
@@ -559,101 +620,27 @@ class VangtiRequestConsumer(AsyncWebsocketConsumer):
         )
         return
 
+    @database_sync_to_async
+    def lookup_user_list(self, seeker, user_list):
+        new_list = iterate_over_cycle(user_list)
+        return new_list
 
-    # @database_sync_to_async
-    # def get_user_list0(self, room_name):
-    #     user = self.user
-    #     try:
-    #         center = UserLocation.objects.using('location').get(user=user.id).centre
-    #         radius = settings.LOCATION_RADIUS
-    #         user_location_list = list(
-    #             UserLocation.objects.using('location').filter(
-    #                 centre__distance_lte=(center, D(km=radius))
-    #             ).annotate(
-    #                 distance=Distance('centre', center)
-    #             ).order_by(
-    #                 'distance'
-    #             ).values_list(
-    #                 "user", flat=True
-    #             )
-    #         )
-    #         user_provider_list = list(
-    #             User.objects.filter(
-    #                 is_superuser=False,
-    #                 id__in=user_location_list,
-    #                 user_mode__is_provider=True
-    #             ).order_by(
-    #                 "-userrating_user__rating"
-    #             ).values_list(
-    #                 'id', flat=True
-    #             )
-    #         )
-    #         on_going_txn = list(Transaction.objects.filter(
-    #             Q(seeker__in=user_provider_list) | Q(provider__in=user_provider_list)
-    #         ).filter(
-    #             is_completed=False
-    #         ).values_list('seeker_id', 'provider_id'))
-    #         on_going_users = [usr for user in on_going_txn for usr in user]
-    #
-    #         user_list = [str(id) for id in user_provider_list if id not in on_going_users]
-    #
-    #         # user_list = [str(id) for id in user_provider_list ]
-    #         return user_list
-    #     except:
-    #         return
+    @database_sync_to_async
+    def create_on_req_user(self, provider):
+        try:
+            UserOnTxnRequest.objects.get(user_id=provider)
+            logger.info(f" ON REQ {provider} created")
+        except UserOnTxnRequest.DoesNotExist:
+            UserOnTxnRequest.objects.create(user_id=provider)
+            logger.info(f" ON REQ {provider} created")
+        return None
 
-    # @database_sync_to_async
-    # def update_provider_responses(self, seeker_id, user_list):
-    #     seeker = User.objects.get(id=seeker_id)
-    #     for user_ in user_list:
-    #         provider = User.objects.get(id=user_[0])
-    #         duration = user_[2] - user_[1]
-    #         UserTransactionResponse.objects.create(
-    #             seeker=seeker,
-    #             provider=provider,
-    #             response_duration=duration
-    #         )
-    #     return
+    @database_sync_to_async
+    def delete_on_req_user(self, provider):
+        try:
+            UserOnTxnRequest.objects.get(user_id=provider).delete()
+            logger.info(" ON REQ {provider} deleted")
+        except:
+            logger.warning("err")
+        return None
 
-    # async def delayed_message_seeker(self, receive_dict):
-    #     for i in range(0, 10):
-    #         await asyncio.sleep(1)
-    #         if cache.get(f'{receive_dict["data"]["seeker"]}-request') is None:
-    #             break
-    #         if cache.get(f'{receive_dict["data"]["seeker"]}') is None:
-    #             receive_dict["request"] = "TRANSACTION"
-    #             receive_dict["status"] = "CANCELLED"
-    #             await self.send(text_data=json.dumps({
-    #                 'message': receive_dict, "user": str(self.user.id)
-    #             }))
-    #             await self.channel_layer.group_send(
-    #                 f"{receive_dict['data']['provider']}-room",
-    #                 {
-    #                     'type': 'send_to_receiver_data',
-    #                     'receive_dict': receive_dict,
-    #                 }
-    #             )
-    #             return
-    #     if cache.get(f'{receive_dict["data"]["seeker"]}-request') is not None:
-    #         await self.set_timeout(receive_dict)
-
-    # async def set_timeout0(self, receive_dict):
-    #     state = cache.get(
-    #         f'{receive_dict["data"]["seeker"]}-request',
-    #     )
-    #     if cache.get(
-    #         f'{receive_dict["data"]["seeker"]}-request',
-    #     ) is not None:
-    #         own_provider = receive_dict["data"]["provider"]
-    #         cache_provider = state
-    #         if cache_provider == own_provider:
-    #             receive_dict["status"] = "TIMEOUT"
-    #             await self.channel_layer.group_send(
-    #                 f"{cache_provider}-room",
-    #                 {
-    #                     'type': 'send_to_receiver_data',
-    #                     'receive_dict': receive_dict,
-    #                 }
-    #             )
-    #             receive_dict["status"] = "REJECTED"
-    #             await self.receive_reject(receive_dict)

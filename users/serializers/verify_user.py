@@ -4,6 +4,8 @@ from drf_extra_fields.fields import Base64ImageField
 from utils.helper import get_hash, get_original_hash
 from drf_spectacular.utils import extend_schema_serializer, OpenApiExample, extend_schema_field
 from analytics.serializers import ProviderModeSerializer, SeekerModeSerializer, UserRating, UserSeekerRating
+from txn_credits.models import CreditUser, AccumulatedCredits
+import os, random
 
 
 class AddNidSerializer(serializers.ModelSerializer):
@@ -170,16 +172,18 @@ class SignNidSerializer(serializers.ModelSerializer):
                     "total_deals_count": 0,
                     "transaction_amount": 0.0,
                     "deals_success_rate": 0.0,
-                    "cancel_deals_count": 0
+                    "cancel_deals_count": 0,
                 },
                 "analytics_as_provider": {
                     "rating": 0.0,
                     "total_deals_count": 0,
                     "transaction_amount": 0.0,
                     "deals_success_rate": 0.0,
-                    "cancel_deals_count": 0
+                    "cancel_deals_count": 0,
                 },
                 "is_provider": True,
+                "credit_as_seeker": 0.0,
+                "credit_as_provider": 0.0,
             },
             response_only=True,  # signal that example only applies to responses
         ),
@@ -192,6 +196,8 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
     profile_pic = Base64ImageField(required=False, allow_null=True)
     analytics_as_seeker = serializers.SerializerMethodField()
     analytics_as_provider = serializers.SerializerMethodField()
+    credit_as_seeker = serializers.SerializerMethodField()
+    credit_as_provider = serializers.SerializerMethodField()
 
     class Meta:
         model = models.UserInformation
@@ -203,16 +209,10 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
             "phone_number",
             "analytics_as_seeker",
             "analytics_as_provider",
-
             "is_provider",
-
-            # "transactions",
-            # "deal_success_rate",
-            # "total_amount",
-            # "rating",
-            # "cancelled_deals"
+            "credit_as_seeker",
+            "credit_as_provider",
         )
-        # exclude = ("user","device_id")
         read_only_fields = ("acc_type",)
 
     @extend_schema_field(SeekerModeSerializer)
@@ -251,8 +251,37 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
                 "cancel_deals_count": 0
             }
 
+    def get_credit_as_seeker(self, obj):
+        credit_as_seeker = 0
+        try:
+            user_acc = CreditUser.objects.using("credits").get(
+                user_uid=obj.user.id
+            )
+            if getattr(user_acc, "accumulatedcredits", None) is not None:
+                credit_as_seeker = user_acc.accumulatedcredits.credit_as_seeker
+
+        except :
+            pass
+
+        return credit_as_seeker
+
+    def get_credit_as_provider(self, obj):
+        credit_as_provider = 0
+        try:
+            user_acc = CreditUser.objects.using("credits").get(
+                user_uid=obj.user.id
+            )
+            if getattr(user_acc, "accumulatedcredits", None) is not None:
+                credit_as_provider = user_acc.accumulatedcredits.credit_as_provider
+
+        except:
+            pass
+
+        return credit_as_provider
+
     def to_representation(self, instance):
         rep = super().to_representation(instance)
+        request = self.context.get('request')
 
         if rep.get('is_provider') is None:
             rep['is_provider'] = False
@@ -261,8 +290,8 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
             "url": None,
             "hash": None
         }
+
         if instance.profile_pic:
-            request = self.context.get('request')
             try:
                 image = request.build_absolute_uri(instance.profile_pic.url)
                 url_hash = instance.profile_pic_hash
@@ -273,5 +302,13 @@ class UserInformationRetrieveSerializer(serializers.ModelSerializer):
                 "url": image,
                 "hash": url_hash
             }
+        else:
+            # serving default images
+            file_path = f"/media/avatars/{random.randrange(1, 9)}.png"
+            if os.path.exists(f"{os.path.abspath(os.getcwd())}{file_path}"):
+                rep['profile_pic'] = {
+                    "url": request.build_absolute_uri(file_path),
+                    "hash": "LsOg6a-S?+S_]}kAtPNI7dbZm?r]"
+                }
 
         return rep

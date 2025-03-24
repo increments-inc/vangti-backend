@@ -31,13 +31,11 @@ class UserInformationViewSet(viewsets.ModelViewSet):
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
     def change_profile(self, request, *args, **kwargs):
-        print(request.data)
         data = request.data
         if data:
             for key in data.copy():
                 if data[key] in ['', "", " ", None]:
                     del data[key]
-        print(request.data)
         user = request.user
         serializer = self.serializer_class(
             instance=user.user_info,
@@ -204,7 +202,6 @@ class UserKYCInformationViewSet(viewsets.ModelViewSet):
 
     def update_kyc_information(self, request, *args, **kwargs):
         instance = self.queryset.get(user=request.user)
-        print(instance)
         serializer = self.get_serializer_class()(
             instance, data=self.request.data, partial=True)
         if serializer.is_valid():

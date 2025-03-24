@@ -9,7 +9,7 @@ from users.models import User
 import math
 from django.contrib.gis.geos import GEOSGeometry
 from django.db import connection
-import re
+from utils.log import logger
 
 
 def get_user_location_instance(user_id):
@@ -17,7 +17,6 @@ def get_user_location_instance(user_id):
 
 
 def update_user_location_instance(user_id, location_dict):
-    print(location_dict)
     location_instance = get_user_location_instance(user_id)
     location_instance.latitude = location_dict["latitude"]
     location_instance.longitude = location_dict["longitude"]
@@ -41,7 +40,7 @@ def get_user_distance(from_user, to_user):
 
 def polyline_to_latlong(poly_str):
     res = polyline.decode(poly_str, 5)
-    # print("decoded polyline   ", res)
+    # logger.info("decoded polyline   ", res)
 
     return res
 
@@ -151,7 +150,7 @@ def call_maps_api(source, destination):
     directions_url = f"https://maps.googleapis.com/maps/api/directions/json?origin={source}&destination={destination}&key={settings.GOOGLE_MAPS_API_KEY}"
     direction_response = requests.request("GET", directions_url)
     response = direction_response.json()
-    print("DIRECTION API CALLED !!! \n", )
+    logger.info("DIRECTION API CALLED !!! \n", )
 
     return {
         "distance": response["routes"][0]["legs"][0]["distance"]["text"],
@@ -230,17 +229,17 @@ def get_directions(transaction_id, source_dict, destination_dict):
 
     final_segment_poly = segment_polyline(new_ls, interpolated_destination_point)
 
-    print(
-        "Interpolated",
-        segment_poly_source, "\n",
-        final_segment_poly, "\n",
-        interpolated_source_point, interpolated_destination_point,
-
-        new_ls.intersects(Point(23.87291, 90.39078, srid=4326)),
-
-        new_ls.intersects(interpolated_destination_point),
-        new_ls.contains(interpolated_destination_point),
-        new_ls.relate(interpolated_destination_point),
+    logger.info(
+        # "Interpolated",
+        # segment_poly_source, "\n",
+        # final_segment_poly, "\n",
+        # interpolated_source_point, interpolated_destination_point,
+        #
+        # new_ls.intersects(Point(23.87291, 90.39078, srid=4326)),
+        #
+        # new_ls.intersects(interpolated_destination_point),
+        # new_ls.contains(interpolated_destination_point),
+        # new_ls.relate(interpolated_destination_point),
 
         # GEOSGeometry(final_segment_poly[0])[-1].intersects(interpolated_source_point),
         # GEOSGeometry(final_segment_poly[0])[0].intersects(interpolated_source_point),
@@ -400,7 +399,7 @@ def get_directions0(transaction_id, source_dict, destination_dict):
 
     # polyline cut
     ls = poly_obj.linestring
-    print("linestring print", ls)
+    logger.info("linestring logger.info", ls)
 
 
     # source cut
@@ -422,7 +421,7 @@ def get_directions0(transaction_id, source_dict, destination_dict):
     # )
     segment_poly = segment_polyline(ls, interpolated_destination_point)
 
-    print("segment_poly ", GEOSGeometry(segment_poly[0])[0][0], "\n")
+    logger.info("segment_poly ", GEOSGeometry(segment_poly[0])[0][0], "\n")
 
 
 
@@ -441,7 +440,7 @@ def get_directions0(transaction_id, source_dict, destination_dict):
         ls.append(tuple(interpolated_source_point))
     if interpolated_destination_point not in ls:
         ls.append(tuple(interpolated_destination_point))
-    print("here")
+    logger.info("here")
 
     reference_point_start = Point(ls[0])
 
@@ -464,7 +463,7 @@ def get_directions0(transaction_id, source_dict, destination_dict):
     #                            index_interpolated_destination_point:index_interpolated_source_point + 1
     #                            ]
 
-    print(
+    logger.info(
         "Interpolated",
         reference_point_start, "\n",
         # polyline_points_list, "\n",
@@ -481,7 +480,7 @@ def get_directions0(transaction_id, source_dict, destination_dict):
         else:
             duplist.append(point)
 
-    print("duplist ", duplist)
+    logger.info("duplist ", duplist)
     polyline_points_dict = [
         {
             "latitude": point[0],
@@ -510,7 +509,7 @@ def get_directions0(transaction_id, source_dict, destination_dict):
         "duration": f"{duration}",
         "polyline": polyline_points_dict
     }
-    print("duration", duration, distance)
+    logger.info("duration", duration, distance)
 
     return response_json
 

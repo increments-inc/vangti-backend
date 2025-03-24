@@ -76,7 +76,6 @@ def at_transaction_deletion(user, instance):
 def at_transaction_completion(instance):
     # Provider Rating
     total_success_data = total_success(instance.provider, as_provider=True)
-    print(total_success_data)
     #     return {"total_number": total_count, "total_amount": total_data}
     try:
         prov_data = UserRating.objects.get(
@@ -113,25 +112,53 @@ def at_transaction_completion(instance):
     return
 
 
-def at_seeker_rating_update(user):
+def at_seeker_rating_update(txn):
+    prov = txn.provider
     all_reviews = TransactionAsSeekerReview.objects.filter(
-        seeker=user
+        provider=prov
+    ).aggregate(
+        Avg("rating", default=0)
+    )
+    try:
+        prov_data = UserRating.objects.get(
+            user=prov
+        )
+        prov_data.rating = all_reviews["rating__avg"]
+        prov_data.save()
+
+    except UserRating.DoesNotExist:
+        total_success_data = total_success(prov, as_provider=True)
+        UserRating.objects.create(
+            user=prov,
+            no_of_transaction=total_success_data["total_number"],
+            total_amount_of_transaction=total_success_data["total_amount"],
+            rating=all_reviews["rating__avg"]
+        )
+    return
+
+
+def at_provider_rating_update(txn):
+    txn_seeker = txn.seeker
+    all_reviews = TransactionAsProviderReview.objects.filter(
+        seeker=txn_seeker
     ).aggregate(
         Avg("rating", default=0)
     )
     new_rating = (5 + all_reviews["rating__avg"]) / 2
+    if all_reviews["rating__avg"] == 0:
+        new_rating = 5
 
     try:
         seek_data = UserSeekerRating.objects.get(
-            user=user
+            user=txn_seeker
         )
         seek_data.rating = new_rating
         seek_data.save()
 
     except UserSeekerRating.DoesNotExist:
-        total_success_data = total_success(user, as_provider=False)
+        total_success_data = total_success(txn_seeker, as_provider=False)
         UserSeekerRating.objects.create(
-            user=user,
+            user=txn_seeker,
             no_of_transaction=total_success_data["total_number"],
             total_amount_of_transaction=total_success_data["total_amount"],
             rating=new_rating
@@ -140,40 +167,15 @@ def at_seeker_rating_update(user):
     return
 
 
-def at_provider_rating_update(user):
-    all_reviews = TransactionAsProviderReview.objects.filter(
-        provider=user
-    ).aggregate(
-        Avg("rating", default=0)
-    )
-
-    try:
-        prov_data = UserRating.objects.get(
-            user=user
-        )
-        prov_data.rating = all_reviews["rating__avg"]
-        prov_data.save()
-
-    except UserRating.DoesNotExist:
-        total_success_data = total_success(user, as_provider=True)
-        UserRating.objects.create(
-            user=user,
-            no_of_transaction=total_success_data["total_number"],
-            total_amount_of_transaction=total_success_data["total_amount"],
-            rating=all_reviews["rating__avg"]
-        )
-
-    return
-
-
-def at_seeker_abuse_rep_update(user):
+def at_provider_abuse_rep_update(txn):
+    txn_seeker = txn.seeker
     all_reviews = TransactionAsSeekerAbuseReport.objects.filter(
-        seeker=user
+        seeker=txn_seeker
     ).count()
 
     try:
         seek_data = UserSeekerRating.objects.get(
-            user=user
+            user=txn_seeker
         )
         seek_data.abuse_report_count = all_reviews
         seek_data.save()
@@ -184,14 +186,15 @@ def at_seeker_abuse_rep_update(user):
     return
 
 
-def at_provider_abuse_rep_update(user):
+def at_seeker_abuse_rep_update(txn):
+    txn_prov = txn.provider
     all_reviews = TransactionAsProviderAbuseReport.objects.filter(
-        provider=user
+        provider=txn_prov
     ).count()
 
     try:
         prov_data = UserRating.objects.get(
-            user=user
+            user=txn_prov
         )
         prov_data.abuse_report_count = all_reviews
         prov_data.save()

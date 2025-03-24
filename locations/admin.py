@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.apps import apps
+from import_export.admin import ExportActionMixin
 
 
 class MultiDBModelAdmin(admin.ModelAdmin):
@@ -25,7 +26,7 @@ class MultiDBModelAdmin(admin.ModelAdmin):
         )
 
 
-class ListAdminMixin(MultiDBModelAdmin):
+class ListAdminMixin(ExportActionMixin, MultiDBModelAdmin):
     def __init__(self, model, admin_site):
         self.list_display = [
             field.name for field in model._meta.fields if field.name not in ["slug", "password"]

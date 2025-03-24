@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from core.abstract_models import models, BaseModel
 from django.contrib.postgres.fields import ArrayField
 import uuid
-from utils import qr
+from utils.qr import generate_qr
 from django.contrib.sites.models import Site
 from django.core.files import File
 from datetime import datetime
@@ -40,7 +40,7 @@ class Transaction(BaseModel):
         if not self.qr_image and self._state.adding == False:
             self.transaction_pin = generate_transaction_pin()
             url = f"{self.transaction_pin}"
-            image_stream = qr.generate(url)
+            image_stream = generate_qr(url)
             self.qr_image = File(image_stream, name=f"qr.png")
             try:
                 try:

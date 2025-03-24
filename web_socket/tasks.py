@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login
 import requests
 import asyncio
 import json
-from transactions.models import UserTransactionResponse
+from transactions.models import UserTransactionResponse, UserOnTxnRequest
 from datetime import datetime, timedelta
 from users.models import User
 
@@ -18,17 +18,19 @@ from utils.apps.location import get_user_list
 from utils.apps.analytics import get_home_analytics_of_user_set
 from utils.apps.analytics_rating import update_response_times
 from utils.apps.web_socket import send_message_to_user
+from utils.fcm import send_fcm
+from utils.log import logger
 
 
 @shared_task
 def post_timestamp(seeker, provider):
-    print("seeker timestamp")
+    logger.info("seeker timestamp")
     try:
         seeker = User.objects.get(id=seeker)
         provider = User.objects.get(id=provider)
 
         try:
-            print("seeker timestamp")
+            logger.info("seeker timestamp")
 
             txn_response = UserTransactionResponse.objects.get(
                 seeker=seeker,
@@ -37,13 +39,13 @@ def post_timestamp(seeker, provider):
             )
 
         except UserTransactionResponse.DoesNotExist:
-            print("ghsdsd hibi")
+            logger.info("ghsdsd hibi")
             txn_response = UserTransactionResponse.objects.create(
                 seeker=seeker,
                 provider=provider
             )
     except:
-        print("jibi")
+        logger.info("jibi")
         return
 
 
@@ -53,18 +55,18 @@ def update_timestamp(seeker, provider):
         seeker = User.objects.get(id=seeker)
         provider = User.objects.get(id=provider)
         try:
-            print("response timestamp")
+            logger.info("response timestamp")
             txn_response = UserTransactionResponse.objects.filter(
                 seeker=seeker,
                 provider=provider,
                 # created_at__gte=datetime.now() - timedelta(minutes=5),
                 # response_time= None
             ).last()
-            print("timestamp resp", txn_response)
+            logger.info("timestamp resp", txn_response)
             txn_response.response_time = datetime.now()
             txn_response.save()
         except:
-            print("except response timestamp")
+            logger.info("except response timestamp")
 
             # txn_response = UserTransactionResponse.objects.create(
             #     seeker_id=seeker,
@@ -72,26 +74,26 @@ def update_timestamp(seeker, provider):
             # )
             pass
     except:
-        print("in respose exceptsdjhfsjd")
+        logger.info("in respose exceptsdjhfsjd")
         return
 
     # seeker = User.objects.get(id = seeker)
     # provider = User.objects.get(id = provider)
-    # print("response timestamp")
+    # logger.info("response timestamp")
     # txn_response = UserTransactionResponse.objects.filter(
     #     seeker=seeker,
     #     provider=provider,
     #     # created_at__gte=datetime.now() - timedelta(minutes=5),
     #     # response_time= None
     # ).last()
-    # print("timestamp resp",txn_response)
+    # logger.info("timestamp resp",txn_response)
     # txn_response.response_time = datetime.now()
     # txn_response.save()
 
 
 # @shared_task
 def send_own_users_home_analytics(user):
-    print("send own_users_home_analytics")
+    logger.info("send own_users_home_analytics")
     user_set = get_user_list(user)
     rate_data = get_home_analytics_of_user_set(user_set)
     message = {
@@ -100,7 +102,7 @@ def send_own_users_home_analytics(user):
         'data': rate_data
     }
     send_message_to_user(user, message)
-    print("here")
+    logger.info("here")
 # await self.send(text_data=json.dumps({
 #     'message': 'WebSocket connection established.'
 # }))
@@ -120,6 +122,44 @@ def update_providers_timestamps(seeker_id, user_list):
 
         # rating calculation
         update_response_times(provider)
+        # user in request model deletion
+        try:
+            UserOnTxnRequest.objects.filter(user_id=provider).delete()
+            logger.info("deleted obj - user on txn request")
+        except:
+            logger.warning("error: no user found on txn request")
 
     return
 
+
+@shared_task
+def create_on_req_user(provider):
+    try:
+        UserOnTxnRequest.objects.get(user_id=provider)
+        logger.info("user is already on the user on txn request model")
+    except UserOnTxnRequest.DoesNotExist:
+        UserOnTxnRequest.objects.create(user_id=provider)
+        logger.info("user is added on user on txn request")
+    return
+
+
+@shared_task
+def delete_on_req_user_task(provider):
+    try:
+        UserOnTxnRequest.objects.get(user_id=provider).delete()
+        logger.info("deleted on task")
+    except:
+        UserOnTxnRequest.objects.filter(user_id=provider).delete()
+        logger.warning("deleted on task")
+    return
+
+
+@shared_task
+def send_push_notif(user_id, data):
+    user = User.objects.get(id=user_id)
+
+    try:
+        send_fcm(user, data)
+    except Exception as e:
+        pass
+    return
