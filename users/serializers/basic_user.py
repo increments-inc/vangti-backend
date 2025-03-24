@@ -1,5 +1,5 @@
 import contextlib, json, random, pyotp, re
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate, login, get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.contrib.auth.validators import UnicodeUsernameValidator
@@ -23,19 +23,62 @@ import requests
 from django.utils.text import gettext_lazy as _
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import Token, RefreshToken, AccessToken
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.hashers import PBKDF2PasswordHasher
+from django.core.validators import RegexValidator
+from django.utils import timezone
+import firebase_admin
+from firebase_admin import auth, credentials
+from django.core.exceptions import ValidationError
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    phone_number = serializers.CharField(required=True)
+    firebase_token = serializers.CharField(required=True)
+    device_token = serializers.CharField(required=False)
+
+    def validate(self, attrs):
+        try:
+            # Verify Firebase token
+            if not firebase_admin._apps:
+                cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS)
+                firebase_admin.initialize_app(cred)
+
+            decoded_token = auth.verify_id_token(attrs['firebase_token'])
+            phone_number = decoded_token.get('phone_number')
+
+            if phone_number != attrs['phone_number']:
+                raise serializers.ValidationError("Phone number mismatch")
+
+            # Get or create user
+            try:
+                user = User.objects.get(phone_number=phone_number)
+            except User.DoesNotExist:
+                user = User.objects.create(phone_number=phone_number)
+                models.UserInformation.objects.create(user=user)
+
+            # Update device token if provided
+            if attrs.get('device_token'):
+                user.user_info.device_token = attrs['device_token']
+                user.user_info.save()
+
+            # Generate token
+            refresh = self.get_token(user)
+            data = {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'is_active': user.is_active,
+                'device': str(datetime.now())
+            }
+            return data
+
+        except Exception as e:
+            raise serializers.ValidationError(str(e))
+
     @classmethod
     def get_token(cls, user):
-        # blacklist previous referesh token
-        # for token in OutstandingToken.objects.filter(user=user):
-        #     if not hasattr(token, 'blacklistedtoken'):
-        #         BlacklistedToken.objects.create(token=token)
-
         token = super().get_token(user)
-
-        # Add custom claims
         token["is_active"] = user.is_active
         token["device"] = str(datetime.now())
         return token
@@ -156,61 +199,105 @@ class RegistrationOTPVerifySerializer(serializers.ModelSerializer):
         return instance
 
 
-class RegistrationSerializer(serializers.ModelSerializer):
-    pin = serializers.CharField()
-    phone_number = serializers.CharField()
-    name = serializers.CharField(allow_null=True, required=False)
+User = get_user_model()
 
-    class Meta:
-        model = models.User
-        fields = ("phone_number", "pin", "name")
+class FirebasePhoneAuthSerializer(serializers.Serializer):
+    phone_number = serializers.CharField(max_length=15)
+    firebase_token = serializers.CharField(max_length=1000)
+    device_token = serializers.CharField(required=False)
+
+    def validate(self, data):
+        try:
+            # Initialize Firebase Admin SDK if not already initialized
+            if not firebase_admin._apps:
+                cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS)
+                firebase_admin.initialize_app(cred)
+
+            # Verify the Firebase token
+            decoded_token = auth.verify_id_token(data['firebase_token'])
+            phone_number = decoded_token.get('phone_number')
+
+            if phone_number != data['phone_number']:
+                raise serializers.ValidationError("Phone number mismatch")
+
+            return data
+        except Exception as e:
+            raise serializers.ValidationError(str(e))
 
     def create(self, validated_data):
-        phone_number = validated_data.pop("phone_number", None)
-        pin = validated_data.pop("pin", None)
-        name = validated_data.get("name", None)
-        time_now = datetime.now()
-        reg = models.RegistrationOTPModel.objects.filter(
-            phone_number=phone_number,
-            is_active=True
-        )
-        if not reg.exists():
-            return -1
-        reg = reg.last()
+        phone_number = validated_data.get('phone_number')
+        device_token = validated_data.get('device_token')
+        
+        try:
+            user = User.objects.get(phone_number=phone_number)
+            # Update device token if provided
+            if device_token:
+                user.user_info.device_token = device_token
+                user.user_info.save()
+        except User.DoesNotExist:
+            user = User.objects.create(phone_number=phone_number)
+            # Create user info with device token if provided
+            if device_token:
+                models.UserInformation.objects.create(user=user, device_token=device_token)
+            else:
+                models.UserInformation.objects.create(user=user)
+        return user
 
-        PINValidator().validate(password=pin)
+
+class RegistrationSerializer(serializers.ModelSerializer):
+    phone_number = serializers.CharField(max_length=15)
+    firebase_token = serializers.CharField(max_length=1000, required=True)
+    pin = serializers.CharField(required=True)
+    device_token = serializers.CharField(required=False)
+
+    class Meta:
+        model = User
+        fields = ('phone_number', 'pin', 'firebase_token', 'device_token')
+
+    def validate(self, attrs):
+        # Verify Firebase token
+        try:
+            if not firebase_admin._apps:
+                cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS)
+                firebase_admin.initialize_app(cred)
+
+            decoded_token = auth.verify_id_token(attrs['firebase_token'])
+            phone_number = decoded_token.get('phone_number')
+
+            if phone_number != attrs['phone_number']:
+                raise serializers.ValidationError({"phone_number": "Phone number mismatch"})
+        except Exception as e:
+            raise serializers.ValidationError({"firebase_token": str(e)})
+
+        # Validate PIN
+        try:
+            PINValidator().validate(password=attrs['pin'])
+        except ValidationError as e:
+            raise serializers.ValidationError({"pin": str(e)})
+
+        return attrs
+
+    def create(self, validated_data):
+        phone_number = validated_data.pop('phone_number')
+        pin = validated_data.pop('pin')
+        device_token = validated_data.pop('device_token', None)
+        validated_data.pop('firebase_token')
+
+        # Create user
+        user = User.objects.create(phone_number=phone_number)
+        
+        # Set PIN
         hasher = PBKDF2PasswordHasher()
         hashed_pin = hasher.encode(pin, settings.SALT)
-        if reg.is_reset:
-            user = models.User.objects.get(
-                phone_number=phone_number
-            )
-            user.pin = hashed_pin
-            user.save()
+        user.pin = hashed_pin
+        user.save()
+
+        # Create user info with device token
+        if device_token:
+            models.UserInformation.objects.create(user=user, device_token=device_token)
         else:
-            user = models.User.objects.create(
-                phone_number=phone_number,
-                pin=hashed_pin
-            )
-            user.user_info.person_name = name
-            user.user_info.save()
-        # try:
-        #     user = models.User.objects.get(
-        #         phone_number=phone_number
-        #     )
-        #     user.pin = hashed_pin
-        #     user.save()
-        # except models.User.DoesNotExist:
-        #     user = models.User.objects.create(
-        #         phone_number=phone_number,
-        #         pin=hashed_pin
-        #     )
-        # user.user_info.person_name = name
-        # user.user_info.save()
-        # delete reg otp
-        models.RegistrationOTPModel.objects.filter(
-            phone_number=phone_number
-        ).delete()
+            models.UserInformation.objects.create(user=user)
+
         return user
 
 
@@ -218,7 +305,7 @@ class PINSerializer(serializers.ModelSerializer):
     new_pin = serializers.CharField()
 
     class Meta:
-        model = models.User
+        model = get_user_model()
         fields = ("pin", "new_pin")
 
     def update(self, instance, validated_data):
@@ -251,7 +338,7 @@ class UserPINSerializer(serializers.Serializer):
         pin = validated_data.pop("pin", None)
         device_token = validated_data.pop("device_token", None)
         try:
-            user = models.User.objects.get(
+            user = get_user_model().objects.get(
                 phone_number=phone_number,
                 user_info__device_token=device_token
             )
@@ -304,7 +391,7 @@ class UserPINSerializer(serializers.Serializer):
 
 class UserDeactivateSerializer(serializers.ModelSerializer):
     class Meta:
-        model = models.User
+        model = get_user_model()
         fields = ("is_active", "pin")
 
     def update(self, instance, validated_data):
@@ -317,12 +404,12 @@ class UserDeactivateSerializer(serializers.ModelSerializer):
             return -2
         hasher = PBKDF2PasswordHasher()
         hashed_pin = hasher.encode(pin, settings.SALT)
-        if user.pin != hashed_pin:
+        if instance.pin != hashed_pin:
             return -1
-        user.is_active = is_active
-        user.save()
+        instance.is_active = is_active
+        instance.save()
 
-        return user
+        return instance
 
 
 # class UserInformationSerializer(serializers.ModelSerializer):
@@ -342,14 +429,14 @@ class PhoneRegisterSerializer(serializers.ModelSerializer):
     device_token = serializers.CharField(write_only=True)
 
     class Meta:
-        model = models.User
+        model = get_user_model()
         fields = ("id", "phone_number", "device_id", 'device_token',)
         read_only_fields = ["id", "device_id"]
 
     def create(self, validated_data):
         phone_number = validated_data.pop("phone_number", None)
         device_id = validated_data.pop("device_id", None)
-        user = models.User.objects.create(
+        user = get_user_model().objects.create(
             phone_number=phone_number
         )
         # user.user_info.device_token =
