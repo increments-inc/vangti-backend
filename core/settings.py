@@ -6,6 +6,7 @@ from datetime import timedelta
 import firebase_admin
 from firebase_admin import firestore, credentials
 from celery.schedules import crontab
+from django.contrib import admin
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -18,6 +19,9 @@ SALT = "random"
 ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS").split(",")
 
 INSTALLED_APPS = [
+    # jazzmin must be before django.contrib.admin
+    'jazzmin',
+    
     # async
     'daphne',
 
@@ -359,4 +363,90 @@ SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
 
 # log file location
 LOG_DIR = config("LOG_LOCATION")
+
+# Jazzmin Settings
+JAZZMIN_SETTINGS = {
+    # title of the window (Will default to current_admin_site.site_title if absent or None)
+    "site_title": "Vangti Admin",
+    # Title on the login screen (19 chars max) (Will default to current_admin_site.site_header if absent or None)
+    "site_header": "Vangti",
+    # Title on the brand (19 chars max) (Will default to current_admin_site.site_header if absent or None)
+    "site_brand": "Vangti",
+    # Logo to use for your site, must be present in static files, used for brand on top left
+    "site_logo": None,
+    # Welcome text on the login screen
+    "welcome_sign": "Welcome to Vangti Admin",
+    # Copyright on the footer
+    "copyright": "Vangti Ltd",
+    # The model admin to search from the search bar, search bar omitted if excluded
+    "search_model": "users.User",
+    # Field name on user model that contains avatar ImageField/URLField/Charfield or a callable that receives the user
+    "user_avatar": None,
+    ############
+    # Top Menu #
+    ############
+    # Links to put along the top menu
+    "topmenu_links": [
+        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "View Site", "url": "/", "new_window": True},
+    ],
+    #############
+    # Side Menu #
+    #############
+    # Whether to display the side menu
+    "show_sidebar": True,
+    # Whether to aut expand the menu
+    "navigation_expanded": False,
+    # Custom icons for side menu apps/models
+    "icons": {
+        "auth": "fas fa-users-cog",
+        "auth.user": "fas fa-user",
+        "auth.Group": "fas fa-users",
+        "users.User": "fas fa-user-circle",
+        "users.UserInformation": "fas fa-user-info",
+        "users.UserFirebaseToken": "fas fa-mobile-alt",
+        "transactions.UserTransaction": "fas fa-exchange-alt",
+        "transactions.UserTransactionResponse": "fas fa-reply",
+        "locations.UserLocation": "fas fa-map-marker-alt",
+        "analytics.Analytics": "fas fa-chart-line",
+        "analytics.UserRating": "fas fa-star",
+        "analytics.AppFeedback": "fas fa-comment",
+        "subscription.Subscription": "fas fa-credit-card",
+        "user_setting.UserSetting": "fas fa-cog",
+        "user_setting.VangtiTerms": "fas fa-file-contract",
+    },
+    # Icons that are used when one is not manually specified
+    "default_icon_parents": "fas fa-folder",
+    "default_icon_children": "fas fa-circle",
+    #############
+    # UI Tweaks #
+    #############
+    # Relative paths to custom CSS/JS files (must be present in static files)
+    "custom_css": None,
+    "custom_js": None,
+    # Whether to show the UI customizer on the sidebar
+    "show_ui_builder": False,
+    ###############
+    # Change view #
+    ###############
+    # Render out the change view as a single form, or in tabs, current options are
+    # - single
+    # - horizontal_tabs (default)
+    # - vertical_tabs
+    # - collapsible
+    # - carousel
+    "changeform_format": "horizontal_tabs",
+    # override change forms on a per modeladmin basis
+    "changeform_format_overrides": {
+        "users.User": "collapsible",
+        "transactions.UserTransaction": "vertical_tabs",
+    },
+    # Add a language dropdown into the admin
+    "language_chooser": False,
+}
+
+# Custom admin site title
+admin.site.site_header = 'Vangti Admin'
+admin.site.site_title = 'Vangti Admin Portal'
+admin.site.index_title = 'Welcome to Vangti Admin Portal'
 
